@@ -29,6 +29,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -44,14 +45,17 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewScreenSizes
 import androidx.compose.ui.unit.dp
 import com.tomcvt.goready.ui.theme.GoReadyTheme
+import com.tomcvt.goready.viewmodel.AlarmViewModel
+import com.tomcvt.goready.viewmodel.UiState
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
+            val alarmViewModel: AlarmViewModel = AlarmViewModelProvider.provideAlarmViewModel(this)
             GoReadyTheme {
-                GoReadyApp()
+                GoReadyApp(alarmViewModel)
             }
         }
     }
@@ -59,7 +63,7 @@ class MainActivity : ComponentActivity() {
 
 @PreviewScreenSizes
 @Composable
-fun GoReadyApp() {
+fun GoReadyApp(viewModel: AlarmViewModel) {
     var currentDestination by rememberSaveable { mutableStateOf(AppDestinations.HOME) }
 
     NavigationSuiteScaffold(
@@ -119,8 +123,11 @@ fun AlarmList(modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun AddAlarmView(modifier: Modifier = Modifier) {
+fun AddAlarmView(viewModel: AlarmViewModel, modifier: Modifier = Modifier) {
     val context = LocalContext.current
+
+    val uiState by viewModel.uiState.collectAsState()
+
     var selectedDays by remember {
         mutableStateOf(setOf<DayOfWeek>())
     }
@@ -180,10 +187,25 @@ fun AddAlarmView(modifier: Modifier = Modifier) {
                 }
             }
 
-            Button(onClick = {showModal = true}) {
+            Button(onClick = {showModal = true,
+            DraftAlarm}) {
                 Text("Save Alarm")
             }
         }
+        val message = when (uiState) {
+            is UiState.Success -> (uiState as UiState.Success).message
+            is UiState.Error -> (uiState as UiState.Error).message
+            else -> null
+        }
+
+        message?.let { AlarmAddedModal(
+            it,
+            onDismiss = { showModal = false },
+            hour = selectedHour,
+            minute = selectedMinute,
+            days = selectedDays
+        ) }
+        /*
         if (showModal) {
             AlarmAddedModal(
                 onDismiss = { showModal = false },
@@ -192,11 +214,14 @@ fun AddAlarmView(modifier: Modifier = Modifier) {
                 days = selectedDays
             )
         }
+         */
+
+
     }
 }
 
 @Composable
-fun AlarmAddedModal(modifier: Modifier = Modifier, onDismiss: () -> Unit , hour : Int, minute: Int, days: Set<DayOfWeek>) {
+fun AlarmAddedModal(text: String, modifier: Modifier = Modifier, onDismiss: () -> Unit , hour : Int, minute: Int, days: Set<DayOfWeek>) {
     Box(
         modifier = Modifier
             .fillMaxSize()

@@ -18,5 +18,6 @@ data class AlarmEntity(
     val soundUri: String,
     val snoozeEnabled: Boolean,
     val snoozeDurationMinutes: Int,
-    val snoozeMaxCount: Int
+    val snoozeMaxCount: Int,
+    val systemHookId: Int? = null
 )
