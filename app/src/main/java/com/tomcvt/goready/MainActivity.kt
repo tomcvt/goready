@@ -5,8 +5,10 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.absoluteOffset
@@ -19,6 +21,8 @@ import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
@@ -26,11 +30,14 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
@@ -117,8 +124,14 @@ fun AddAlarmView(modifier: Modifier = Modifier) {
     var selectedDays by remember {
         mutableStateOf(setOf<DayOfWeek>())
     }
-    var selectedHour: Int = 8
-    var selectedMinute: Int = 30
+    var showModal by remember {mutableStateOf(false)}
+    var selectedHour by remember {mutableIntStateOf(8)}
+    var selectedMinute by remember {mutableIntStateOf(30)}
+    // Temporary variables to hold selected time from the picker
+    // These will be updated when the user selects a time
+    // and then saved to the state variables above when confirmed
+    var tempSelectedHour = 8
+    var tempSelectedMinute = 30
     val picker = TimePickerDialog(
         context,
         { _, hour, minute ->
@@ -129,41 +142,86 @@ fun AddAlarmView(modifier: Modifier = Modifier) {
         30,
         true
     )
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        Text(
-            "Selected time: %02d:%02d".format(selectedHour, selectedMinute),
+    Box (modifier = modifier) {
+        Column(
             modifier = Modifier
-                .absoluteOffset(y = 50.dp)
-                .padding(16.dp)
-                .clickable {
-                    picker.show()
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Card(
+                elevation = CardDefaults.cardElevation(8.dp),
+                modifier = Modifier.padding(24.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFE0E0E0))
+            ) {
+            Text(
+                "%02d:%02d".format(selectedHour, selectedMinute),
+                modifier = Modifier
+                    .padding(16.dp)
+                    .clickable {
+                        picker.show()
+                    }
+            )
+            }
+            Row {
+                DayOfWeek.values().forEach { day ->
+                    FilterChip(
+                        selected = day in selectedDays,
+                        onClick = {
+                            selectedDays =
+                                if (day in selectedDays)
+                                    selectedDays - day
+                                else
+                                    selectedDays + day
+                        },
+                        label = { Text(day.name.take(1)) }
+                    )
                 }
-        )
+            }
 
-        Row {
-            DayOfWeek.values().forEach { day ->
-                FilterChip(
-                    selected = day in selectedDays,
-                    onClick = {
-                        selectedDays =
-                            if (day in selectedDays)
-                                selectedDays - day
-                            else
-                                selectedDays + day
-                    },
-                    label = { Text(day.name.take(1)) }
-                )
+            Button(onClick = {showModal = true}) {
+                Text("Save Alarm")
             }
         }
+        if (showModal) {
+            AlarmAddedModal(
+                onDismiss = { showModal = false },
+                hour = selectedHour,
+                minute = selectedMinute,
+                days = selectedDays
+            )
+        }
+    }
+}
 
-        Button(onClick = {}) {
-            Text("Save Alarm")
+@Composable
+fun AlarmAddedModal(modifier: Modifier = Modifier, onDismiss: () -> Unit , hour : Int, minute: Int, days: Set<DayOfWeek>) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.5f))
+            .clickable { onDismiss() },
+        contentAlignment = Alignment.Center
+    ) {
+        Card(
+            modifier = Modifier.clickable(enabled = false) {},
+            elevation = CardDefaults.cardElevation(8.dp)
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier.padding(24.dp)
+            ) {
+                Text(
+                    text = "Alarm set for %02d:%02d on %s".format(
+                        hour,
+                        minute,
+                        if (days.isEmpty()) "no days" else days.joinToString { it.name }
+                    )
+                )
+                Button(onClick = onDismiss) { Text("OK") }
+            }
         }
     }
 }
