@@ -3,9 +3,10 @@ package com.tomcvt.goready.manager
 import com.tomcvt.goready.DayOfWeek
 import com.tomcvt.goready.data.AlarmEntity
 import com.tomcvt.goready.domain.AlarmDraft
+import com.tomcvt.goready.domain.SimpleAlarmDraft
 import com.tomcvt.goready.repository.AlarmRepository
 
-class AlarmManager(private val repository: AlarmRepository, private val systemScheduler: SystemAlarmScheduler) {
+open class AlarmManager(private val repository: AlarmRepository, private val systemScheduler: SystemAlarmScheduler) {
     suspend fun createAlarm(draft: AlarmDraft) {
         // 1. Convert draft → entity
         val entity = AlarmEntity(
@@ -13,7 +14,13 @@ class AlarmManager(private val repository: AlarmRepository, private val systemSc
             minute = draft.minute,
             label = draft.label,
             repeatDays = convertDaysOfWeekSet(draft.repeatDays),
-            enabled = true
+            isEnabled = true,
+            task = draft.task,
+            taskData = draft.taskData,
+            soundUri = draft.soundUri,
+            snoozeEnabled = draft.snoozeEnabled,
+            snoozeDurationMinutes = draft.snoozeDurationMinutes,
+            snoozeMaxCount = draft.snoozeMaxCount
         )
 
         // 2. Save to DB
@@ -23,20 +30,20 @@ class AlarmManager(private val repository: AlarmRepository, private val systemSc
         systemScheduler.scheduleAlarm(entity)
     }
 
-    suspend fun createSimpleAlarm(draft: AlarmDraft) {
+    suspend fun createSimpleAlarm(draft: SimpleAlarmDraft) {
         // 1. Convert draft → entity
         val entity = AlarmEntity(
             hour = draft.hour,
             minute = draft.minute,
-            label = draft.label,
+            label = null,
             repeatDays = convertDaysOfWeekSet(draft.repeatDays),
             isEnabled = true,
             task = "None",
             taskData = null,
-            soundUri = draft.soundUri,
-            snoozeEnabled = draft.snoozeEnabled,
-            snoozeDurationMinutes = draft.snoozeDurationMinutes,
-            snoozeMaxCount = draft.snoozeMaxCount
+            soundUri = null,
+            snoozeEnabled = false,
+            snoozeDurationMinutes = null,
+            snoozeMaxCount = null
         )
 
         // 2. Save to DB

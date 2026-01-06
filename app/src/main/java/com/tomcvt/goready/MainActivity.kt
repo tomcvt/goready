@@ -44,8 +44,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewScreenSizes
 import androidx.compose.ui.unit.dp
+import com.tomcvt.goready.domain.SimpleAlarmDraft
 import com.tomcvt.goready.ui.theme.GoReadyTheme
 import com.tomcvt.goready.viewmodel.AlarmViewModel
+import com.tomcvt.goready.viewmodel.AlarmViewModelProvider
 import com.tomcvt.goready.viewmodel.UiState
 
 class MainActivity : ComponentActivity() {
@@ -61,7 +63,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@PreviewScreenSizes
+//@PreviewScreenSizes
 @Composable
 fun GoReadyApp(viewModel: AlarmViewModel) {
     var currentDestination by rememberSaveable { mutableStateOf(AppDestinations.HOME) }
@@ -100,7 +102,7 @@ fun GoReadyApp(viewModel: AlarmViewModel) {
                 )
             }
             if (currentDestination == AppDestinations.ADD_ALARM) {
-                AddAlarmView(Modifier.padding(innerPadding))
+                AddAlarmView(viewModel, Modifier.padding(innerPadding))
             }
         }
     }
@@ -137,8 +139,6 @@ fun AddAlarmView(viewModel: AlarmViewModel, modifier: Modifier = Modifier) {
     // Temporary variables to hold selected time from the picker
     // These will be updated when the user selects a time
     // and then saved to the state variables above when confirmed
-    var tempSelectedHour = 8
-    var tempSelectedMinute = 30
     val picker = TimePickerDialog(
         context,
         { _, hour, minute ->
@@ -162,14 +162,14 @@ fun AddAlarmView(viewModel: AlarmViewModel, modifier: Modifier = Modifier) {
                 modifier = Modifier.padding(24.dp),
                 colors = CardDefaults.cardColors(containerColor = Color(0xFFE0E0E0))
             ) {
-            Text(
-                "%02d:%02d".format(selectedHour, selectedMinute),
-                modifier = Modifier
-                    .padding(16.dp)
-                    .clickable {
-                        picker.show()
-                    }
-            )
+                Text(
+                    "%02d:%02d".format(selectedHour, selectedMinute),
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .clickable {
+                            picker.show()
+                        }
+                )
             }
             Row {
                 DayOfWeek.values().forEach { day ->
@@ -187,8 +187,14 @@ fun AddAlarmView(viewModel: AlarmViewModel, modifier: Modifier = Modifier) {
                 }
             }
 
-            Button(onClick = {showModal = true,
-            DraftAlarm}) {
+            Button(onClick = {showModal = true
+                val newDraftAlarm = SimpleAlarmDraft(
+                    hour = selectedHour,
+                    minute = selectedMinute,
+                    repeatDays = selectedDays
+                )
+                viewModel.saveSimpleAlarm(newDraftAlarm)
+            }) {
                 Text("Save Alarm")
             }
         }
@@ -198,13 +204,18 @@ fun AddAlarmView(viewModel: AlarmViewModel, modifier: Modifier = Modifier) {
             else -> null
         }
 
-        message?.let { AlarmAddedModal(
-            it,
-            onDismiss = { showModal = false },
-            hour = selectedHour,
-            minute = selectedMinute,
-            days = selectedDays
-        ) }
+        if (showModal) {
+            message?.let {
+                AlarmAddedModal(
+                    it,
+                    onDismiss = { showModal = false },
+                    hour = selectedHour,
+                    minute = selectedMinute,
+                    days = selectedDays
+                )
+            }
+        }
+
         /*
         if (showModal) {
             AlarmAddedModal(
@@ -221,7 +232,7 @@ fun AddAlarmView(viewModel: AlarmViewModel, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun AlarmAddedModal(text: String, modifier: Modifier = Modifier, onDismiss: () -> Unit , hour : Int, minute: Int, days: Set<DayOfWeek>) {
+fun AlarmAddedModal(text: String?, modifier: Modifier = Modifier, onDismiss: () -> Unit , hour : Int, minute: Int, days: Set<DayOfWeek>) {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -238,6 +249,7 @@ fun AlarmAddedModal(text: String, modifier: Modifier = Modifier, onDismiss: () -
                 verticalArrangement = Arrangement.spacedBy(16.dp),
                 modifier = Modifier.padding(24.dp)
             ) {
+                Text(text = text ?: "No vievModel action message")
                 Text(
                     text = "Alarm set for %02d:%02d on %s".format(
                         hour,
@@ -271,6 +283,6 @@ fun GreetingPreview() {
 @Composable
 fun AddAlarmViewPreview() {
     GoReadyTheme {
-        AddAlarmView()
+        //AddAlarmView(dummyViewModel)
     }
 }

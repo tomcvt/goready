@@ -6,7 +6,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import androidx.annotation.RequiresPermission
-import com.tomcvt.goready.AlarmReceiver
+import com.tomcvt.goready.manager.AlarmReceiver
 import com.tomcvt.goready.data.AlarmEntity
 import java.util.Calendar
 
@@ -45,6 +45,12 @@ class SystemAlarmScheduler(private val context: Context) {
         } catch (e: SecurityException) {
             throw SecurityException("SCHEDULE_EXACT_ALARM permission is required to schedule exact alarms.", e)
         }*/
+
+        /*
+        val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
+        context.startActivity(intent)
+        //later ping user to settings if not granted
+         */
         try {
             alarmManager.setExactAndAllowWhileIdle(
                 AlarmManager.RTC_WAKEUP,
