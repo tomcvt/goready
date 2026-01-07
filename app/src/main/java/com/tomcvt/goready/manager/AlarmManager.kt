@@ -55,4 +55,10 @@ open class AlarmManager(private val repository: AlarmRepository, private val sys
         systemScheduler.scheduleAlarm(entity)
     }
 
+    suspend fun deleteAlarm(alarm: AlarmEntity) {
+        repository.deleteAlarm(alarm)
+        systemScheduler.cancelAlarm(alarm)
+
+    }
+
 }

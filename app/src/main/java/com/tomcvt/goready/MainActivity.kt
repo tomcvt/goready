@@ -20,6 +20,7 @@ import androidx.compose.material.icons.filled.AccountBox
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -29,6 +30,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -44,35 +46,118 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewScreenSizes
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import com.tomcvt.goready.data.AlarmDatabase
 import com.tomcvt.goready.domain.SimpleAlarmDraft
+import com.tomcvt.goready.manager.AlarmManager
+import com.tomcvt.goready.manager.SystemAlarmScheduler
+import com.tomcvt.goready.preview.PreviewAlarms2
+import com.tomcvt.goready.repository.AlarmRepository
+import com.tomcvt.goready.ui.composables.AlarmAddedModal
 import com.tomcvt.goready.ui.composables.AlarmList
+import com.tomcvt.goready.ui.composables.HomeScreen
+import com.tomcvt.goready.ui.navigation.LocalRootNavigator
+import com.tomcvt.goready.ui.navigation.RootContent
+import com.tomcvt.goready.ui.navigation.RootNavigatorImpl
+import com.tomcvt.goready.ui.navigation.RootTab
 import com.tomcvt.goready.ui.theme.GoReadyTheme
 import com.tomcvt.goready.viewmodel.AlarmViewModel
+import com.tomcvt.goready.viewmodel.AlarmViewModelFactory
 import com.tomcvt.goready.viewmodel.AlarmViewModelProvider
+import com.tomcvt.goready.viewmodel.LocalAlarmViewModel
 import com.tomcvt.goready.viewmodel.UiState
 import java.time.DayOfWeek
 
 class MainActivity : ComponentActivity() {
+    lateinit var alarmManager: AlarmManager
+        private set
+
+    lateinit var alarmViewModelFactory: AlarmViewModelFactory
+        private set
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        val db = AlarmDatabase.getDatabase(this)
+        val repository = AlarmRepository(db.alarmDao())
+        alarmManager = AlarmManager(repository, SystemAlarmScheduler(this))
+        alarmViewModelFactory = AlarmViewModelFactory(alarmManager)
+
         enableEdgeToEdge()
         setContent {
             val alarmViewModel: AlarmViewModel = AlarmViewModelProvider.provideAlarmViewModel(this)
-            GoReadyTheme {
-                GoReadyApp(alarmViewModel)
+            val rootNavigator = remember { RootNavigatorImpl(start = RootTab.HOME) }
+            CompositionLocalProvider(
+                LocalAlarmViewModel provides alarmViewModel,
+                LocalRootNavigator provides rootNavigator
+            ) {
+                GoReadyTheme {
+                    GoReadyApp(alarmViewModelFactory)
+                }
             }
+
         }
     }
 }
 
 //@PreviewScreenSizes
 @Composable
-fun GoReadyApp(viewModel: AlarmViewModel) {
-    var currentDestination by rememberSaveable { mutableStateOf(AppDestinations.HOME) }
+fun GoReadyApp(alarmViewModelFactory: AlarmViewModelFactory) {
+    var currentDestination by rememberSaveable { mutableStateOf(RootTab.HOME) }
+
+    val localRootNavigator = LocalRootNavigator.current
+
+    val rootNavController = rememberNavController()
+
 
     NavigationSuiteScaffold(
         navigationSuiteItems = {
-            AppDestinations.entries.forEach {
+            RootTab.entries.forEach { tab ->
+                item(
+                    icon = { Icon(tab.icon, contentDescription = tab.label) },
+                    label = { Text(tab.label) },
+                    selected = false, // NavController decides this
+                    onClick = {
+                        rootNavController.navigate(tab.name) {
+                            popUpTo(rootNavController.graph.startDestinationId) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    }
+                )
+            }
+        }
+    ) {
+        Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+            NavHost(
+                navController = rootNavController,
+                startDestination = RootTab.HOME.name,
+                modifier = Modifier.padding(innerPadding)
+            ) {
+                composable(RootTab.HOME.name) {
+                    HomeScreen()
+                }
+                composable(RootTab.ALARMS.name) {
+                    AlarmsNavHost()
+                }
+                composable(RootTab.ADD_ALARM.name) {
+                    AddAlarmScreen()
+                }
+                composable(RootTab.SETTINGS.name) {
+                    SettingsScreen()
+                }
+            }
+        }
+    }
+
+    NavigationSuiteScaffold(
+        navigationSuiteItems = {
+            RootTab.entries.forEach {
                 item(
                     icon = {
                         Icon(
@@ -82,181 +167,27 @@ fun GoReadyApp(viewModel: AlarmViewModel) {
                     },
                     label = { Text(it.label) },
                     selected = it == currentDestination,
-                    onClick = { currentDestination = it }
+                    onClick = { localRootNavigator.switchTab(it) }
                 )
             }
         }
     ) {
         Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-            if (currentDestination == AppDestinations.HOME) {
-                Greeting(
-                    name = "Home",
-                    modifier = Modifier.padding(innerPadding)
-                )
-            }
-            if (currentDestination == AppDestinations.FAVORITES) {
-                AlarmList(viewModel, Modifier.padding(innerPadding))
-            }
-            if (currentDestination == AppDestinations.PROFILE) {
-                Greeting(
-                    name = "Profile",
-                    modifier = Modifier.padding(innerPadding)
-                )
-            }
-            if (currentDestination == AppDestinations.ADD_ALARM) {
-                AddAlarmView(viewModel, Modifier.padding(innerPadding))
-            }
+            RootContent(modifier = Modifier.padding(innerPadding))
         }
     }
 }
+
+
 
 enum class AppDestinations(
     val label: String,
     val icon: ImageVector,
 ) {
     HOME("Home", Icons.Default.Home),
-    FAVORITES("Favorites", Icons.Default.Favorite),
-    PROFILE("Profile", Icons.Default.AccountBox),
+    ALARMS("Alarms", Icons.Default.Favorite),
+    SETTINGS("Profile", Icons.Default.Settings),
     ADD_ALARM("Add Alarm", Icons.Default.AddCircle),
-}
-
-@Composable
-fun AddAlarmView(viewModel: AlarmViewModel, modifier: Modifier = Modifier) {
-    val context = LocalContext.current
-
-    val uiState by viewModel.uiState.collectAsState()
-
-    var selectedDays by remember {
-        mutableStateOf(setOf<DayOfWeek>())
-    }
-    var showModal by remember {mutableStateOf(false)}
-    var selectedHour by remember {mutableIntStateOf(8)}
-    var selectedMinute by remember {mutableIntStateOf(30)}
-    // Temporary variables to hold selected time from the picker
-    // These will be updated when the user selects a time
-    // and then saved to the state variables above when confirmed
-    val picker = TimePickerDialog(
-        context,
-        { _, hour, minute ->
-            selectedHour = hour
-            selectedMinute = minute
-        },
-        8,
-        30,
-        true
-    )
-    Box (modifier = modifier) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Card(
-                elevation = CardDefaults.cardElevation(8.dp),
-                modifier = Modifier.padding(24.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFE0E0E0))
-            ) {
-                Text(
-                    "%02d:%02d".format(selectedHour, selectedMinute),
-                    modifier = Modifier
-                        .padding(16.dp)
-                        .clickable {
-                            picker.show()
-                        }
-                )
-            }
-            Row {
-                DayOfWeek.values().forEach { day ->
-                    FilterChip(
-                        selected = day in selectedDays,
-                        onClick = {
-                            selectedDays =
-                                if (day in selectedDays)
-                                    selectedDays - day
-                                else
-                                    selectedDays + day
-                        },
-                        label = { Text(day.name.take(1)) }
-                    )
-                }
-            }
-
-            Button(onClick = {showModal = true
-                val newDraftAlarm = SimpleAlarmDraft(
-                    hour = selectedHour,
-                    minute = selectedMinute,
-                    repeatDays = selectedDays
-                )
-                viewModel.saveSimpleAlarm(newDraftAlarm)
-            }) {
-                Text("Save Alarm")
-            }
-        }
-        val message = when (uiState) {
-            is UiState.Success -> (uiState as UiState.Success).message
-            is UiState.Error -> (uiState as UiState.Error).message
-            else -> null
-        }
-
-        if (showModal) {
-            message?.let {
-                AlarmAddedModal(
-                    it,
-                    onDismiss = { showModal = false },
-                    hour = selectedHour,
-                    minute = selectedMinute,
-                    days = selectedDays
-                )
-            }
-        }
-
-        /*
-        if (showModal) {
-            AlarmAddedModal(
-                onDismiss = { showModal = false },
-                hour = selectedHour,
-                minute = selectedMinute,
-                days = selectedDays
-            )
-        }
-         */
-
-
-    }
-}
-
-@Composable
-fun AlarmAddedModal(text: String?, modifier: Modifier = Modifier, onDismiss: () -> Unit , hour : Int, minute: Int, days: Set<DayOfWeek>) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.5f))
-            .clickable { onDismiss() },
-        contentAlignment = Alignment.Center
-    ) {
-        Card(
-            modifier = Modifier.clickable(enabled = false) {},
-            elevation = CardDefaults.cardElevation(8.dp)
-        ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                modifier = Modifier.padding(24.dp)
-            ) {
-                Text(text = text ?: "No viewModel action message")
-                Text(
-                    text = "Alarm set for %02d:%02d on %s".format(
-                        hour,
-                        minute,
-                        if (days.isEmpty()) "no days" else days.joinToString { it.name.take(3) }
-                    )
-                )
-                Button(onClick = onDismiss) { Text("OK") }
-            }
-        }
-    }
 }
 
 @Composable
@@ -279,7 +210,7 @@ fun GreetingPreview() {
 @Composable
 fun AlarmListPreview() {
     GoReadyTheme {
-        AlarmList(Modifier)
+        AlarmList(PreviewAlarms2().alarmList, Modifier)
     }
 }
 

@@ -17,6 +17,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavHostController
 import com.tomcvt.goready.data.AlarmEntity
 import com.tomcvt.goready.preview.PreviewAlarms
 import com.tomcvt.goready.preview.PreviewAlarms2
@@ -26,11 +28,15 @@ import java.util.Locale
 
 
 @Composable
-fun AlarmList(
+fun AlarmListRoute(
     viewModel: AlarmViewModel,
+    navController: NavHostController,
     modifier: Modifier = Modifier
 ) {
     val alarmList by viewModel.alarmsStateFlow.collectAsState()
+    val onAddClick = { navController.navigate("add") }
+    val onDeleteClick: (AlarmEntity) -> Unit = { alarm: AlarmEntity -> viewModel.deleteAlarm(alarm) }
+
     AlarmList(
         alarmList = alarmList,
         modifier = modifier
@@ -62,17 +68,6 @@ fun AlarmList(
             }
         }
     }
-}
-
-
-
-@Composable
-fun AlarmList(modifier: Modifier = Modifier) {
-    val alarmList = PreviewAlarms2().alarmList
-    AlarmList(
-        alarmList = alarmList,
-        modifier = modifier
-    )
 }
 
 @Composable

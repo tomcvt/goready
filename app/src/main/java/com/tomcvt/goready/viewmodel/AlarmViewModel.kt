@@ -1,6 +1,7 @@
 package com.tomcvt.goready.viewmodel
 
 import android.util.Log
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tomcvt.goready.data.AlarmEntity
@@ -12,7 +13,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-open class AlarmViewModel(
+class AlarmViewModel(
     private val alarmManager: AlarmManager // inject manager
 ) : ViewModel() {
     private val _uiState = MutableStateFlow<UiState>(UiState.Idle)
@@ -48,6 +49,18 @@ open class AlarmViewModel(
             }
         }
     }
+
+    fun deleteAlarm(alarm: AlarmEntity) {
+        viewModelScope.launch {
+            try {
+                alarmManager.deleteAlarm(alarm)
+                Log.d("AlarmViewModel", "Alarm deleted: $alarm")
+                _uiState.value = UiState.Success("Alarm deleted")
+            } catch (e: Exception) {
+                _uiState.value = UiState.Error(e.message ?: "Unknown error")
+            }
+        }
+
 }
 
 // UI observes `uiState` and reacts
