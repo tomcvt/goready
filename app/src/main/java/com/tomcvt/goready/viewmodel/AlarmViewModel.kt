@@ -3,11 +3,13 @@ package com.tomcvt.goready.viewmodel
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.tomcvt.goready.data.AlarmEntity
 import com.tomcvt.goready.domain.AlarmDraft
 import com.tomcvt.goready.domain.SimpleAlarmDraft
 import com.tomcvt.goready.manager.AlarmManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 open class AlarmViewModel(
@@ -15,6 +17,13 @@ open class AlarmViewModel(
 ) : ViewModel() {
     private val _uiState = MutableStateFlow<UiState>(UiState.Idle)
     val uiState: StateFlow<UiState> = _uiState
+
+    val alarmsStateFlow: StateFlow<List<AlarmEntity>> = alarmManager
+        .getAlarmsFlow().stateIn(
+            viewModelScope,
+            started = kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(1000),
+            initialValue = emptyList()
+        )
 
     fun saveAlarm(draft: AlarmDraft) {
         viewModelScope.launch {

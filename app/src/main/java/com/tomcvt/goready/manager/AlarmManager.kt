@@ -1,19 +1,21 @@
 package com.tomcvt.goready.manager
 
-import com.tomcvt.goready.DayOfWeek
 import com.tomcvt.goready.data.AlarmEntity
 import com.tomcvt.goready.domain.AlarmDraft
 import com.tomcvt.goready.domain.SimpleAlarmDraft
 import com.tomcvt.goready.repository.AlarmRepository
+import java.time.DayOfWeek
 
 open class AlarmManager(private val repository: AlarmRepository, private val systemScheduler: SystemAlarmScheduler) {
+
+    fun getAlarmsFlow() = repository.getAlarms()
     suspend fun createAlarm(draft: AlarmDraft) {
         // 1. Convert draft → entity
         val entity = AlarmEntity(
             hour = draft.hour,
             minute = draft.minute,
             label = draft.label,
-            repeatDays = convertDaysOfWeekSet(draft.repeatDays),
+            repeatDays = draft.repeatDays,
             isEnabled = true,
             task = draft.task,
             taskData = draft.taskData,
@@ -36,7 +38,7 @@ open class AlarmManager(private val repository: AlarmRepository, private val sys
             hour = draft.hour,
             minute = draft.minute,
             label = null,
-            repeatDays = convertDaysOfWeekSet(draft.repeatDays),
+            repeatDays = draft.repeatDays,
             isEnabled = true,
             task = "None",
             taskData = null,
@@ -53,18 +55,4 @@ open class AlarmManager(private val repository: AlarmRepository, private val sys
         systemScheduler.scheduleAlarm(entity)
     }
 
-
-    fun convertDaysOfWeekSet(repeatDays: Set<DayOfWeek>) : Set<java.time.DayOfWeek> {
-        return repeatDays.map { day ->
-            when (day) {
-                DayOfWeek.MON -> java.time.DayOfWeek.MONDAY
-                DayOfWeek.TUE -> java.time.DayOfWeek.TUESDAY
-                DayOfWeek.WED -> java.time.DayOfWeek.WEDNESDAY
-                DayOfWeek.THU -> java.time.DayOfWeek.THURSDAY
-                DayOfWeek.FRI -> java.time.DayOfWeek.FRIDAY
-                DayOfWeek.SAT -> java.time.DayOfWeek.SATURDAY
-                DayOfWeek.SUN -> java.time.DayOfWeek.SUNDAY
-            }
-        }.toSet()
-    }
 }

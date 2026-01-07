@@ -1,6 +1,6 @@
 package com.tomcvt.goready.domain
 
-import com.tomcvt.goready.DayOfWeek
+import java.time.DayOfWeek
 
 data class SimpleAlarmDraft(
     val hour : Int,

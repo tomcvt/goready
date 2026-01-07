@@ -45,10 +45,12 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewScreenSizes
 import androidx.compose.ui.unit.dp
 import com.tomcvt.goready.domain.SimpleAlarmDraft
+import com.tomcvt.goready.ui.composables.AlarmList
 import com.tomcvt.goready.ui.theme.GoReadyTheme
 import com.tomcvt.goready.viewmodel.AlarmViewModel
 import com.tomcvt.goready.viewmodel.AlarmViewModelProvider
 import com.tomcvt.goready.viewmodel.UiState
+import java.time.DayOfWeek
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -93,7 +95,7 @@ fun GoReadyApp(viewModel: AlarmViewModel) {
                 )
             }
             if (currentDestination == AppDestinations.FAVORITES) {
-                AlarmList(Modifier.padding(innerPadding))
+                AlarmList(viewModel, Modifier.padding(innerPadding))
             }
             if (currentDestination == AppDestinations.PROFILE) {
                 Greeting(
@@ -108,7 +110,6 @@ fun GoReadyApp(viewModel: AlarmViewModel) {
     }
 }
 
-enum class DayOfWeek { MON, TUE, WED, THU, FRI, SAT, SUN }
 enum class AppDestinations(
     val label: String,
     val icon: ImageVector,
@@ -117,11 +118,6 @@ enum class AppDestinations(
     FAVORITES("Favorites", Icons.Default.Favorite),
     PROFILE("Profile", Icons.Default.AccountBox),
     ADD_ALARM("Add Alarm", Icons.Default.AddCircle),
-}
-
-@Composable
-fun AlarmList(modifier: Modifier = Modifier) {
-    Text(text = "Alarm List Placeholder")
 }
 
 @Composable
@@ -249,12 +245,12 @@ fun AlarmAddedModal(text: String?, modifier: Modifier = Modifier, onDismiss: () 
                 verticalArrangement = Arrangement.spacedBy(16.dp),
                 modifier = Modifier.padding(24.dp)
             ) {
-                Text(text = text ?: "No vievModel action message")
+                Text(text = text ?: "No viewModel action message")
                 Text(
                     text = "Alarm set for %02d:%02d on %s".format(
                         hour,
                         minute,
-                        if (days.isEmpty()) "no days" else days.joinToString { it.name }
+                        if (days.isEmpty()) "no days" else days.joinToString { it.name.take(3) }
                     )
                 )
                 Button(onClick = onDismiss) { Text("OK") }
@@ -276,6 +272,14 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
 fun GreetingPreview() {
     GoReadyTheme {
         Greeting("Android")
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun AlarmListPreview() {
+    GoReadyTheme {
+        AlarmList(Modifier)
     }
 }
 

@@ -2,14 +2,12 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
-    id("kotlin-kapt")
+    alias(libs.plugins.kotlin.kapt)
 }
 
 android {
     namespace = "com.tomcvt.goready"
-    compileSdk {
-        version = release(36)
-    }
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.tomcvt.goready"
@@ -36,6 +34,7 @@ android {
     }
     kotlinOptions {
         jvmTarget = "11"
+
     }
     buildFeatures {
         compose = true
@@ -52,9 +51,9 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material3.adaptive.navigation.suite)
-    implementation(libs.androidx.room.common.jvm)
     implementation(libs.androidx.room.ktx)
     implementation(libs.androidx.room.runtime)
+    implementation(libs.places)
     kapt(libs.androidx.room.compiler)
 
 
