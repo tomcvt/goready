@@ -21,4 +21,7 @@ interface AlarmDao {
 
     @Update
     suspend fun updateAlarm(alarm: AlarmEntity)
+
+    @Query("SELECT * FROM alarms WHERE id = :id")
+    suspend fun getAlarmById(id: Long): AlarmEntity?
 }

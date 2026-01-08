@@ -18,4 +18,8 @@ class AlarmRepository(private val dao: AlarmDao) {
     suspend fun updateAlarm(alarm: AlarmEntity) {
         dao.updateAlarm(alarm)
     }
+
+    suspend fun getAlarmById(id: Long): AlarmEntity? {
+        return dao.getAlarmById(id)
+    }
 }

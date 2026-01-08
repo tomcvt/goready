@@ -119,6 +119,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             //val alarmViewModel: AlarmViewModel = AlarmViewModelProvider.provideAlarmViewModel(this)
             val rootNavigator = remember { RootNavigatorImpl(start = RootTab.HOME) }
+            //TODO root navigator and comp local provider not needed here
             CompositionLocalProvider(
                 LocalRootNavigator provides rootNavigator
             ) {

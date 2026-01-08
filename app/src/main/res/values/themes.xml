@@ -2,4 +2,8 @@
 <resources>
 
     <style name="Theme.GoReady" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.App.Fullscreen" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowTranslucentStatus">true</item>
+    </style>
 </resources>

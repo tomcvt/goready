@@ -27,6 +27,14 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity
+            android:name=".activities.AlarmActivity"
+            android:exported="false"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
+            android:launchMode="singleTask"
+            android:excludeFromRecents="true"
+            android:theme="@style/Theme.App.Fullscreen" />
         <receiver
             android:name=".manager.AlarmReceiver"
             android:enabled="true"
@@ -35,6 +43,12 @@
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
         </receiver>
+        <service
+            android:name=".service.AlarmForegroundService"
+            android:foregroundServiceType="mediaPlayback"
+            android:exported="false" />
+
     </application>
+
 
 </manifest>
