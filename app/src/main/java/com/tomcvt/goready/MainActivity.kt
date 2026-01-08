@@ -1,7 +1,14 @@
 package com.tomcvt.goready
 
+import android.Manifest
 import android.app.TimePickerDialog
+import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -46,9 +53,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewScreenSizes
 import androidx.compose.ui.unit.dp
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.tomcvt.goready.data.AlarmDatabase
 import com.tomcvt.goready.domain.SimpleAlarmDraft
@@ -83,10 +93,27 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        val context = this
         val db = AlarmDatabase.getDatabase(this)
         val repository = AlarmRepository(db.alarmDao())
         alarmManager = AlarmManager(repository, SystemAlarmScheduler(this))
         alarmViewModelFactory = AlarmViewModelFactory(alarmManager)
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val permissionCheck = ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+            if (permissionCheck != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.POST_NOTIFICATIONS), 101)
+            }
+        }
+
+        val systemAlarmManager = context.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (!systemAlarmManager.canScheduleExactAlarms()) {
+                val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
+                context.startActivity(intent)
+            }
+        }
 
         enableEdgeToEdge()
         setContent {
@@ -108,10 +135,13 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun GoReadyApp(alarmViewModelFactory: AlarmViewModelFactory) {
     var currentDestination by rememberSaveable { mutableStateOf(RootTab.HOME) }
-
-    val localRootNavigator = LocalRootNavigator.current
-
     val rootNavController = rememberNavController()
+    val navbackStackEntry by rootNavController.currentBackStackEntryAsState()
+    val currentRootTab = RootTab.valueOf(
+        navbackStackEntry?.destination?.route ?: RootTab.HOME.name
+    )
+
+
 
 
     NavigationSuiteScaffold(
@@ -120,14 +150,14 @@ fun GoReadyApp(alarmViewModelFactory: AlarmViewModelFactory) {
                 item(
                     icon = { Icon(tab.icon, contentDescription = tab.label) },
                     label = { Text(tab.label) },
-                    selected = false, // NavController decides this
+                    selected = currentRootTab == tab, // NavController decides this
                     onClick = {
                         rootNavController.navigate(tab.name) {
                             popUpTo(rootNavController.graph.startDestinationId) {
-                                saveState = true
+                                saveState = false
                             }
                             launchSingleTop = true
-                            restoreState = true
+                            restoreState = false
                         }
                     }
                 )
@@ -149,34 +179,12 @@ fun GoReadyApp(alarmViewModelFactory: AlarmViewModelFactory) {
                 }
                 composable(RootTab.ADD_ALARM.name) {
                     val vm = viewModel<AlarmViewModel>(factory = alarmViewModelFactory)
-                    AddAlarmView(vm)
+                    AddAlarmView(vm, rootNavController)
                 }
                 composable(RootTab.SETTINGS.name) {
                     SettingsView()
                 }
             }
-        }
-    }
-
-    NavigationSuiteScaffold(
-        navigationSuiteItems = {
-            RootTab.entries.forEach {
-                item(
-                    icon = {
-                        Icon(
-                            it.icon,
-                            contentDescription = it.label
-                        )
-                    },
-                    label = { Text(it.label) },
-                    selected = it == currentDestination,
-                    onClick = { localRootNavigator.switchTab(it) }
-                )
-            }
-        }
-    ) {
-        Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-            RootContent(modifier = Modifier.padding(innerPadding))
         }
     }
 }
@@ -189,7 +197,7 @@ enum class AppDestinations(
 ) {
     HOME("Home", Icons.Default.Home),
     ALARMS("Alarms", Icons.Default.Favorite),
-    SETTINGS("Profile", Icons.Default.Settings),
+    SETTINGS("Settings", Icons.Default.Settings),
     ADD_ALARM("Add Alarm", Icons.Default.AddCircle),
 }
 
@@ -217,6 +225,7 @@ fun AlarmListPreview() {
             PreviewAlarms2().alarmList,
             onAddClick = {},
             onDeleteClick = {},
+            onAlarmSwitchChange = { _, _ -> },
             modifier = Modifier)
     }
 }

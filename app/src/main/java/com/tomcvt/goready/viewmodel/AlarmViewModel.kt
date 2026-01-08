@@ -49,6 +49,17 @@ class AlarmViewModel(
         }
     }
 
+    fun toggleAlarm(alarm: AlarmEntity, enabled: Boolean) {
+        viewModelScope.launch {
+            try {
+                alarmManager.toggleAlarm(alarm, enabled)
+                _uiState.value = UiState.Success("Alarm toggled")
+            } catch (e: Exception) {
+                _uiState.value = UiState.Error(e.message ?: "Unknown error")
+            }
+        }
+    }
+
     fun deleteAlarm(alarm: AlarmEntity) {
         viewModelScope.launch {
             try {

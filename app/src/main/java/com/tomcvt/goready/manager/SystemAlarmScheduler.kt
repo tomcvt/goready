@@ -5,6 +5,9 @@ import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.os.Build
+import android.provider.Settings
+import android.util.Log
 import androidx.annotation.RequiresPermission
 import com.tomcvt.goready.manager.AlarmReceiver
 import com.tomcvt.goready.data.AlarmEntity
@@ -31,8 +34,10 @@ class SystemAlarmScheduler(private val context: Context) {
             set(Calendar.HOUR_OF_DAY, alarm.hour)
             set(Calendar.MINUTE, alarm.minute)
             set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
         }.timeInMillis
-        if (triggerTime < System.currentTimeMillis()) {
+
+        if (triggerTime <= System.currentTimeMillis()) {
             // If time has already passed today, set for tomorrow
             triggerTime += 24 * 60 * 60 * 1000
         }
@@ -51,19 +56,30 @@ class SystemAlarmScheduler(private val context: Context) {
         context.startActivity(intent)
         //later ping user to settings if not granted
          */
-        try {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (alarmManager.canScheduleExactAlarms()) {
+                alarmManager.setExactAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP,
+                    triggerTime,
+                    pendingIntent
+                )
+                Log.d("AlarmScheduler", "Exact alarm scheduled with ID: ${alarm.id}")
+            } else {
+                // If we can't schedule exact, fallback to inexact or ask user
+                alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
+                // Optional: Redirect user to settings
+                Log.d("AlarmScheduler", "Can't schedule exact alarms, fallback to inexact")
+                Log.d("AlarmScheduler", "normal alarm scheduled with ID: ${alarm.id}")
+                val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
+                context.startActivity(intent)
+            }
+        } else {
             alarmManager.setExactAndAllowWhileIdle(
                 AlarmManager.RTC_WAKEUP,
                 triggerTime,
                 pendingIntent
             )
-        } catch (e: SecurityException) {
-            // Fallback if permission not granted
-            alarmManager.set(
-                AlarmManager.RTC_WAKEUP,
-                triggerTime,
-                pendingIntent
-            )
+            Log.d("AlarmScheduler", " (low android sdk) Exact alarm scheduled with ID: ${alarm.id}")
         }
     }
 
@@ -76,5 +92,6 @@ class SystemAlarmScheduler(private val context: Context) {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         alarmManager.cancel(pendingIntent)
+        Log.d("AlarmScheduler", "Intent Alarm cancelled with ID: ${alarm.id}")
     }
 }

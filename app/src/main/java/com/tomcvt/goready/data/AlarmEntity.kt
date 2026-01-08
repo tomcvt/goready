@@ -7,7 +7,7 @@ import java.time.DayOfWeek
 @Entity(tableName = "alarms")
 data class AlarmEntity(
     @PrimaryKey(autoGenerate = true)
-    val id: Int = 0,
+    val id: Long = 0,
     val hour : Int,
     val minute : Int,
     val isEnabled : Boolean,

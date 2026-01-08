@@ -12,7 +12,7 @@ import com.tomcvt.goready.R
 
 class AlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        val alarmId = intent.getLongExtra("ALARM_ID", -1)
+        val alarmId = intent.getLongExtra("ALARM_ID", -1L)
         Log.d("AlarmReceiver", "Alarm received with ID: $alarmId")
         // Here you can trigger a notification, play a sound, vibrate, etc.
         showNotification(context, alarmId)

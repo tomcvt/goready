@@ -1,5 +1,6 @@
 package com.tomcvt.goready.manager
 
+import android.util.Log
 import com.tomcvt.goready.data.AlarmEntity
 import com.tomcvt.goready.domain.AlarmDraft
 import com.tomcvt.goready.domain.SimpleAlarmDraft
@@ -30,6 +31,17 @@ open class AlarmManager(private val repository: AlarmRepository, private val sys
 
         // 3. Schedule system alarm
         systemScheduler.scheduleAlarm(entity)
+    }
+
+    suspend fun toggleAlarm(alarm: AlarmEntity, enabled: Boolean) {
+        val updatedAlarm = alarm.copy(isEnabled = enabled)
+        Log.d("AlarmManager", "Alarm toggled: $updatedAlarm")
+        repository.updateAlarm(updatedAlarm)
+        if (enabled) {
+            systemScheduler.scheduleAlarm(updatedAlarm)
+        } else {
+            systemScheduler.cancelAlarm(updatedAlarm)
+        }
     }
 
     suspend fun createSimpleAlarm(draft: SimpleAlarmDraft) {

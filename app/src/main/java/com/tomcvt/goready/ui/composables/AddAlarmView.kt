@@ -26,19 +26,26 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavHostController
 import com.tomcvt.goready.domain.SimpleAlarmDraft
+import com.tomcvt.goready.ui.navigation.RootTab
 import com.tomcvt.goready.viewmodel.AlarmViewModel
 import com.tomcvt.goready.viewmodel.UiState
 import java.time.DayOfWeek
 
 
 @Composable
-fun AddAlarmRoute(viewModel: AlarmViewModel) {
-    AddAlarmView(viewModel)
+fun AddAlarmRoute(viewModel: AlarmViewModel,
+                  rootNavController: NavHostController,
+                  modifier: Modifier = Modifier
+    ) {
+    AddAlarmView(viewModel, rootNavController, modifier)
 }
 
 @Composable
-fun AddAlarmView(viewModel: AlarmViewModel, modifier: Modifier = Modifier) {
+fun AddAlarmView(viewModel: AlarmViewModel,
+                 rootNavController: NavHostController,
+                 modifier: Modifier = Modifier) {
     val context = LocalContext.current
 
 
@@ -122,7 +129,13 @@ fun AddAlarmView(viewModel: AlarmViewModel, modifier: Modifier = Modifier) {
             message?.let {
                 AlarmAddedModal(
                     it,
-                    onDismiss = { showModal = false },
+                    onDismiss = { showModal = false
+                                    rootNavController.navigate(RootTab.ALARMS.name) {
+                                        // Clear the "Add Alarm" screen from the history
+                                        popUpTo(RootTab.ADD_ALARM.name) { inclusive = true }
+                                        launchSingleTop = true
+                                    }
+                                },
                     hour = selectedHour,
                     minute = selectedMinute,
                     days = selectedDays

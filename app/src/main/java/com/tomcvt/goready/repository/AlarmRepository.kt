@@ -14,4 +14,8 @@ class AlarmRepository(private val dao: AlarmDao) {
     suspend fun deleteAlarm(alarm: AlarmEntity) {
         dao.deleteAlarm(alarm)
     }
+
+    suspend fun updateAlarm(alarm: AlarmEntity) {
+        dao.updateAlarm(alarm)
+    }
 }
