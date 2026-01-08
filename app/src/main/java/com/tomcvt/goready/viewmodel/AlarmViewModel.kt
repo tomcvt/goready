@@ -1,7 +1,6 @@
 package com.tomcvt.goready.viewmodel
 
 import android.util.Log
-import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tomcvt.goready.data.AlarmEntity
@@ -60,7 +59,7 @@ class AlarmViewModel(
                 _uiState.value = UiState.Error(e.message ?: "Unknown error")
             }
         }
-
+    }
 }
 
 // UI observes `uiState` and reacts

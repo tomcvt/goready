@@ -31,14 +31,17 @@ import java.util.Locale
 fun AlarmListRoute(
     viewModel: AlarmViewModel,
     navController: NavHostController,
+    rootController: NavHostController,
     modifier: Modifier = Modifier
 ) {
     val alarmList by viewModel.alarmsStateFlow.collectAsState()
-    val onAddClick = { navController.navigate("add") }
+    val onAddAlarmClick = { rootController.navigate("ADD_ALARM") }
     val onDeleteClick: (AlarmEntity) -> Unit = { alarm: AlarmEntity -> viewModel.deleteAlarm(alarm) }
 
     AlarmList(
         alarmList = alarmList,
+        onAddClick = onAddAlarmClick,
+        onDeleteClick = onDeleteClick,
         modifier = modifier
     )
 }
@@ -46,6 +49,8 @@ fun AlarmListRoute(
 @Composable
 fun AlarmList(
     alarmList: List<AlarmEntity>,
+    onAddClick: () -> Unit,
+    onDeleteClick: (AlarmEntity) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier.fillMaxSize()) {
