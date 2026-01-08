@@ -9,6 +9,7 @@ import android.os.Build
 import android.provider.Settings
 import android.util.Log
 import androidx.annotation.RequiresPermission
+import com.tomcvt.goready.constants.EXTRA_ALARM_ID
 import com.tomcvt.goready.manager.AlarmReceiver
 import com.tomcvt.goready.data.AlarmEntity
 import java.util.Calendar
@@ -19,7 +20,7 @@ class SystemAlarmScheduler(private val context: Context) {
 
     fun scheduleAlarm(alarm: AlarmEntity) {
         val intent = Intent(context, AlarmReceiver::class.java).apply {
-            putExtra("ALARM_ID", alarm.id)
+            putExtra(EXTRA_ALARM_ID, alarm.id)
         }
 
         val pendingIntent = PendingIntent.getBroadcast(

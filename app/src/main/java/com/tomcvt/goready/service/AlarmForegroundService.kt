@@ -11,9 +11,11 @@ import android.media.RingtoneManager
 import android.net.Uri
 import android.os.Build
 import android.os.IBinder
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.tomcvt.goready.R
 import com.tomcvt.goready.activities.AlarmActivity
+import com.tomcvt.goready.constants.EXTRA_ALARM_ID
 import com.tomcvt.goready.data.AlarmDatabase
 import com.tomcvt.goready.data.AlarmEntity
 import com.tomcvt.goready.repository.AlarmRepository
@@ -37,7 +39,9 @@ class AlarmForegroundService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        val alarmId = intent?.getLongExtra("alarm_id", -1) ?: -1
+        val alarmId = intent?.getLongExtra(EXTRA_ALARM_ID, -1) ?: -1
+        Log.d("AlarmForegroundService", "onStartCommand with alarm ID: $alarmId")
+
         if (alarmId == -1L) {
             stopSelf()
             return START_NOT_STICKY
@@ -49,7 +53,9 @@ class AlarmForegroundService : Service() {
                 stopSelf()
                 return@launch
             }
+            Log.d("AlarmForegroundService", "Alarm found: $alarm")
             if (!alarm.isEnabled) {
+                Log.d("AlarmForegroundService", "Alarm is disabled")
                 stopSelf()
                 return@launch
             }
@@ -129,6 +135,9 @@ class AlarmForegroundService : Service() {
         mediaPlayer = MediaPlayer.create(this, soundUri)
         mediaPlayer?.isLooping = true
         mediaPlayer?.start()
+        mediaPlayer?.setVolume(100f, 100f)
+
+
     }
 
 }
