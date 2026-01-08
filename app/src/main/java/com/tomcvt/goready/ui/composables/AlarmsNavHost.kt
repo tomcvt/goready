@@ -19,7 +19,7 @@ fun AlarmsNavHost(
     NavHost(navController, startDestination = "list") {
         composable("list") {
             val vm: AlarmViewModel = viewModel(factory = factory)
-            AlarmListRoute(vm, navController, rootController))
+            AlarmListRoute(vm, navController, rootController)
         }
     }
 }

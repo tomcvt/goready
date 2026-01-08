@@ -56,9 +56,12 @@ import com.tomcvt.goready.manager.AlarmManager
 import com.tomcvt.goready.manager.SystemAlarmScheduler
 import com.tomcvt.goready.preview.PreviewAlarms2
 import com.tomcvt.goready.repository.AlarmRepository
+import com.tomcvt.goready.ui.composables.AddAlarmView
 import com.tomcvt.goready.ui.composables.AlarmAddedModal
 import com.tomcvt.goready.ui.composables.AlarmList
+import com.tomcvt.goready.ui.composables.AlarmsNavHost
 import com.tomcvt.goready.ui.composables.HomeScreen
+import com.tomcvt.goready.ui.composables.SettingsView
 import com.tomcvt.goready.ui.navigation.LocalRootNavigator
 import com.tomcvt.goready.ui.navigation.RootContent
 import com.tomcvt.goready.ui.navigation.RootNavigatorImpl
@@ -67,7 +70,6 @@ import com.tomcvt.goready.ui.theme.GoReadyTheme
 import com.tomcvt.goready.viewmodel.AlarmViewModel
 import com.tomcvt.goready.viewmodel.AlarmViewModelFactory
 import com.tomcvt.goready.viewmodel.AlarmViewModelProvider
-import com.tomcvt.goready.viewmodel.LocalAlarmViewModel
 import com.tomcvt.goready.viewmodel.UiState
 import java.time.DayOfWeek
 
@@ -88,10 +90,9 @@ class MainActivity : ComponentActivity() {
 
         enableEdgeToEdge()
         setContent {
-            val alarmViewModel: AlarmViewModel = AlarmViewModelProvider.provideAlarmViewModel(this)
+            //val alarmViewModel: AlarmViewModel = AlarmViewModelProvider.provideAlarmViewModel(this)
             val rootNavigator = remember { RootNavigatorImpl(start = RootTab.HOME) }
             CompositionLocalProvider(
-                LocalAlarmViewModel provides alarmViewModel,
                 LocalRootNavigator provides rootNavigator
             ) {
                 GoReadyTheme {
@@ -143,13 +144,15 @@ fun GoReadyApp(alarmViewModelFactory: AlarmViewModelFactory) {
                     HomeScreen()
                 }
                 composable(RootTab.ALARMS.name) {
-                    AlarmsNavHost()
+                    //val vm = viewModel<AlarmViewModel>(factory = alarmViewModelFactory)
+                    AlarmsNavHost(alarmViewModelFactory, rootNavController)
                 }
                 composable(RootTab.ADD_ALARM.name) {
-                    AddAlarmScreen()
+                    val vm = viewModel<AlarmViewModel>(factory = alarmViewModelFactory)
+                    AddAlarmView(vm)
                 }
                 composable(RootTab.SETTINGS.name) {
-                    SettingsScreen()
+                    SettingsView()
                 }
             }
         }
@@ -210,7 +213,11 @@ fun GreetingPreview() {
 @Composable
 fun AlarmListPreview() {
     GoReadyTheme {
-        AlarmList(PreviewAlarms2().alarmList, Modifier)
+        AlarmList(
+            PreviewAlarms2().alarmList,
+            onAddClick = {},
+            onDeleteClick = {},
+            modifier = Modifier)
     }
 }
 

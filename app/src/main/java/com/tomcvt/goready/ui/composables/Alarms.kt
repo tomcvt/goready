@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
@@ -25,6 +26,10 @@ import com.tomcvt.goready.preview.PreviewAlarms2
 import com.tomcvt.goready.viewmodel.AlarmViewModel
 import java.time.DayOfWeek
 import java.util.Locale
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 
 
 @Composable
@@ -53,27 +58,47 @@ fun AlarmList(
     onDeleteClick: (AlarmEntity) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Column(modifier = modifier.fillMaxSize()) {
-        Text(
-            text = "Alarms",
-            style = MaterialTheme.typography.headlineSmall,
-            modifier = Modifier.padding(16.dp)
-        )
-        LazyColumn {
-            items(alarmList.size) { alarm ->
-                val alarm = alarmList[alarm]
-                AlarmCard(
-                    alarmName = alarm.label ?: "Alarm",
-                    alarmTime = String.format(Locale.getDefault(), "%02d:%02d", alarm.hour, alarm.minute),
-                    onDelete = {},
-                    onToggleEnabled = {},
-                    repeatDays = alarm.repeatDays,
-                    modifier = Modifier.padding(8.dp)
-                )
+    Box(modifier = modifier.fillMaxSize()) {
+        Column(modifier = modifier.fillMaxSize()) {
+            Text(
+                text = "Alarms",
+                style = MaterialTheme.typography.headlineSmall,
+                modifier = Modifier.padding(16.dp)
+            )
+            LazyColumn {
+                items(alarmList.size) { alarm ->
+                    val alarm = alarmList[alarm]
+                    AlarmCard(
+                        alarmName = alarm.label ?: "Alarm",
+                        alarmTime = String.format(
+                            Locale.getDefault(),
+                            "%02d:%02d",
+                            alarm.hour,
+                            alarm.minute
+                        ),
+                        onDelete = {},
+                        onToggleEnabled = {},
+                        repeatDays = alarm.repeatDays,
+                        modifier = Modifier.padding(8.dp)
+                    )
+                }
             }
+        }
+        //here the button to add alarm
+        FloatingActionButton(
+            onClick = onAddClick,
+            modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
+            containerColor = MaterialTheme.colorScheme.primary
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Add,
+                contentDescription = "Add Alarm",
+                tint = MaterialTheme.colorScheme.onPrimary
+            )
         }
     }
 }
+
 
 @Composable
 fun AlarmCard(alarmName: String,
