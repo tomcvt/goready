@@ -15,10 +15,11 @@ import com.tomcvt.goready.service.AlarmForegroundService
 
 class AlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
+        //TODO what about getAction
         val alarmId = intent.getLongExtra(EXTRA_ALARM_ID, -1L)
         Log.d("AlarmReceiver", "Alarm received with ID: $alarmId")
         // Here you can trigger a notification, play a sound, vibrate, etc.
-        showNotification(context, alarmId)
+        //showNotification(context, alarmId)
 
         val serviceIntent = Intent(context, AlarmForegroundService::class.java).apply {
             putExtra(EXTRA_ALARM_ID, alarmId)

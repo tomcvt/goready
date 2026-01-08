@@ -27,10 +27,10 @@ open class AlarmManager(private val repository: AlarmRepository, private val sys
         )
 
         // 2. Save to DB
-        repository.insertAlarm(entity)
+        val newAlarmId = repository.insertAlarm(entity)
 
         // 3. Schedule system alarm
-        systemScheduler.scheduleAlarm(entity)
+        systemScheduler.scheduleAlarm(entity, newAlarmId)
     }
 
     suspend fun toggleAlarm(alarm: AlarmEntity, enabled: Boolean) {
@@ -38,7 +38,7 @@ open class AlarmManager(private val repository: AlarmRepository, private val sys
         Log.d("AlarmManager", "Alarm toggled: $updatedAlarm")
         repository.updateAlarm(updatedAlarm)
         if (enabled) {
-            systemScheduler.scheduleAlarm(updatedAlarm)
+            systemScheduler.scheduleAlarm(updatedAlarm, alarm.id)
         } else {
             systemScheduler.cancelAlarm(updatedAlarm)
         }
@@ -49,7 +49,7 @@ open class AlarmManager(private val repository: AlarmRepository, private val sys
         val entity = AlarmEntity(
             hour = draft.hour,
             minute = draft.minute,
-            label = null,
+            label = "Alarm",
             repeatDays = draft.repeatDays,
             isEnabled = true,
             task = "None",
@@ -61,10 +61,10 @@ open class AlarmManager(private val repository: AlarmRepository, private val sys
         )
 
         // 2. Save to DB
-        repository.insertAlarm(entity)
+        val newAlarmId = repository.insertAlarm(entity)
 
         // 3. Schedule system alarm
-        systemScheduler.scheduleAlarm(entity)
+        systemScheduler.scheduleAlarm(entity, newAlarmId)
     }
 
     suspend fun deleteAlarm(alarm: AlarmEntity) {

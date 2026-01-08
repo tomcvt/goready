@@ -18,9 +18,11 @@ class SystemAlarmScheduler(private val context: Context) {
 
     private val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
 
-    fun scheduleAlarm(alarm: AlarmEntity) {
+    fun scheduleAlarm(alarm: AlarmEntity, alarmId: Long) {
+
+        Log.d("AlarmScheduler", "Scheduling alarm with ID: $alarmId")
         val intent = Intent(context, AlarmReceiver::class.java).apply {
-            putExtra(EXTRA_ALARM_ID, alarm.id)
+            putExtra(EXTRA_ALARM_ID, alarmId)
         }
 
         val pendingIntent = PendingIntent.getBroadcast(
@@ -64,13 +66,13 @@ class SystemAlarmScheduler(private val context: Context) {
                     triggerTime,
                     pendingIntent
                 )
-                Log.d("AlarmScheduler", "Exact alarm scheduled with ID: ${alarm.id}")
+                Log.d("AlarmScheduler", "Exact alarm scheduled with ID: ${alarmId}")
             } else {
                 // If we can't schedule exact, fallback to inexact or ask user
                 alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
                 // Optional: Redirect user to settings
                 Log.d("AlarmScheduler", "Can't schedule exact alarms, fallback to inexact")
-                Log.d("AlarmScheduler", "normal alarm scheduled with ID: ${alarm.id}")
+                Log.d("AlarmScheduler", "normal alarm scheduled with ID: ${alarmId}")
                 val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
                 context.startActivity(intent)
             }
@@ -80,7 +82,7 @@ class SystemAlarmScheduler(private val context: Context) {
                 triggerTime,
                 pendingIntent
             )
-            Log.d("AlarmScheduler", " (low android sdk) Exact alarm scheduled with ID: ${alarm.id}")
+            Log.d("AlarmScheduler", " (low android sdk) Exact alarm scheduled with ID: ${alarmId}")
         }
     }
 

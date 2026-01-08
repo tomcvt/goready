@@ -5,6 +5,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
+import android.content.Context
 import android.content.Intent
 import android.media.MediaPlayer
 import android.media.RingtoneManager
@@ -23,6 +24,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 class AlarmForegroundService : Service() {
@@ -62,6 +64,8 @@ class AlarmForegroundService : Service() {
 
             startAsForeground(alarm)
             startAlarmSound(alarm)
+            delay(5000)
+            stopAlarmSound()
         }
 
         return START_NOT_STICKY
@@ -97,7 +101,7 @@ class AlarmForegroundService : Service() {
         val intent = Intent(this, AlarmActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or
                     Intent.FLAG_ACTIVITY_CLEAR_TOP
-            putExtra("alarm_id", alarmId)
+            putExtra(EXTRA_ALARM_ID, alarmId)
         }
 
         return PendingIntent.getActivity(
@@ -137,6 +141,13 @@ class AlarmForegroundService : Service() {
         mediaPlayer?.start()
         mediaPlayer?.setVolume(100f, 100f)
 
+
+    }
+
+    private fun stopAlarmSound() {
+        mediaPlayer?.stop()
+        mediaPlayer?.release()
+        mediaPlayer = null
 
     }
 
