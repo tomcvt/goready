@@ -157,12 +157,12 @@ fun TestAlarmScreen(
     modifier: Modifier = Modifier
 ) {
     var interactionKey by remember { mutableStateOf(0L) }
-
+ /*
     LaunchedEffect(interactionKey) {
         kotlinx.coroutines.delay(10000L)
         onStopAlarm()
     }
-
+*/
     Box(
         modifier = Modifier
             .fillMaxSize()

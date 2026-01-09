@@ -97,6 +97,7 @@ class MainActivity : ComponentActivity() {
         val context = this
         alarmManager = (application as AlarmApp).alarmManager
         alarmViewModelFactory = AlarmViewModelFactory(alarmManager)
+        val systemAlarmManager = context.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             val permissionCheck = ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
@@ -104,8 +105,30 @@ class MainActivity : ComponentActivity() {
                 ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.POST_NOTIFICATIONS), 101)
             }
         }
+        //USE FULL SCREEN INTENT
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val permissionCheck = ContextCompat.checkSelfPermission(this, Manifest.permission.FOREGROUND_SERVICE)
+            if (permissionCheck != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.FOREGROUND_SERVICE), 102)
+            }
+        }
 
-        val systemAlarmManager = context.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val permissionCheck = ContextCompat.checkSelfPermission(this, Manifest.permission.USE_FULL_SCREEN_INTENT)
+            if (permissionCheck != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.USE_FULL_SCREEN_INTENT), 104)
+            }
+        }
+
+
+        /*
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val permissionCheck = ContextCompat.checkSelfPermission(this, Manifest.permission.SCHEDULE_EXACT_ALARM)
+            if (permissionCheck != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.SCHEDULE_EXACT_ALARM), 103)
+            }
+        }
+        */
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             if (!systemAlarmManager.canScheduleExactAlarms()) {

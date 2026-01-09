@@ -16,21 +16,30 @@ import java.util.Calendar
 
 class SystemAlarmScheduler(private val context: Context) {
 
-    private val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
+    //private val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
+    private val appContext = context.applicationContext
+    //private val alarmManager = appContext.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
+
 
     fun scheduleAlarm(alarm: AlarmEntity, alarmId: Long) {
-
+        val alarmManager = appContext.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
         Log.d("AlarmScheduler", "Scheduling alarm with ID: $alarmId")
-        val intent = Intent(context, AlarmReceiver::class.java).apply {
+        val intent = Intent(context.applicationContext
+            , AlarmReceiver::class.java).apply {
             putExtra(EXTRA_ALARM_ID, alarmId)
         }
 
         val pendingIntent = PendingIntent.getBroadcast(
-            context,
+            context.applicationContext,
             alarm.id.toInt(),  // unique per alarm
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
+        Log.d("AlarmScheduler", "Intent package name: ${intent.`package`.toString()}")
+        Log.d("AlarmScheduler", "Intent action: ${intent.action.toString()}")
+        Log.d("AlarmScheduler", "Intent data: ${intent.data.toString()}")
+        Log.d("AlarmScheduler", "Intent extras: ${intent.extras.toString()}")
+
 
         // For simplicity, exact alarm at hour:minute
         var triggerTime = Calendar.getInstance().apply {
@@ -44,21 +53,7 @@ class SystemAlarmScheduler(private val context: Context) {
             // If time has already passed today, set for tomorrow
             triggerTime += 24 * 60 * 60 * 1000
         }
-        //if (true/*alarmManager.canScheduleExactAlarms()*/ ) {
-
-        //for now we not care about checking can schedule because too high api, just require permission
-        /*
-        try {
-            context.checkSelfPermission(Manifest.permission.SCHEDULE_EXACT_ALARM)
-        } catch (e: SecurityException) {
-            throw SecurityException("SCHEDULE_EXACT_ALARM permission is required to schedule exact alarms.", e)
-        }*/
-
-        /*
-        val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
-        context.startActivity(intent)
-        //later ping user to settings if not granted
-         */
+        Log.d("AlarmScheduler", "Scheduling alarm with ID: ${alarmId} at ${triggerTime}")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             if (alarmManager.canScheduleExactAlarms()) {
                 alarmManager.setExactAndAllowWhileIdle(
@@ -89,11 +84,12 @@ class SystemAlarmScheduler(private val context: Context) {
     fun cancelAlarm(alarm: AlarmEntity) {
         val intent = Intent(context, AlarmReceiver::class.java)
         val pendingIntent = PendingIntent.getBroadcast(
-            context,
+            context.applicationContext,
             alarm.id.toInt(),
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
+        val alarmManager = appContext.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
         alarmManager.cancel(pendingIntent)
         Log.d("AlarmScheduler", "Intent Alarm cancelled with ID: ${alarm.id}")
     }
