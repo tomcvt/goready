@@ -139,16 +139,13 @@ class AlarmForegroundService : Service() {
         mediaPlayer = MediaPlayer.create(this, soundUri)
         mediaPlayer?.isLooping = true
         mediaPlayer?.start()
-        mediaPlayer?.setVolume(100f, 100f)
-
-
+        //mediaPlayer?.setVolume(100f, 100f)
     }
 
     private fun stopAlarmSound() {
         mediaPlayer?.stop()
         mediaPlayer?.release()
         mediaPlayer = null
-
     }
 
 }

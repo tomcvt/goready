@@ -39,6 +39,41 @@ android {
     buildFeatures {
         compose = true
     }
+
+    flavorDimensions += "env"
+
+    productFlavors {
+
+        create("prod") {
+            dimension = "env"
+            applicationId = "com.tomcvt.goready"
+            versionNameSuffix = ""
+        }
+
+        create("alarmTest1") {
+            dimension = "env"
+            applicationId = "com.tomcvt.goready.alarmtest1"
+            versionNameSuffix = "-alarmtest1"
+
+            buildConfigField(
+                "Boolean",
+                "IS_ALARM_TEST",
+                "true"
+            )
+        }
+
+        create("alarmTest2") {
+            dimension = "env"
+            applicationId = "com.tomcvt.goready.alarmtest2"
+            versionNameSuffix = "-alarmtest2"
+
+            buildConfigField(
+                "Boolean",
+                "IS_ALARM_TEST",
+                "true"
+            )
+        }
+    }
 }
 
 dependencies {

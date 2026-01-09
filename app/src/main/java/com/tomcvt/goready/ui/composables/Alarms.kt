@@ -1,5 +1,6 @@
 package com.tomcvt.goready.ui.composables
 
+
 import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -41,6 +42,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.ui.layout.layoutId
+import androidx.compose.ui.platform.LocalContext
+import com.tomcvt.goready.test.launchAlarmNow
 import com.tomcvt.goready.ui.imagevectors.IconBell
 
 
@@ -51,8 +54,14 @@ fun AlarmListRoute(
     rootController: NavHostController,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     val alarmList by viewModel.alarmsStateFlow.collectAsState()
-    val onAddAlarmClick = { }
+    val onAddAlarmClick = {
+        val lastAlarmId = alarmList.lastOrNull()?.id ?: -1
+        Log.d("AlarmListRoute", "Last alarm ID: $lastAlarmId")
+        context.launchAlarmNow(lastAlarmId)
+        //rootController.navigate(RootTab.ADD_ALARM.name)
+    }
     val onDeleteClick: (AlarmEntity) -> Unit = { alarm: AlarmEntity -> viewModel.deleteAlarm(alarm) }
     val onAlarmSwitchChange: (AlarmEntity, Boolean) -> Unit = {
         alarm: AlarmEntity, enabled: Boolean -> viewModel.toggleAlarm(alarm, enabled)

@@ -60,6 +60,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.tomcvt.goready.application.AlarmApp
 import com.tomcvt.goready.data.AlarmDatabase
 import com.tomcvt.goready.domain.SimpleAlarmDraft
 import com.tomcvt.goready.manager.AlarmManager
@@ -94,9 +95,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         val context = this
-        val db = AlarmDatabase.getDatabase(this)
-        val repository = AlarmRepository(db.alarmDao())
-        alarmManager = AlarmManager(repository, SystemAlarmScheduler(this))
+        alarmManager = (application as AlarmApp).alarmManager
         alarmViewModelFactory = AlarmViewModelFactory(alarmManager)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -176,11 +175,12 @@ fun GoReadyApp(alarmViewModelFactory: AlarmViewModelFactory) {
                 }
                 composable(RootTab.ALARMS.name) {
                     //val vm = viewModel<AlarmViewModel>(factory = alarmViewModelFactory)
-                    AlarmsNavHost(alarmViewModelFactory, rootNavController)
+                    AlarmsNavHost(alarmViewModelFactory, rootNavController) //navhost for future extension with separate vm
                 }
                 composable(RootTab.ADD_ALARM.name) {
                     val vm = viewModel<AlarmViewModel>(factory = alarmViewModelFactory)
                     AddAlarmView(vm, rootNavController)
+                    //AddAlarmRoute(vm, rootNavController) for now redundant
                 }
                 composable(RootTab.SETTINGS.name) {
                     SettingsView()
