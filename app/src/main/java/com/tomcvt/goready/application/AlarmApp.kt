@@ -7,15 +7,17 @@ import com.tomcvt.goready.manager.SystemAlarmScheduler
 import com.tomcvt.goready.repository.AlarmRepository
 
 class AlarmApp : Application() {
-
-    lateinit var alarmManager: AlarmManager
+    lateinit var alarmRepository: AlarmRepository
         private set
+
+    lateinit var db : AlarmDatabase
+        private set
+
 
     override fun onCreate() {
         super.onCreate()
-
-        val db = AlarmDatabase.getDatabase(this)
-        val repository = AlarmRepository(db.alarmDao())
-        alarmManager = AlarmManager(repository, SystemAlarmScheduler(this))
+        db = AlarmDatabase.getDatabase(this)
+        alarmRepository = AlarmRepository(db.alarmDao())
+        //TODO init alarm manager in activities, check if works
     }
 }

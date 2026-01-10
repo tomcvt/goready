@@ -7,6 +7,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.os.DeadObjectException
 import android.provider.Settings
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -85,6 +86,10 @@ import com.tomcvt.goready.viewmodel.UiState
 import java.time.DayOfWeek
 
 class MainActivity : ComponentActivity() {
+
+    lateinit var appObject: AlarmApp
+        private set
+
     lateinit var alarmManager: AlarmManager
         private set
 
@@ -94,10 +99,20 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val context = this
-        alarmManager = (application as AlarmApp).alarmManager
+        appObject = (application as AlarmApp)
+
+        alarmManager = AlarmManager(
+            repository = AlarmRepository(appObject.db.alarmDao()),
+            systemScheduler = SystemAlarmScheduler(this)
+        )
         alarmViewModelFactory = AlarmViewModelFactory(alarmManager)
-        val systemAlarmManager = context.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
+        val systemAlarmManager = this.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            Log.d("MainActivity", "SystemAlarmManager: $systemAlarmManager")
+            val canSchedule = systemAlarmManager.canScheduleExactAlarms()
+            Log.d("MainActivity", "AlarmManager: $alarmManager")
+            Log.d("MainActivity", "Can schedule: $canSchedule")
+        }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             val permissionCheck = ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
@@ -112,28 +127,23 @@ class MainActivity : ComponentActivity() {
                 ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.FOREGROUND_SERVICE), 102)
             }
         }
-
+        Log.d("MainActivity", "Foreground service permission")
+        val foregroundPermission = ContextCompat.checkSelfPermission(this, Manifest.permission.FOREGROUND_SERVICE)
+        if (foregroundPermission != PackageManager.PERMISSION_GRANTED) {
+            Log.d("MainActivity", "Foreground service permission not granted")
+        } else {
+            Log.d("MainActivity", "Foreground service permission granted")
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val permissionCheck = ContextCompat.checkSelfPermission(this, Manifest.permission.USE_FULL_SCREEN_INTENT)
             if (permissionCheck != PackageManager.PERMISSION_GRANTED) {
                 ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.USE_FULL_SCREEN_INTENT), 104)
             }
         }
-
-
-        /*
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            val permissionCheck = ContextCompat.checkSelfPermission(this, Manifest.permission.SCHEDULE_EXACT_ALARM)
-            if (permissionCheck != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.SCHEDULE_EXACT_ALARM), 103)
-            }
-        }
-        */
-
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             if (!systemAlarmManager.canScheduleExactAlarms()) {
                 val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
-                context.startActivity(intent)
+                this.startActivity(intent)
             }
         }
 

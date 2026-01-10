@@ -15,30 +15,31 @@ import com.tomcvt.goready.data.AlarmEntity
 import java.util.Calendar
 
 class SystemAlarmScheduler(private val context: Context) {
-
-    //private val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
     private val appContext = context.applicationContext
-    //private val alarmManager = appContext.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
+    val alarmManager = appContext.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
 
-
+    @RequiresPermission(Manifest.permission.SCHEDULE_EXACT_ALARM)
     fun scheduleAlarm(alarm: AlarmEntity, alarmId: Long) {
-        val alarmManager = appContext.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
+        //val alarmManager = appContext.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
         Log.d("AlarmScheduler", "Scheduling alarm with ID: $alarmId")
-        val intent = Intent(context.applicationContext
+        val intent = Intent(appContext
             , AlarmReceiver::class.java).apply {
             putExtra(EXTRA_ALARM_ID, alarmId)
         }
 
         val pendingIntent = PendingIntent.getBroadcast(
-            context.applicationContext,
+            appContext,
             alarm.id.toInt(),  // unique per alarm
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        Log.d("AlarmScheduler", "Intent package name: ${intent.`package`.toString()}")
+        Log.d("AlarmScheduler", "Intent appContext name: ${appContext}")
+        Log.d("AlarmScheduler", "Intent package name: ${intent.component?.packageName.toString()}")
         Log.d("AlarmScheduler", "Intent action: ${intent.action.toString()}")
         Log.d("AlarmScheduler", "Intent data: ${intent.data.toString()}")
         Log.d("AlarmScheduler", "Intent extras: ${intent.extras.toString()}")
+        Log.d("AlarmScheduler", "Scheduling alarm with ID: $alarmId and PendingIntent: $pendingIntent")
+        Log.d("AlarmScheduler", "Scheduling alarm with ID: $alarmId and intent: $intent")
 
 
         // For simplicity, exact alarm at hour:minute
@@ -53,6 +54,13 @@ class SystemAlarmScheduler(private val context: Context) {
             // If time has already passed today, set for tomorrow
             triggerTime += 24 * 60 * 60 * 1000
         }
+
+        triggerTime = System.currentTimeMillis() + 15000
+
+
+        //val info = AlarmManager.AlarmClockInfo(triggerTime, pendingIntent)
+        //alarmManager.setAlarmClock(info, pendingIntent)
+
         Log.d("AlarmScheduler", "Scheduling alarm with ID: ${alarmId} at ${triggerTime}")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             if (alarmManager.canScheduleExactAlarms()) {
@@ -82,14 +90,14 @@ class SystemAlarmScheduler(private val context: Context) {
     }
 
     fun cancelAlarm(alarm: AlarmEntity) {
-        val intent = Intent(context, AlarmReceiver::class.java)
+        val intent = Intent(appContext, AlarmReceiver::class.java)
         val pendingIntent = PendingIntent.getBroadcast(
-            context.applicationContext,
+            appContext.applicationContext,
             alarm.id.toInt(),
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        val alarmManager = appContext.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
+        //val alarmManager = appContext.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
         alarmManager.cancel(pendingIntent)
         Log.d("AlarmScheduler", "Intent Alarm cancelled with ID: ${alarm.id}")
     }
