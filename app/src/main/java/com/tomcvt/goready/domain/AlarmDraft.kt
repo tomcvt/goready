@@ -5,12 +5,13 @@ import java.time.DayOfWeek
 data class AlarmDraft(
     val hour : Int,
     val minute : Int,
-    val label : String?,
-    val task: String?,
-    val taskData: String?,
-    val repeatDays: Set<DayOfWeek>, // Use Int to represent DayOfWeek to avoid dependency on java.time in domain layer
-    val soundUri: String?,
-    val snoozeEnabled: Boolean,
-    val snoozeDurationMinutes: Int?,
-    val snoozeMaxCount: Int?
+    val repeatDays: Set<DayOfWeek>,
+
+    var label : String? = "Alarm",
+    var task: String? = null,
+    var taskData: String? = null,
+    var soundUri: String? = null,
+    var snoozeEnabled: Boolean = false,
+    var snoozeDurationMinutes: Int? = null,
+    var snoozeMaxCount: Int? = null
 )

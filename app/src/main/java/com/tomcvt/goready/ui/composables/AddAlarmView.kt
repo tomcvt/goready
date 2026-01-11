@@ -37,6 +37,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.tomcvt.goready.constants.TaskType
 import com.tomcvt.goready.constants.TaskTypeContext
+import com.tomcvt.goready.domain.AlarmDraft
 import com.tomcvt.goready.domain.SimpleAlarmDraft
 import com.tomcvt.goready.ui.navigation.RootTab
 import com.tomcvt.goready.viewmodel.AlarmViewModel
@@ -68,6 +69,8 @@ fun AddAlarmView(viewModel: AlarmViewModel,
     var selectedHour by remember {mutableIntStateOf(8)}
     var selectedMinute by remember {mutableIntStateOf(30)}
     var selectedType by remember {mutableStateOf(TaskType.NONE)}
+    var taskData by remember {mutableStateOf(TaskTypeContext(TaskType.NONE))}
+
 
     // Temporary variables to hold selected time from the picker
     // These will be updated when the user selects a time
@@ -123,6 +126,12 @@ fun AddAlarmView(viewModel: AlarmViewModel,
                 options = TaskType.getList(),
                 onTypeSelected = { selectedType = it }
             )
+            TaskDataInput(
+                taskType = selectedType,
+                onTaskDataProvided = {
+                    Log.d("AddAlarmView", "Task data provided: ${it.simpleData}")
+                }
+            )
 
 
             Button(onClick = {showModal = true
@@ -132,6 +141,15 @@ fun AddAlarmView(viewModel: AlarmViewModel,
                     repeatDays = selectedDays
                 )
                 Log.d("AddAlarmView", "Type: ${selectedType.name}")
+                if (selectedType != TaskType.NONE) {
+                    val newExtendedDraft = AlarmDraft(
+                        hour = selectedHour,
+                        minute = selectedMinute,
+                        repeatDays = selectedDays
+                    )
+                    newExtendedDraft.task = selectedType.name
+                    newExtendedDraft.taskData = taskData.simpleData
+                }
                 viewModel.saveSimpleAlarm(newDraftAlarm)
             }) {
                 Text("Save Alarm")
