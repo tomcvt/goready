@@ -34,6 +34,13 @@ class AlarmForegroundService : Service() {
 
     private var mediaPlayer: MediaPlayer? = null
 
+    var isRinging = false
+    var isTemporarilyMuted = false
+    var muteUntil: Long = 0L
+
+    var isActive: Boolean = false
+
+
     override fun onCreate() {
         super.onCreate()
         val db = AlarmDatabase.getDatabase(this)
@@ -49,6 +56,12 @@ class AlarmForegroundService : Service() {
             return START_NOT_STICKY
         }
 
+        if (intent?.action == "USER_INTERACTION") {
+            muteUntil = System.currentTimeMillis() + 5000
+            isTemporarilyMuted = true
+
+        }
+
         serviceScope.launch {
             val alarm = repository.getAlarmById(alarmId)
             if (alarm == null) {
@@ -61,11 +74,23 @@ class AlarmForegroundService : Service() {
                 stopSelf()
                 return@launch
             }
-
-            startAsForeground(alarm)
+            isActive = true
             startAlarmSound(alarm)
-            delay(5000)
+            startAsForeground(alarm)
+            delay(10000)
+            isActive = false
             stopAlarmSound()
+        }
+
+        serviceScope.launch {
+            while (isActive) {
+                delay(500)
+
+                if (isTemporarilyMuted && System.currentTimeMillis() >= muteUntil) {
+                    isTemporarilyMuted = false
+                    resumeSound()
+                }
+            }
         }
 
         return START_NOT_STICKY
@@ -75,6 +100,7 @@ class AlarmForegroundService : Service() {
         mediaPlayer?.stop()
         mediaPlayer?.release()
         serviceScope.cancel()
+        isActive = false
         super.onDestroy()
     }
 
@@ -138,8 +164,8 @@ class AlarmForegroundService : Service() {
         }
         mediaPlayer = MediaPlayer.create(this, soundUri)
         mediaPlayer?.isLooping = true
+        mediaPlayer?.setVolume(100f, 100f)
         mediaPlayer?.start()
-        //mediaPlayer?.setVolume(100f, 100f)
     }
 
     private fun stopAlarmSound() {
@@ -148,4 +174,11 @@ class AlarmForegroundService : Service() {
         mediaPlayer = null
     }
 
+    private fun pauseAlarm() {
+        mediaPlayer?.pause()
+    }
+
+    private fun resumeSound() {
+        mediaPlayer?.start()
+    }
 }

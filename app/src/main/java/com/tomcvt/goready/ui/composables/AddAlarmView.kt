@@ -1,6 +1,7 @@
 package com.tomcvt.goready.ui.composables
 
 import android.app.TimePickerDialog
+import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,8 +12,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -22,11 +29,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import com.tomcvt.goready.constants.TaskType
+import com.tomcvt.goready.constants.TaskTypeContext
 import com.tomcvt.goready.domain.SimpleAlarmDraft
 import com.tomcvt.goready.ui.navigation.RootTab
 import com.tomcvt.goready.viewmodel.AlarmViewModel
@@ -57,6 +67,8 @@ fun AddAlarmView(viewModel: AlarmViewModel,
     var showModal by remember {mutableStateOf(false)}
     var selectedHour by remember {mutableIntStateOf(8)}
     var selectedMinute by remember {mutableIntStateOf(30)}
+    var selectedType by remember {mutableStateOf(TaskType.NONE)}
+
     // Temporary variables to hold selected time from the picker
     // These will be updated when the user selects a time
     // and then saved to the state variables above when confirmed
@@ -107,6 +119,11 @@ fun AddAlarmView(viewModel: AlarmViewModel,
                     )
                 }
             }
+            AlarmTypeSelector(
+                options = TaskType.getList(),
+                onTypeSelected = { selectedType = it }
+            )
+
 
             Button(onClick = {showModal = true
                 val newDraftAlarm = SimpleAlarmDraft(
@@ -114,6 +131,7 @@ fun AddAlarmView(viewModel: AlarmViewModel,
                     minute = selectedMinute,
                     repeatDays = selectedDays
                 )
+                Log.d("AddAlarmView", "Type: ${selectedType.name}")
                 viewModel.saveSimpleAlarm(newDraftAlarm)
             }) {
                 Text("Save Alarm")
@@ -144,4 +162,91 @@ fun AddAlarmView(viewModel: AlarmViewModel,
         }
 
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AlarmTypeSelector(
+    options: List<TaskType>,
+    onTypeSelected: (TaskType) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var selectedType by remember { mutableStateOf(TaskType.NONE) }
+    var expanded by remember { mutableStateOf(false) }
+    //var selectedOption by remember { mutableStateOf(selectedType.label) }
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = !expanded }
+    ) {
+        TextField(
+            value = selectedType.name,
+            onValueChange = {},
+            readOnly = true,
+            label = { Text("Select an option") },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            modifier = Modifier.menuAnchor().fillMaxWidth()
+        )
+
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            options.forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(option.name) },
+                    onClick = {
+                        selectedType = option
+                        onTypeSelected(option)  // call lambda
+                        expanded = false
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun TaskDataInput(
+    taskType: TaskType,
+    onTaskDataProvided: (TaskTypeContext) -> Unit
+) {
+    var taskData by remember { mutableStateOf(TaskTypeContext(taskType)) }
+    when (taskType) {
+        TaskType.TIMER -> {}
+        TaskType.COUNTDOWN -> {}
+        TaskType.TEXT -> {
+            TextInputCard(
+                onTextChange = { taskData.simpleData = it },
+                onFocusLost = { onTaskDataProvided(taskData) },
+                placeholder = "Type here..."
+            )
+        }
+        TaskType.MATH -> {}
+        else -> {}
+    }
+}
+
+@Composable
+fun TextInputCard(
+    onTextChange: (String) -> Unit,
+    onFocusLost: (String) -> Unit,
+    placeholder: String = "Type here..."
+) {
+    var internalText by remember { mutableStateOf("") }
+
+    OutlinedTextField(
+        value = internalText,
+        onValueChange = { internalText = it; onTextChange(it) },
+        placeholder = { Text(placeholder) },
+        modifier = Modifier
+            .fillMaxWidth()
+            .onFocusChanged { state ->
+                if (!state.isFocused) {
+                    // Call parent lambda when focus leaves
+                    onFocusLost(internalText)
+                }
+            },
+        singleLine = false,        // allows multiple lines
+        maxLines = 10              // or any number you want
+    )
 }

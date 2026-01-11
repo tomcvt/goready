@@ -18,6 +18,9 @@ enum class TaskType(
 
         fun fromCode(code: Long): TaskType? =
             values().find { it.code == code }
-    }
 
+        fun getList() : List<TaskType> {
+            return values().toList()
+        }
+    }
 }
