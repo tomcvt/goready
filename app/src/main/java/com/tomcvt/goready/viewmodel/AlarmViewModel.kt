@@ -6,19 +6,19 @@ import androidx.lifecycle.viewModelScope
 import com.tomcvt.goready.data.AlarmEntity
 import com.tomcvt.goready.domain.AlarmDraft
 import com.tomcvt.goready.domain.SimpleAlarmDraft
-import com.tomcvt.goready.manager.AlarmManager
+import com.tomcvt.goready.manager.AppAlarmManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class AlarmViewModel(
-    private val alarmManager: AlarmManager // inject manager
+    private val appAlarmManager: AppAlarmManager // inject manager
 ) : ViewModel() {
     private val _uiState = MutableStateFlow<UiState>(UiState.Idle)
     val uiState: StateFlow<UiState> = _uiState
 
-    val alarmsStateFlow: StateFlow<List<AlarmEntity>> = alarmManager
+    val alarmsStateFlow: StateFlow<List<AlarmEntity>> = appAlarmManager
         .getAlarmsFlow().stateIn(
             viewModelScope,
             started = kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(1000),
@@ -28,7 +28,7 @@ class AlarmViewModel(
     fun saveAlarm(draft: AlarmDraft) {
         viewModelScope.launch {
             try {
-                alarmManager.createAlarm(draft)
+                appAlarmManager.createAlarm(draft)
                 Log.d("AlarmViewModel", "Alarm created: $draft")
                 _uiState.value = UiState.Success("Alarm saved")
             } catch (e: Exception) {
@@ -40,7 +40,7 @@ class AlarmViewModel(
     fun saveSimpleAlarm(draft: SimpleAlarmDraft) {
         viewModelScope.launch {
             try {
-                alarmManager.createSimpleAlarm(draft)
+                appAlarmManager.createSimpleAlarm(draft)
                 Log.d("AlarmViewModel", "Simple alarm created: $draft")
                 _uiState.value = UiState.Success("Simple alarm saved")
             } catch (e: Exception) {
@@ -52,7 +52,7 @@ class AlarmViewModel(
     fun toggleAlarm(alarm: AlarmEntity, enabled: Boolean) {
         viewModelScope.launch {
             try {
-                alarmManager.toggleAlarm(alarm, enabled)
+                appAlarmManager.toggleAlarm(alarm, enabled)
                 _uiState.value = UiState.Success("Alarm toggled")
             } catch (e: Exception) {
                 _uiState.value = UiState.Error(e.message ?: "Unknown error")
@@ -63,7 +63,7 @@ class AlarmViewModel(
     fun deleteAlarm(alarm: AlarmEntity) {
         viewModelScope.launch {
             try {
-                alarmManager.deleteAlarm(alarm)
+                appAlarmManager.deleteAlarm(alarm)
                 Log.d("AlarmViewModel", "Alarm deleted: $alarm")
                 _uiState.value = UiState.Success("Alarm deleted")
             } catch (e: Exception) {

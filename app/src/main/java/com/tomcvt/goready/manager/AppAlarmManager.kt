@@ -1,14 +1,12 @@
 package com.tomcvt.goready.manager
 
 import android.util.Log
-import com.tomcvt.goready.application.AlarmApp
 import com.tomcvt.goready.data.AlarmEntity
 import com.tomcvt.goready.domain.AlarmDraft
 import com.tomcvt.goready.domain.SimpleAlarmDraft
 import com.tomcvt.goready.repository.AlarmRepository
-import java.time.DayOfWeek
 
-open class AlarmManager(private val repository: AlarmRepository, private val systemScheduler: SystemAlarmScheduler) {
+open class AppAlarmManager(private val repository: AlarmRepository, private val systemScheduler: SystemAlarmScheduler) {
     fun getAlarmsFlow() = repository.getAlarms()
     suspend fun createAlarm(draft: AlarmDraft) {
         // 1. Convert draft → entity
@@ -30,12 +28,21 @@ open class AlarmManager(private val repository: AlarmRepository, private val sys
         val newAlarmId = repository.insertAlarm(entity)
 
         // 3. Schedule system alarm
-        systemScheduler.scheduleAlarm(entity, newAlarmId)
+        try {
+            systemScheduler.scheduleAlarm(entity, newAlarmId)
+        } catch (e: SecurityException) {
+            // Handle the exception, e.g., show an error message to the user
+            Log.e("AppAlarmManager", "Security exception while scheduling alarm", e)
+            //TODO add popup and ask user to grant permission
+            //throw e
+            //TODO catch exception in activity and show error message
+
+        }
     }
 
     suspend fun toggleAlarm(alarm: AlarmEntity, enabled: Boolean) {
         val updatedAlarm = alarm.copy(isEnabled = enabled)
-        Log.d("AlarmManager", "Alarm toggled: $updatedAlarm")
+        Log.d("AppAlarmManager", "Alarm toggled: $updatedAlarm")
         repository.updateAlarm(updatedAlarm)
         if (enabled) {
             systemScheduler.scheduleAlarm(updatedAlarm, alarm.id)
@@ -73,4 +80,7 @@ open class AlarmManager(private val repository: AlarmRepository, private val sys
 
     }
 
+    suspend fun getAlarm(alarmId: Long): AlarmEntity? {
+        return repository.getAlarmById(alarmId)
+    }
 }

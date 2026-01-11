@@ -1,59 +1,35 @@
 package com.tomcvt.goready
 
 import android.Manifest
-import android.app.TimePickerDialog
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.os.DeadObjectException
 import android.provider.Settings
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.absoluteOffset
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountBox
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.tooling.preview.PreviewScreenSizes
-import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -62,35 +38,28 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.tomcvt.goready.application.AlarmApp
-import com.tomcvt.goready.data.AlarmDatabase
-import com.tomcvt.goready.domain.SimpleAlarmDraft
-import com.tomcvt.goready.manager.AlarmManager
+import com.tomcvt.goready.manager.AppAlarmManager
 import com.tomcvt.goready.manager.SystemAlarmScheduler
 import com.tomcvt.goready.preview.PreviewAlarms2
 import com.tomcvt.goready.repository.AlarmRepository
 import com.tomcvt.goready.ui.composables.AddAlarmView
-import com.tomcvt.goready.ui.composables.AlarmAddedModal
 import com.tomcvt.goready.ui.composables.AlarmList
 import com.tomcvt.goready.ui.composables.AlarmsNavHost
 import com.tomcvt.goready.ui.composables.HomeScreen
 import com.tomcvt.goready.ui.composables.SettingsView
 import com.tomcvt.goready.ui.navigation.LocalRootNavigator
-import com.tomcvt.goready.ui.navigation.RootContent
 import com.tomcvt.goready.ui.navigation.RootNavigatorImpl
 import com.tomcvt.goready.ui.navigation.RootTab
 import com.tomcvt.goready.ui.theme.GoReadyTheme
 import com.tomcvt.goready.viewmodel.AlarmViewModel
 import com.tomcvt.goready.viewmodel.AlarmViewModelFactory
-import com.tomcvt.goready.viewmodel.AlarmViewModelProvider
-import com.tomcvt.goready.viewmodel.UiState
-import java.time.DayOfWeek
 
 class MainActivity : ComponentActivity() {
 
     lateinit var appObject: AlarmApp
         private set
 
-    lateinit var alarmManager: AlarmManager
+    lateinit var appAlarmManager: AppAlarmManager
         private set
 
     lateinit var alarmViewModelFactory: AlarmViewModelFactory
@@ -101,16 +70,16 @@ class MainActivity : ComponentActivity() {
 
         appObject = (application as AlarmApp)
 
-        alarmManager = AlarmManager(
+        appAlarmManager = AppAlarmManager(
             repository = AlarmRepository(appObject.db.alarmDao()),
             systemScheduler = SystemAlarmScheduler(this)
         )
-        alarmViewModelFactory = AlarmViewModelFactory(alarmManager)
+        alarmViewModelFactory = AlarmViewModelFactory(appAlarmManager)
         val systemAlarmManager = this.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             Log.d("MainActivity", "SystemAlarmManager: $systemAlarmManager")
             val canSchedule = systemAlarmManager.canScheduleExactAlarms()
-            Log.d("MainActivity", "AlarmManager: $alarmManager")
+            Log.d("MainActivity", "AppAlarmManager: $appAlarmManager")
             Log.d("MainActivity", "Can schedule: $canSchedule")
         }
 
@@ -147,6 +116,17 @@ class MainActivity : ComponentActivity() {
             }
         }
 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            //Permission check for battery optimization
+            val permissionCheck = ContextCompat.checkSelfPermission(this, Manifest.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
+            if (permissionCheck == PackageManager.PERMISSION_GRANTED) {
+                return
+            }
+            val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
+            intent.data = Uri.parse("package:$packageName")
+            startActivity(intent)
+        }
+
         enableEdgeToEdge()
         setContent {
             //val alarmViewModel: AlarmViewModel = AlarmViewModelProvider.provideAlarmViewModel(this)
@@ -167,7 +147,6 @@ class MainActivity : ComponentActivity() {
 //@PreviewScreenSizes
 @Composable
 fun GoReadyApp(alarmViewModelFactory: AlarmViewModelFactory) {
-    var currentDestination by rememberSaveable { mutableStateOf(RootTab.HOME) }
     val rootNavController = rememberNavController()
     val navbackStackEntry by rootNavController.currentBackStackEntryAsState()
     val currentRootTab = RootTab.valueOf(

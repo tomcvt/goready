@@ -2,8 +2,6 @@ package com.tomcvt.goready.application
 
 import android.app.Application
 import com.tomcvt.goready.data.AlarmDatabase
-import com.tomcvt.goready.manager.AlarmManager
-import com.tomcvt.goready.manager.SystemAlarmScheduler
 import com.tomcvt.goready.repository.AlarmRepository
 
 class AlarmApp : Application() {

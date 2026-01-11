@@ -49,6 +49,12 @@ android {
             dimension = "env"
             applicationId = "com.tomcvt.goready"
             versionNameSuffix = ""
+
+            buildConfigField(
+                "Boolean",
+                "IS_ALARM_TEST",
+                "false"
+            )
         }
 
         create("alarmTest1") {

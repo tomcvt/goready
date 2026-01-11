@@ -183,3 +183,75 @@ fun TestAlarmScreen(
         }
     }
 }
+
+@Composable
+fun DebugTextAlarmScreen(
+    text: String,
+    onStopAlarm: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black),
+        contentAlignment = Alignment.Center
+    ) {
+        TextAlarmScreen(
+            text = text,
+            onStopAlarm = onStopAlarm,
+            modifier = modifier
+        )
+        SimpleDeleteButton(
+            onDelete = onStopAlarm,
+            modifier = Modifier.align(Alignment.TopEnd)
+        )
+    }
+
+}
+
+
+@Composable
+fun TextAlarmScreen(
+    text: String,
+    onStopAlarm: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var currentText by remember { mutableStateOf("") }
+    var interactionKey by remember { mutableStateOf(0L) }
+    LaunchedEffect(interactionKey) {
+        kotlinx.coroutines.delay(10000L)
+        onStopAlarm()
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 48.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                )
+            ) {
+                Text(text, fontSize = 32.sp)
+            }
+
+            TextInputCard(
+                onTextChange = {currentText = it
+                                interactionKey++
+                               if (currentText == text) {onStopAlarm()}
+                               },
+                onFocusLost = {},
+                placeholder = "Type your motto!"
+            )
+        }
+    }
+}

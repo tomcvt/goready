@@ -49,7 +49,7 @@
         </receiver>
         <service
             android:name=".service.AlarmForegroundService"
-            android:foregroundServiceType="mediaPlayback"
+            android:foregroundServiceType="systemExempted|mediaPlayback"
             android:exported="false" />
 
     </application>

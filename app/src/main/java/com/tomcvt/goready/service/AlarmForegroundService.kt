@@ -7,6 +7,8 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.media.AudioAttributes
+import android.media.AudioManager
 import android.media.MediaPlayer
 import android.media.RingtoneManager
 import android.net.Uri
@@ -59,7 +61,14 @@ class AlarmForegroundService : Service() {
         if (intent?.action == "USER_INTERACTION") {
             muteUntil = System.currentTimeMillis() + 5000
             isTemporarilyMuted = true
+            pauseAlarm()
+            return START_STICKY
+        }
 
+        if (intent?.action == "STOP_ALARM") {
+            stopAlarmSound()
+            stopSelf()
+            return START_NOT_STICKY
         }
 
         serviceScope.launch {
@@ -75,11 +84,22 @@ class AlarmForegroundService : Service() {
                 return@launch
             }
             isActive = true
+            val audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+            val result = audioManager.requestAudioFocus(
+                { /* optional: handle focus changes */ },
+                AudioManager.STREAM_ALARM,
+                AudioManager.AUDIOFOCUS_GAIN
+            )
+
+            if (result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
+                // 2️⃣ Start the alarm sound
+                Log.d("AlarmService", "Audio focus granted, starting alarm sound")
+            } else {
+                Log.w("AlarmService", "Audio focus denied, starting alarm sound anyway")
+            }
+
             startAlarmSound(alarm)
             startAsForeground(alarm)
-            delay(10000)
-            isActive = false
-            stopAlarmSound()
         }
 
         serviceScope.launch {
@@ -162,16 +182,32 @@ class AlarmForegroundService : Service() {
         if (alarm.soundUri != null) {
             soundUri = Uri.parse(alarm.soundUri)
         }
-        mediaPlayer = MediaPlayer.create(this, soundUri)
-        mediaPlayer?.isLooping = true
-        mediaPlayer?.setVolume(100f, 100f)
-        mediaPlayer?.start()
+
+        val audioAttributes = AudioAttributes.Builder()
+            .setUsage(AudioAttributes.USAGE_ALARM)
+            .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+            .build()
+
+        mediaPlayer = MediaPlayer().apply {
+            setAudioAttributes(audioAttributes)
+            setDataSource(this@AlarmForegroundService, soundUri)
+            isLooping = true
+            setVolume(100f, 100f)
+            prepare()
+            start()
+        }
+        //mediaPlayer = MediaPlayer.create(this, soundUri)
+        //mediaPlayer?.isLooping = true
+        //mediaPlayer?.setVolume(100f, 100f)
+        //mediaPlayer?.start()
     }
 
     private fun stopAlarmSound() {
         mediaPlayer?.stop()
         mediaPlayer?.release()
         mediaPlayer = null
+        val audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        audioManager.abandonAudioFocus(null)
     }
 
     private fun pauseAlarm() {

@@ -22,7 +22,7 @@ class SystemAlarmScheduler(private val context: Context) {
 
     @RequiresPermission(Manifest.permission.SCHEDULE_EXACT_ALARM)
     fun scheduleAlarm(alarm: AlarmEntity, alarmId: Long) {
-        //val alarmManager = appContext.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
+        //val appAlarmManager = appContext.getSystemService(Context.ALARM_SERVICE) as android.app.AppAlarmManager
         Log.d("AlarmScheduler", "Scheduling alarm with ID: $alarmId")
         val intent = Intent(appContext
             , AlarmReceiver::class.java).apply {
@@ -69,14 +69,19 @@ class SystemAlarmScheduler(private val context: Context) {
         //triggerTime = System.currentTimeMillis() + 15000
 
 
-        //val info = AlarmManager.AlarmClockInfo(triggerTime, pendingIntent)
-        //alarmManager.setAlarmClock(info, pendingIntent)
+        //val info = AppAlarmManager.AlarmClockInfo(triggerTime, pendingIntent)
+        //appAlarmManager.setAlarmClock(info, pendingIntent)
+        try {
+            scheduleRTCWakeup(
+                alarmId,
+                triggerTime,
+                pendingIntent
+            )
+        } catch (e: SecurityException ) {
+            Log.e("AlarmScheduler", "Security exception while scheduling alarm", e)
+            //TODO add popup and ask user to grant permission
 
-        scheduleRTCWakeup(
-            alarmId,
-            triggerTime,
-            pendingIntent
-        )
+        }
 
     }
 
@@ -88,7 +93,7 @@ class SystemAlarmScheduler(private val context: Context) {
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        //val alarmManager = appContext.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
+        //val appAlarmManager = appContext.getSystemService(Context.ALARM_SERVICE) as android.app.AppAlarmManager
         alarmManager.cancel(pendingIntent)
         Log.d("AlarmScheduler", "Intent Alarm cancelled with ID: ${alarm.id}")
     }

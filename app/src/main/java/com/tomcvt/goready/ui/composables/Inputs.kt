@@ -1,0 +1,37 @@
+package com.tomcvt.goready.ui.composables
+
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
+
+@Composable
+fun TextInputCard(
+    onTextChange: (String) -> Unit,
+    onFocusLost: (String) -> Unit,
+    placeholder: String = "Type here..."
+) {
+    var internalText by remember { mutableStateOf("") }
+
+    OutlinedTextField(
+        value = internalText,
+        onValueChange = { internalText = it; onTextChange(it) },
+        placeholder = { Text(placeholder) },
+        modifier = Modifier
+            .fillMaxWidth()
+            .onFocusChanged { state ->
+                if (!state.isFocused) {
+                    // Call parent lambda when focus leaves
+                    onFocusLost(internalText)
+                }
+            },
+        singleLine = false,        // allows multiple lines
+        maxLines = 5              // or any number you want
+    )
+}

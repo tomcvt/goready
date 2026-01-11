@@ -149,8 +149,11 @@ fun AddAlarmView(viewModel: AlarmViewModel,
                     )
                     newExtendedDraft.task = selectedType.name
                     newExtendedDraft.taskData = taskData.simpleData
+                    val snapshot = newExtendedDraft.copy()
+                    viewModel.saveAlarm(newExtendedDraft)
+                } else {
+                    viewModel.saveSimpleAlarm(newDraftAlarm)
                 }
-                viewModel.saveSimpleAlarm(newDraftAlarm)
             }) {
                 Text("Save Alarm")
             }
@@ -244,27 +247,4 @@ fun TaskDataInput(
     }
 }
 
-@Composable
-fun TextInputCard(
-    onTextChange: (String) -> Unit,
-    onFocusLost: (String) -> Unit,
-    placeholder: String = "Type here..."
-) {
-    var internalText by remember { mutableStateOf("") }
 
-    OutlinedTextField(
-        value = internalText,
-        onValueChange = { internalText = it; onTextChange(it) },
-        placeholder = { Text(placeholder) },
-        modifier = Modifier
-            .fillMaxWidth()
-            .onFocusChanged { state ->
-                if (!state.isFocused) {
-                    // Call parent lambda when focus leaves
-                    onFocusLost(internalText)
-                }
-            },
-        singleLine = false,        // allows multiple lines
-        maxLines = 10              // or any number you want
-    )
-}
