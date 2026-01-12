@@ -29,6 +29,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class AlarmForegroundService : Service() {
 
@@ -42,7 +43,7 @@ class AlarmForegroundService : Service() {
     var isRinging = false
     var isTemporarilyMuted = false
     var muteUntil: Long = 0L
-    var isActive: Boolean = false
+    var isActive: Boolean = true
 
     override fun onCreate() {
         super.onCreate()
@@ -57,29 +58,35 @@ class AlarmForegroundService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        val alarmId = intent?.getLongExtra(EXTRA_ALARM_ID, -1) ?: -1
+        val alarmId = intent?.getLongExtra(EXTRA_ALARM_ID, -1L) ?: -1
         Log.d("AlarmForegroundService", "onStartCommand with alarm ID: $alarmId")
+
+        if (intent?.action == "USER_INTERACTION") {
+            muteUntil = System.currentTimeMillis() + 5000
+            isTemporarilyMuted = true
+            pauseAlarm()
+            Log.d(TAG, "Alarm muted for 5 seconds")
+            Log.d(TAG, "Mute until: $muteUntil")
+            Log.d(TAG, "Is active: $isActive")
+            return START_STICKY
+        }
+
+        if (intent?.action == "STOP_ALARM") {
+            stopAlarmSound()
+            isActive = false
+            stopSelf()
+            return START_NOT_STICKY
+        }
 
         if (alarmId == -1L) {
             stopSelf()
             return START_NOT_STICKY
         }
 
-        if (intent?.action == "USER_INTERACTION") {
-            muteUntil = System.currentTimeMillis() + 2000
-            isTemporarilyMuted = true
-            pauseAlarm()
-            return START_STICKY
-        }
-
-        if (intent?.action == "STOP_ALARM") {
-            stopAlarmSound()
-            stopSelf()
-            return START_NOT_STICKY
-        }
+        isActive = true
 
         serviceScope.launch {
-            val alarm = repository.getAlarmById(alarmId)
+            val alarm = withContext(Dispatchers.IO) {repository.getAlarmById(alarmId)}
             if (alarm == null) {
                 stopSelf()
                 return@launch
@@ -111,17 +118,23 @@ class AlarmForegroundService : Service() {
         }
 
         serviceScope.launch {
+            Log.d(TAG, "Checking active: $isActive")
             while (isActive) {
-                delay(500)
-
+                delay(2000)
+                Log.d(TAG, "Checking muted: $isTemporarilyMuted")
                 if (isTemporarilyMuted && System.currentTimeMillis() >= muteUntil) {
-                    isTemporarilyMuted = false
-                    resumeSound()
+                    Log.d(TAG, "Unmuting alarm")
+                    try {
+                        resumeSound()
+                        isTemporarilyMuted = false
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error resuming sound", e)
+                    }
                 }
             }
         }
 
-        return START_NOT_STICKY
+        return START_STICKY
     }
 
     override fun onDestroy() {
@@ -136,6 +149,11 @@ class AlarmForegroundService : Service() {
 
     private fun createAlarmChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val existingChannel = getSystemService(NotificationManager::class.java)
+                .getNotificationChannel("alarm_channel")
+            if (existingChannel != null) {
+                return
+            }
             val channel = NotificationChannel(
                 "alarm_channel",
                 "Alarms",
@@ -145,7 +163,6 @@ class AlarmForegroundService : Service() {
                 enableVibration(true)
                 lockscreenVisibility = Notification.VISIBILITY_PUBLIC
             }
-
             getSystemService(NotificationManager::class.java)
                 .createNotificationChannel(channel)
         }
@@ -204,10 +221,6 @@ class AlarmForegroundService : Service() {
             prepare()
             start()
         }
-        //mediaPlayer = MediaPlayer.create(this, soundUri)
-        //mediaPlayer?.isLooping = true
-        //mediaPlayer?.setVolume(100f, 100f)
-        //mediaPlayer?.start()
     }
 
     private fun stopAlarmSound() {
@@ -219,10 +232,15 @@ class AlarmForegroundService : Service() {
     }
 
     private fun pauseAlarm() {
+        Log.d(TAG, "Pausing alarm")
         mediaPlayer?.pause()
     }
 
     private fun resumeSound() {
         mediaPlayer?.start()
+    }
+
+    companion object {
+        private const val TAG = "AlarmForegroundService"
     }
 }

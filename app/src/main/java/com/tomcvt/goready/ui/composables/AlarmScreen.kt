@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -280,6 +281,8 @@ fun TextAlarmScreen(
     var currentText by remember { mutableStateOf("") }
     var interactionKey by remember { mutableStateOf(0L) }
     var lastInteraction by remember { mutableStateOf(0L) }
+    var showPopup by remember { mutableStateOf(false) }
+
 
     LaunchedEffect(interactionKey) {
         if (System.currentTimeMillis() - lastInteraction > 2000L) {
@@ -302,7 +305,7 @@ fun TextAlarmScreen(
             }
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.SpaceBetween
+        verticalArrangement = Arrangement.Top
     ) {
         Card(
             modifier = Modifier
@@ -313,21 +316,28 @@ fun TextAlarmScreen(
                 containerColor = MaterialTheme.colorScheme.surfaceVariant
             )
         ) {
-            Text(
-                //TODO provide username
-                text = "Type your motto!",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = text,
-                style = MaterialTheme.typography.displayMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Column(
+                modifier = Modifier
+                    .padding(32.dp)
+                    .fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    //TODO consider variable style depending on message length
+                    text = "Type your motto!",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = text,
+                    style = MaterialTheme.typography.headlineMedium,
+                    //fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
-
+        Spacer(modifier = Modifier.height(16.dp))
         TextInputCard(
             onTextChange = {
                 currentText = it
@@ -337,7 +347,9 @@ fun TextAlarmScreen(
                 }
             },
             onFocusLost = {},
-            placeholder = "Type your motto!"
+            placeholder = "Type your motto!",
+            modifier = Modifier.fillMaxWidth()
+                .padding(bottom = 64.dp)
         )
     }
 }

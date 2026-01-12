@@ -40,7 +40,7 @@ fun DaysRow(
                 Text(
                     text = day.name.take(3),
                     color = if (isSelected) Color.White else Color.Black,
-                    style = MaterialTheme.typography.bodyMedium
+                    style = MaterialTheme.typography.bodySmall
                     //style = MaterialTheme.typography.body2 TODO: change to MaterialTheme typography when migrating to Material3, learning how to use typography
                 )
             }

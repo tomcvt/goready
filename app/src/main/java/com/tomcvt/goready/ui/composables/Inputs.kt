@@ -1,6 +1,7 @@
 package com.tomcvt.goready.ui.composables
 
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -15,7 +16,8 @@ import androidx.compose.ui.focus.onFocusChanged
 fun TextInputCard(
     onTextChange: (String) -> Unit,
     onFocusLost: (String) -> Unit,
-    placeholder: String = "Type here..."
+    placeholder: String,
+    modifier: Modifier = Modifier
 ) {
     var internalText by remember { mutableStateOf("") }
 
@@ -31,6 +33,7 @@ fun TextInputCard(
                     onFocusLost(internalText)
                 }
             },
+        textStyle = MaterialTheme.typography.bodyLarge,
         singleLine = false,        // allows multiple lines
         maxLines = 5              // or any number you want
     )
