@@ -1,4 +1,7 @@
 <resources>
     <string name="app_name">GoReady</string>
     <string name="attribution_alarm">Alarm playback</string>
+    <string name="empty"></string>
+    <string name="attribution_empty">Empty Attribution</string>
+
 </resources>

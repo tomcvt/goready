@@ -14,6 +14,9 @@
     <attribution
         android:tag="alarm"
         android:label="@string/attribution_alarm" />
+    <attribution
+        android:tag="@string/empty"
+        android:label="@string/attribution_empty" />
     <!--uses-permission android:name="android.permission.USE_EXACT_ALARM" -->
     <application
         android:name=".application.AlarmApp"
