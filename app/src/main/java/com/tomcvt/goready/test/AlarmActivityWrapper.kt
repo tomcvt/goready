@@ -24,6 +24,7 @@ fun Context.launchAlarmNow(alarmId: Long, overrideTaskType: String? = null) {
     }
     val intent = Intent(this, AlarmActivity::class.java).apply {
         putExtra(EXTRA_ALARM_ID, alarmId)
+        putExtra("TestAlarm", true)
         putExtra("OverriddenTaskType", taskCode)
         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     }

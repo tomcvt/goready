@@ -15,6 +15,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.IBinder
 import android.util.Log
+import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import com.tomcvt.goready.R
 import com.tomcvt.goready.activities.AlarmActivity
@@ -34,19 +35,25 @@ class AlarmForegroundService : Service() {
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private lateinit var repository: AlarmRepository
 
+    private lateinit var alarmContext: Context
+
     private var mediaPlayer: MediaPlayer? = null
 
     var isRinging = false
     var isTemporarilyMuted = false
     var muteUntil: Long = 0L
-
     var isActive: Boolean = false
-
 
     override fun onCreate() {
         super.onCreate()
         val db = AlarmDatabase.getDatabase(this)
         repository = AlarmRepository(db.alarmDao())
+        alarmContext =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                createAttributionContext("alarm")
+            } else {
+                this
+            }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -59,7 +66,7 @@ class AlarmForegroundService : Service() {
         }
 
         if (intent?.action == "USER_INTERACTION") {
-            muteUntil = System.currentTimeMillis() + 5000
+            muteUntil = System.currentTimeMillis() + 2000
             isTemporarilyMuted = true
             pauseAlarm()
             return START_STICKY
@@ -84,7 +91,8 @@ class AlarmForegroundService : Service() {
                 return@launch
             }
             isActive = true
-            val audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+
+            val audioManager = alarmContext.getSystemService(Context.AUDIO_SERVICE) as AudioManager
             val result = audioManager.requestAudioFocus(
                 { /* optional: handle focus changes */ },
                 AudioManager.STREAM_ALARM,
@@ -206,7 +214,7 @@ class AlarmForegroundService : Service() {
         mediaPlayer?.stop()
         mediaPlayer?.release()
         mediaPlayer = null
-        val audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        val audioManager = alarmContext.getSystemService(Context.AUDIO_SERVICE) as AudioManager
         audioManager.abandonAudioFocus(null)
     }
 

@@ -17,15 +17,75 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.toLowerCase
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.tomcvt.goready.BuildConfig
+import com.tomcvt.goready.constants.TaskType
 import kotlin.math.sqrt
+
+
+@Composable
+fun AlarmScreen(
+    alarmId: Long,
+    alarmName: String,
+    taskType: TaskType,
+    taskData: String?,
+    onStopAlarm: () -> Unit,
+    onInteraction: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var passedGate by remember { mutableStateOf(false) }
+    if (!passedGate) {
+        SimpleAlarmScreen(
+            alarmName = alarmName,
+            onSwiped = {passedGate = true}
+        )
+    } else {
+        when (taskType) {
+            TaskType.NONE -> {
+                TestAlarmScreen(
+                    alarmId = alarmId,
+                    onStopAlarm = onStopAlarm,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+            TaskType.TEXT -> {
+                if (BuildConfig.IS_ALARM_TEST) {
+                    DebugTextAlarmScreen(
+                        text = taskData?: "Turn off the alarm",
+                        onStopAlarm = onStopAlarm,
+                        onInteraction = onInteraction,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    TextAlarmScreen(
+                        text = taskData?: "Turn off the alarm",
+                        onStopAlarm = onStopAlarm,
+                        onInteraction = onInteraction,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+            }
+            TaskType.TIMER -> {
+
+            }
+            TaskType.COUNTDOWN -> {
+
+            }
+            TaskType.MATH -> {
+
+            }
+        }
+    }
+}
+
 
 @Composable
 fun SimpleAlarmScreen(
-    alarmId: Long,
-    onStopAlarm: () -> Unit,
+    alarmName: String,
+    onSwiped: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     // State to track the distance of the swipe from center
@@ -34,12 +94,12 @@ fun SimpleAlarmScreen(
     val threshold = 300f // Distance in pixels to trigger stop
 
     var interactionKey by remember { mutableStateOf(0L) }
-
+/*
     LaunchedEffect(interactionKey) {
         kotlinx.coroutines.delay(15000L)
         onStopAlarm()
     }
-
+*/
 
     Column(
         modifier = modifier
@@ -74,13 +134,14 @@ fun SimpleAlarmScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = "ID: #$alarmId",
+                    //TODO provide username
+                    text = "Wakeup (here user name)",
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.primary
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Alarm",
+                    text = alarmName,
                     style = MaterialTheme.typography.displayMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -95,7 +156,7 @@ fun SimpleAlarmScreen(
                 .size(200.dp),
             contentAlignment = Alignment.Center
         ) {
-            // Static outer ring (The Threshold Boundary)
+            // outer ring
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -103,7 +164,7 @@ fun SimpleAlarmScreen(
                     .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
             )
 
-            // The draggable "Snooze/Stop" handle
+            // draggable circle
             Box(
                 modifier = Modifier
                     .offset { IntOffset(offsetX.toInt(), offsetY.toInt()) }
@@ -120,7 +181,7 @@ fun SimpleAlarmScreen(
                                 // Calculate distance from center (0,0)
                                 val distance = sqrt(offsetX * offsetX + offsetY * offsetY)
                                 if (distance > threshold) {
-                                    onStopAlarm()
+                                    onSwiped()
                                 }
                             },
                             onDragEnd = {
@@ -156,13 +217,6 @@ fun TestAlarmScreen(
     onStopAlarm: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var interactionKey by remember { mutableStateOf(0L) }
- /*
-    LaunchedEffect(interactionKey) {
-        kotlinx.coroutines.delay(10000L)
-        onStopAlarm()
-    }
-*/
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -181,6 +235,10 @@ fun TestAlarmScreen(
                 Text("STOP", fontSize = 32.sp)
             }
         }
+        SimpleDeleteButton(
+            onDelete = onStopAlarm,
+            modifier = Modifier.align(Alignment.TopEnd)
+        )
     }
 }
 
@@ -188,6 +246,7 @@ fun TestAlarmScreen(
 fun DebugTextAlarmScreen(
     text: String,
     onStopAlarm: () -> Unit,
+    onInteraction : () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -199,6 +258,7 @@ fun DebugTextAlarmScreen(
         TextAlarmScreen(
             text = text,
             onStopAlarm = onStopAlarm,
+            onInteraction = onInteraction,
             modifier = modifier
         )
         SimpleDeleteButton(
@@ -214,44 +274,70 @@ fun DebugTextAlarmScreen(
 fun TextAlarmScreen(
     text: String,
     onStopAlarm: () -> Unit,
+    onInteraction: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var currentText by remember { mutableStateOf("") }
     var interactionKey by remember { mutableStateOf(0L) }
+    var lastInteraction by remember { mutableStateOf(0L) }
+
     LaunchedEffect(interactionKey) {
-        kotlinx.coroutines.delay(10000L)
-        onStopAlarm()
+        if (System.currentTimeMillis() - lastInteraction > 2000L) {
+            onInteraction()
+            lastInteraction = System.currentTimeMillis()
+        }
     }
 
-    Box(
-        modifier = Modifier
+    Column(
+        modifier = modifier
             .fillMaxSize()
-            .background(Color.Black),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 48.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
-                )
-            ) {
-                Text(text, fontSize = 32.sp)
+            .background(MaterialTheme.colorScheme.background)
+            .pointerInput(Unit) {
+                awaitPointerEventScope {
+                    while (true) {
+                        awaitPointerEvent(PointerEventPass.Initial)
+                        interactionKey++
+                    }
+                }
             }
-
-            TextInputCard(
-                onTextChange = {currentText = it
-                                interactionKey++
-                               if (currentText == text) {onStopAlarm()}
-                               },
-                onFocusLost = {},
-                placeholder = "Type your motto!"
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.SpaceBetween
+    ) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 48.dp),
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant
+            )
+        ) {
+            Text(
+                //TODO provide username
+                text = "Type your motto!",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = text,
+                style = MaterialTheme.typography.displayMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
+
+        TextInputCard(
+            onTextChange = {
+                currentText = it
+                interactionKey++
+                if (currentText.equals(text, ignoreCase = true)) {
+                    onStopAlarm()
+                }
+            },
+            onFocusLost = {},
+            placeholder = "Type your motto!"
+        )
     }
 }

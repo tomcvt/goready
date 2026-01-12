@@ -23,7 +23,7 @@ fun SimpleDeleteButton(
 ) {
     IconButton(
         onClick = onDelete,
-        modifier = Modifier
+        modifier = modifier
             //.align(Alignment.TopEnd) // Positions it at the top right
             .offset(-(10.dp), (10.dp))
             .padding(4.dp)

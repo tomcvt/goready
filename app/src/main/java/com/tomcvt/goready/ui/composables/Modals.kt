@@ -22,7 +22,15 @@ import com.tomcvt.goready.data.AlarmEntity
 import java.time.DayOfWeek
 
 @Composable
-fun AlarmAddedModal(text: String?, modifier: Modifier = Modifier, onDismiss: () -> Unit , hour : Int, minute: Int, days: Set<DayOfWeek>) {
+fun AlarmAddedModal(
+    text: String?,
+    taskData: String?,
+    onDismiss: () -> Unit ,
+    hour : Int,
+    minute: Int,
+    days: Set<DayOfWeek>,
+    modifier: Modifier = Modifier
+) {
     BackHandler(
         enabled = true,
         onBack = onDismiss
@@ -43,7 +51,8 @@ fun AlarmAddedModal(text: String?, modifier: Modifier = Modifier, onDismiss: () 
                 verticalArrangement = Arrangement.spacedBy(16.dp),
                 modifier = Modifier.padding(24.dp)
             ) {
-                Text(text = text ?: "No viewModel action message")
+                Text(text = text?: "No viewmodel message")
+                Text(text = taskData?: "")
                 Text(
                     text = "Alarm set for %02d:%02d on %s".format(
                         hour,

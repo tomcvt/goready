@@ -69,8 +69,7 @@ fun AddAlarmView(viewModel: AlarmViewModel,
     var selectedHour by remember {mutableIntStateOf(8)}
     var selectedMinute by remember {mutableIntStateOf(30)}
     var selectedType by remember {mutableStateOf(TaskType.NONE)}
-    var taskData by remember {mutableStateOf(TaskTypeContext(TaskType.NONE))}
-
+    var taskInputData by remember {mutableStateOf("")}
 
     // Temporary variables to hold selected time from the picker
     // These will be updated when the user selects a time
@@ -129,31 +128,25 @@ fun AddAlarmView(viewModel: AlarmViewModel,
             TaskDataInput(
                 taskType = selectedType,
                 onTaskDataProvided = {
-                    Log.d("AddAlarmView", "Task data provided: ${it.simpleData}")
+                    Log.d("AddAlarmView", "Task data provided: ${it}")
+                    taskInputData = it
                 }
             )
 
 
             Button(onClick = {showModal = true
-                val newDraftAlarm = SimpleAlarmDraft(
+                val newDraftAlarm = AlarmDraft(
                     hour = selectedHour,
                     minute = selectedMinute,
                     repeatDays = selectedDays
                 )
                 Log.d("AddAlarmView", "Type: ${selectedType.name}")
-                if (selectedType != TaskType.NONE) {
-                    val newExtendedDraft = AlarmDraft(
-                        hour = selectedHour,
-                        minute = selectedMinute,
-                        repeatDays = selectedDays
-                    )
-                    newExtendedDraft.task = selectedType.name
-                    newExtendedDraft.taskData = taskData.simpleData
-                    val snapshot = newExtendedDraft.copy()
-                    viewModel.saveAlarm(newExtendedDraft)
-                } else {
-                    viewModel.saveSimpleAlarm(newDraftAlarm)
-                }
+                newDraftAlarm.task = selectedType.name
+                newDraftAlarm.taskData = taskInputData
+                Log.d("AddAlarmView", "Task data: ${taskInputData}")
+                Log.d("AddAlarmView", "Alarm draft: ${newDraftAlarm}")
+                val snapshot = newDraftAlarm.copy()
+                viewModel.saveAlarm(snapshot)
             }) {
                 Text("Save Alarm")
             }
@@ -168,6 +161,7 @@ fun AddAlarmView(viewModel: AlarmViewModel,
             message?.let {
                 AlarmAddedModal(
                     it,
+                    taskData = taskInputData,
                     onDismiss = { showModal = false
                                     rootNavController.navigate(RootTab.ALARMS.name) {
                                         // Clear the "Add Alarm" screen from the history
@@ -229,15 +223,16 @@ fun AlarmTypeSelector(
 @Composable
 fun TaskDataInput(
     taskType: TaskType,
-    onTaskDataProvided: (TaskTypeContext) -> Unit
+    onTaskDataProvided: (String) -> Unit
 ) {
-    var taskData by remember { mutableStateOf(TaskTypeContext(taskType)) }
+    var taskData by remember { mutableStateOf("") }
     when (taskType) {
         TaskType.TIMER -> {}
         TaskType.COUNTDOWN -> {}
         TaskType.TEXT -> {
             TextInputCard(
-                onTextChange = { taskData.simpleData = it },
+                onTextChange = { taskData = it
+                               onTaskDataProvided(taskData)},
                 onFocusLost = { onTaskDataProvided(taskData) },
                 placeholder = "Type here..."
             )

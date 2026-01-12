@@ -56,6 +56,23 @@ class AlarmActivity : ComponentActivity() {
 
         val alarmId = intent.getLongExtra(EXTRA_ALARM_ID, -1)
 
+        val testAlarm = intent.getBooleanExtra("TestAlarm", false)
+        var onInteraction = {
+            Log.d("AlarmActivity", "Interaction, +2 seconds muted")
+            sendInteraction()
+        }
+        if (testAlarm) {
+            onInteraction = {
+                Log.d("AlarmActivity", "Test Interaction")
+            }
+        }
+
+        val stopAlarm = {
+            stopAlarmService()
+            finish()
+        }
+
+
         lifecycleScope.launch {
             val alarmEntity = withContext(Dispatchers.IO) {appAlarmManager.getAlarm(alarmId)}
             Log.d("AlarmActivity", "Alarm entity: $alarmEntity")
@@ -78,40 +95,15 @@ class AlarmActivity : ComponentActivity() {
             //TODO differentiate composables based on alarm type
             enableEdgeToEdge()
             setContent {
-                when (taskType) {
-                    TaskType.NONE -> {
-                        TestAlarmScreen(
-                            alarmId = alarmId,
-                            onStopAlarm = {
-                                stopAlarmService()
-                                finish()
-                            },
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    }
-                    TaskType.TEXT -> {
-                        if (BuildConfig.IS_ALARM_TEST) {
-                            DebugTextAlarmScreen(
-                                text = data?: "Turn off the alarm",
-                                onStopAlarm = {
-                                    stopAlarmService()
-                                    finish()
-                                },
-                                modifier = Modifier.fillMaxSize()
-                            )
-                        }
-                    }
-                    TaskType.TIMER -> {
-
-                    }
-                    TaskType.COUNTDOWN -> {
-
-                    }
-                    TaskType.MATH -> {
-
-                    }
-                }
-
+                AlarmScreen(
+                    alarmId = alarmId,
+                    alarmName = alarmEntity.label ?: "Alarm",
+                    taskType = taskType,
+                    taskData = data,
+                    onStopAlarm = stopAlarm,
+                    onInteraction = onInteraction,
+                    modifier = Modifier.fillMaxSize()
+                )
             }
         }
     }
@@ -125,5 +117,10 @@ class AlarmActivity : ComponentActivity() {
         intent.action = "STOP_ALARM"
         startService(intent)
         //stopService(intent)
+    }
+    private fun sendInteraction() {
+        val intent = Intent(this, AlarmForegroundService::class.java)
+        intent.action = "USER_INTERACTION"
+        startService(intent)
     }
 }

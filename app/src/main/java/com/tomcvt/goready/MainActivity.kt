@@ -110,6 +110,10 @@ class MainActivity : ComponentActivity() {
             }
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val permissionCheck = ContextCompat.checkSelfPermission(this, Manifest.permission.SCHEDULE_EXACT_ALARM)
+            if (permissionCheck != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.SCHEDULE_EXACT_ALARM), 103)
+            }
             if (!systemAlarmManager.canScheduleExactAlarms()) {
                 val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
                 this.startActivity(intent)
@@ -126,6 +130,22 @@ class MainActivity : ComponentActivity() {
             intent.data = Uri.parse("package:$packageName")
             startActivity(intent)
         }
+        //SYSTEM EXEMPTED FOREGROUND SERVICE
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val permissionCheck = ContextCompat.checkSelfPermission(this, Manifest.permission.FOREGROUND_SERVICE_SYSTEM_EXEMPTED)
+            if (permissionCheck != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.FOREGROUND_SERVICE_SYSTEM_EXEMPTED), 105)
+            }
+            val permissionCheck2 = ContextCompat.checkSelfPermission(this, Manifest.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK)
+            if (permissionCheck2 != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(
+                    this,
+                    arrayOf(Manifest.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK),
+                    106
+                )
+            }
+        }
+
 
         enableEdgeToEdge()
         setContent {

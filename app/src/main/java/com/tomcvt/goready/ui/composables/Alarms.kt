@@ -60,7 +60,6 @@ fun AlarmListRoute(
         val lastAlarmId = alarmList.lastOrNull()?.id ?: -1
         Log.d("AlarmListRoute", "Last alarm ID: $lastAlarmId")
         context.launchAlarmNow(lastAlarmId)
-        //rootController.navigate(RootTab.ADD_ALARM.name)
     }
     val onDeleteClick: (AlarmEntity) -> Unit = { alarm: AlarmEntity -> viewModel.deleteAlarm(alarm) }
     val onAlarmSwitchChange: (AlarmEntity, Boolean) -> Unit = {
@@ -153,26 +152,11 @@ fun AlarmCard(alarmName: String,
         }
 
         // The Delete Button
-        IconButton(
-            onClick = onDelete,
+        SimpleDeleteButton(
+            onDelete = onDelete,
             modifier = Modifier
-                .align(Alignment.TopEnd) // Positions it at the top right
-                .offset(-(10.dp), (10.dp))
-                .padding(4.dp)
-                .background(
-                    color = MaterialTheme.colorScheme.errorContainer,
-                    shape = RoundedCornerShape(8.dp) // Square rounded
-                )
-                .layoutId("delete_button")
-                .size(32.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Default.Close,
-                contentDescription = "Delete Alarm",
-                tint = MaterialTheme.colorScheme.onErrorContainer,
-                modifier = Modifier.size(18.dp)
-            )
-        }
+                .align(Alignment.TopEnd)
+        )
 
         Switch(
             checked = enabled,
@@ -197,22 +181,6 @@ fun AlarmCard(alarmName: String,
 
         )
     }
-    // My old approach
-    /*
-    Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(8.dp),
-        elevation = CardDefaults.cardElevation(4.dp)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            //Text(text = alarmName, style = MaterialTheme.typography.h6) //TODO : typography
-            //Text(text = alarmTime, style = MaterialTheme.typography.body2)
-            Text(text = alarmName, style = MaterialTheme.typography.headlineSmall)
-            Text(text = alarmTime, style = MaterialTheme.typography.bodyMedium)
-            DaysRow(repeatDays = repeatDays, modifier = Modifier.padding(top = 8.dp))
-        }
-    }
-
-     */
 }
+
+//fun AlarmDetails
