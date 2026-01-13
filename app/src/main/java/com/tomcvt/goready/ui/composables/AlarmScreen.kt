@@ -72,7 +72,13 @@ fun AlarmScreen(
                     )
                 }
             }
-            TaskType.TIMER -> {
+            TaskType.TIMER -> {//TODO implement timer alarm screen
+                SimpleAlarmScreen(
+                    alarmName = "Temp Alarm",
+                    onSwiped = onStopAlarm
+                )
+            }
+            TaskType.COUNTDOWN -> {
                 if (BuildConfig.IS_ALARM_TEST) {
                     DebugCountdownAlarmScreen(
                         number = taskData?: "7",
@@ -89,11 +95,11 @@ fun AlarmScreen(
                     )
                 }
             }
-            TaskType.COUNTDOWN -> {
-
-            }
-            TaskType.MATH -> {
-
+            TaskType.MATH -> {//TODO implement math alarm screen
+                SimpleAlarmScreen(
+                    alarmName = "Temp Alarm",
+                    onSwiped = onStopAlarm
+                )
             }
         }
     }
@@ -435,26 +441,23 @@ fun CountdownAlarmScreen(
                 )
             }
         }
-        Box(
+        Button(
+            onClick = {currentCount--
+                if (currentCount <= 0) {
+                    onStopAlarm()
+                }
+            },
+            shape = CircleShape,
+            colors = ButtonDefaults.buttonColors(Color.Red),
+            contentPadding = PaddingValues(0.dp),
             modifier = Modifier
+                .size(200.dp)
                 .padding(bottom = 64.dp)
-                .size(200.dp),
         ) {
-            Button(
-                onClick = {currentCount--
-                    if (currentCount <= 0) {
-                        onStopAlarm()
-                    }
-                },
-                shape = CircleShape,
-                colors = ButtonDefaults.buttonColors(Color.Red),
-                modifier = Modifier.fillMaxSize()
-            ) {
-                Text(
-                    text = currentCount.toString(),
-                    style = MaterialTheme.typography.headlineLarge,
-                    color = MaterialTheme.colorScheme.onPrimary)
-            }
+            Text(
+                text = currentCount.toString(),
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.onPrimary)
         }
     }
 }

@@ -28,7 +28,7 @@ fun TextInputCard(
         value = internalText,
         onValueChange = { internalText = it; onTextChange(it) },
         placeholder = { Text(placeholder) },
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .onFocusChanged { state ->
                 if (!state.isFocused) {
