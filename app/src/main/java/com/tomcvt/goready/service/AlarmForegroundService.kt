@@ -33,17 +33,19 @@ import kotlinx.coroutines.withContext
 
 class AlarmForegroundService : Service() {
 
+    //Notes: TODO
+    // Only one alarm may be active at a time
+    // Additional alarms are postponed
+    // Service owns MediaPlayer check
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private lateinit var repository: AlarmRepository
 
     private lateinit var alarmContext: Context
 
     private var mediaPlayer: MediaPlayer? = null
-
-    var isRinging = false
     var isTemporarilyMuted = false
     var muteUntil: Long = 0L
-    var isActive: Boolean = true
+    var isActive: Boolean = false
 
     override fun onCreate() {
         super.onCreate()
@@ -118,7 +120,7 @@ class AlarmForegroundService : Service() {
         }
 
         serviceScope.launch {
-            Log.d(TAG, "Checking active: $isActive")
+            Log.d(TAG, "---Checking active: $isActive")
             while (isActive) {
                 delay(2000)
                 Log.d(TAG, "Checking muted: $isTemporarilyMuted")

@@ -58,7 +58,7 @@ class AlarmActivity : ComponentActivity() {
 
         val testAlarm = intent.getBooleanExtra("TestAlarm", false)
         var onInteraction = {
-            Log.d("AlarmActivity", "Interaction, +2 seconds muted")
+            Log.d("AlarmActivity", "Sending interaction intent")
             sendInteraction()
         }
         if (testAlarm) {
@@ -66,10 +66,15 @@ class AlarmActivity : ComponentActivity() {
                 Log.d("AlarmActivity", "Test Interaction")
             }
         }
-
-        val stopAlarm = {
+        var stopAlarm = {
             stopAlarmService()
             finish()
+        }
+        if (testAlarm) {
+            stopAlarm = {
+                Log.d("AlarmActivity", "Test stop alarm")
+                finish()
+            }
         }
 
 

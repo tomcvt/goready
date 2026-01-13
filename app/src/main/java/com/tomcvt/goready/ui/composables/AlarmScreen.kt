@@ -14,9 +14,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.toLowerCase
 import androidx.compose.ui.unit.IntOffset
@@ -55,14 +58,14 @@ fun AlarmScreen(
             TaskType.TEXT -> {
                 if (BuildConfig.IS_ALARM_TEST) {
                     DebugTextAlarmScreen(
-                        text = taskData?: "Turn off the alarm",
+                        text = taskData?: "Fallback",
                         onStopAlarm = onStopAlarm,
                         onInteraction = onInteraction,
                         modifier = Modifier.fillMaxSize()
                     )
                 } else {
                     TextAlarmScreen(
-                        text = taskData?: "Turn off the alarm",
+                        text = taskData?: "Fallback",
                         onStopAlarm = onStopAlarm,
                         onInteraction = onInteraction,
                         modifier = Modifier.fillMaxSize()
@@ -70,7 +73,21 @@ fun AlarmScreen(
                 }
             }
             TaskType.TIMER -> {
-
+                if (BuildConfig.IS_ALARM_TEST) {
+                    DebugCountdownAlarmScreen(
+                        number = taskData?: "7",
+                        onStopAlarm = onStopAlarm,
+                        onInteraction = onInteraction,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    CountdownAlarmScreen(
+                        number = taskData?: "7",
+                        onStopAlarm = onStopAlarm,
+                        onInteraction = onInteraction,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
             }
             TaskType.COUNTDOWN -> {
 
@@ -267,9 +284,7 @@ fun DebugTextAlarmScreen(
             modifier = Modifier.align(Alignment.TopEnd)
         )
     }
-
 }
-
 
 @Composable
 fun TextAlarmScreen(
@@ -282,6 +297,9 @@ fun TextAlarmScreen(
     var interactionKey by remember { mutableStateOf(0L) }
     var lastInteraction by remember { mutableStateOf(0L) }
     var showPopup by remember { mutableStateOf(false) }
+
+    var focusRequester = remember { FocusRequester() }
+    var keyboardController = LocalSoftwareKeyboardController.current
 
 
     LaunchedEffect(interactionKey) {
@@ -350,6 +368,119 @@ fun TextAlarmScreen(
             placeholder = "Type your motto!",
             modifier = Modifier.fillMaxWidth()
                 .padding(bottom = 64.dp)
+                .focusRequester(focusRequester)
+        )
+    }
+    LaunchedEffect(Unit) {
+        focusRequester.requestFocus()
+        keyboardController?.show()
+    }
+}
+
+@Composable
+fun CountdownAlarmScreen(
+    number: String,
+    onStopAlarm: () -> Unit,
+    onInteraction: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var currentCount by remember { mutableStateOf(Integer.parseInt(number))}
+    var interactionKey by remember { mutableStateOf(0L) }
+    var lastInteraction by remember { mutableStateOf(0L) }
+
+
+    LaunchedEffect(interactionKey) {
+        if (System.currentTimeMillis() - lastInteraction > 2000L) {
+            onInteraction()
+            lastInteraction = System.currentTimeMillis()
+        }
+    }
+
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .pointerInput(Unit) {
+                awaitPointerEventScope {
+                    while (true) {
+                        awaitPointerEvent(PointerEventPass.Initial)
+                        interactionKey++
+                    }
+                }
+            }
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.SpaceBetween
+    ) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 48.dp),
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant
+            )
+        ) {
+            Column(
+                modifier = Modifier
+                    .padding(32.dp)
+                    .fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "Press the button!",
+                    style = MaterialTheme.typography.headlineLarge,
+                    //fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+        Box(
+            modifier = Modifier
+                .padding(bottom = 64.dp)
+                .size(200.dp),
+        ) {
+            Button(
+                onClick = {currentCount--
+                    if (currentCount <= 0) {
+                        onStopAlarm()
+                    }
+                },
+                shape = CircleShape,
+                colors = ButtonDefaults.buttonColors(Color.Red),
+                modifier = Modifier.fillMaxSize()
+            ) {
+                Text(
+                    text = currentCount.toString(),
+                    style = MaterialTheme.typography.headlineLarge,
+                    color = MaterialTheme.colorScheme.onPrimary)
+            }
+        }
+    }
+}
+
+@Composable
+fun DebugCountdownAlarmScreen(
+    number: String,
+    onStopAlarm: () -> Unit,
+    onInteraction : () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black),
+        contentAlignment = Alignment.Center
+    ) {
+        CountdownAlarmScreen(
+            number = number,
+            onStopAlarm = onStopAlarm,
+            onInteraction = onInteraction,
+            modifier = modifier
+        )
+        SimpleDeleteButton(
+            onDelete = onStopAlarm,
+            modifier = Modifier.align(Alignment.TopEnd)
         )
     }
 }

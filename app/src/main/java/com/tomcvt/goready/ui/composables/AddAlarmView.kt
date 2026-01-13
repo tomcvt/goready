@@ -33,6 +33,7 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.text.isDigitsOnly
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.tomcvt.goready.constants.TaskType
@@ -134,7 +135,8 @@ fun AddAlarmView(viewModel: AlarmViewModel,
             )
 
 
-            Button(onClick = {showModal = true
+            Button(onClick = {val parsedData = parseData(selectedType, taskInputData)?: return@Button
+                showModal = true
                 val newDraftAlarm = AlarmDraft(
                     hour = selectedHour,
                     minute = selectedMinute,
@@ -142,9 +144,9 @@ fun AddAlarmView(viewModel: AlarmViewModel,
                 )
                 Log.d("AddAlarmView", "Type: ${selectedType.name}")
                 newDraftAlarm.task = selectedType.name
-                newDraftAlarm.taskData = taskInputData
-                Log.d("AddAlarmView", "Task data: ${taskInputData}")
-                Log.d("AddAlarmView", "Alarm draft: ${newDraftAlarm}")
+                newDraftAlarm.taskData = parsedData
+                Log.d("AddAlarmView", "Task data: $parsedData")
+                Log.d("AddAlarmView", "Alarm draft: $parsedData")
                 val snapshot = newDraftAlarm.copy()
                 viewModel.saveAlarm(snapshot)
             }) {
@@ -199,7 +201,9 @@ fun AlarmTypeSelector(
             readOnly = true,
             label = { Text("Select an option") },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier.menuAnchor().fillMaxWidth()
+            modifier = Modifier
+                .menuAnchor()
+                .fillMaxWidth()
         )
 
         ExposedDropdownMenu(
@@ -228,7 +232,14 @@ fun TaskDataInput(
     var taskData by remember { mutableStateOf("") }
     when (taskType) {
         TaskType.TIMER -> {}
-        TaskType.COUNTDOWN -> {}
+        TaskType.COUNTDOWN -> {
+            NumbersInput(
+                onNumbersChange = { taskData = it
+                                   onTaskDataProvided(taskData)},
+                onFocusLost = { onTaskDataProvided(taskData) },
+                placeholder = "..."
+            )
+        }
         TaskType.TEXT -> {
             TextInputCard(
                 onTextChange = { taskData = it
@@ -242,4 +253,22 @@ fun TaskDataInput(
     }
 }
 
-
+fun parseData(taskType: TaskType, taskData: String) : String?  {
+    when (taskType) {
+        TaskType.TIMER -> {return null}
+        TaskType.COUNTDOWN -> {
+            if (taskData.isDigitsOnly() && taskData.toInt() > 0) {
+                return taskData
+            }
+            return null
+        }
+        TaskType.TEXT -> {
+            if (taskData.isNotBlank()) {
+                return taskData
+            }
+            return null
+        }
+        TaskType.MATH -> {return null}
+        else -> {return null}
+    }
+}
