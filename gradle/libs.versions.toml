@@ -16,6 +16,7 @@ roomRuntime = "2.8.4"
 places = "5.1.1"
 navigationCompose = "2.9.6"
 foundationLayout = "1.10.0"
+uiUnit = "1.10.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -40,6 +41,7 @@ androidx-room-runtime = { group = "androidx.room", name = "room-runtime", versio
 places = { group = "com.google.android.libraries.places", name = "places", version.ref = "places" }
 androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
 androidx-compose-foundation-layout = { group = "androidx.compose.foundation", name = "foundation-layout", version.ref = "foundationLayout" }
+androidx-compose-ui-unit = { group = "androidx.compose.ui", name = "ui-unit", version.ref = "uiUnit" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

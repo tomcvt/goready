@@ -99,6 +99,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.compose.foundation.layout)
+    implementation(libs.androidx.compose.ui.unit)
     kapt(libs.androidx.room.compiler)
 
 
