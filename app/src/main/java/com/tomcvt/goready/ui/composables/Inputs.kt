@@ -2,7 +2,10 @@ package com.tomcvt.goready.ui.composables
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -24,12 +27,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.text.isDigitsOnly
+import com.tomcvt.goready.constants.MathType
 
 @Composable
 fun TextInputCard(
@@ -87,14 +92,85 @@ fun NumbersInput(
     )
 }
 
+@Preview(showBackground = true)
+@Composable
+fun MathTypeInputPreview() {
+    MaterialTheme {
+        MathTaskInput(
+            onInputChange = {},
+            onFocusLost = {}
+        )
+    }
+}
+
 @Composable
 fun MathTaskInput(
     onInputChange: (String) -> Unit,
     onFocusLost: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Box() {
-        Text("Math Task Input")
+    val mathTypes = MathType.getList()
+    var selectedType by remember { mutableStateOf(mathTypes[0]) }
+    val range = (1..15).toList()
+    var selectedRange by remember { mutableStateOf(range[0]) }
+    var inputData by remember { mutableStateOf("") }
+    val encodeData = {
+        inputData = "${selectedType.name}|${selectedRange}"
+    }
+    LaunchedEffect(selectedType, selectedRange) {
+        encodeData()
+        onInputChange(inputData)
+    }
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = "Choose level and number of tasks:",
+            style = MaterialTheme.typography.headlineMedium,
+            modifier = Modifier.padding(16.dp)
+        )
+        Row(
+            modifier = modifier.fillMaxWidth().padding(32.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            WheelPicker(
+                items = mathTypes,
+                startingItem = MathType.SECOND,
+                visibleItems = 3,
+                itemHeight = 40.dp,
+                onItemSelected = { selectedType = it }
+            ) { item, selected ->
+                Text(
+                    text = item.label,
+                    fontSize = 16.sp,
+                    modifier = Modifier.graphicsLayer {
+                        scaleX = if (selected) 1.25f else 1f
+                        scaleY = if (selected) 1.25f else 1f
+                    },
+                    color = if (selected) Color.Black else Color.Gray
+                )
+            }
+            WheelPicker(
+                items = range,
+                startingItem = range[2],
+                visibleItems = 3,
+                itemHeight = 40.dp,
+                onItemSelected = { selectedRange = it },
+                width = 40.dp
+            ) { item, selected ->
+                Text(
+                    text = item.toString(),
+                    fontSize = 16.sp,
+                    modifier = Modifier.graphicsLayer {
+                        scaleX = if (selected) 1.25f else 1f
+                        scaleY = if (selected) 1.25f else 1f
+                    },
+                    color = if (selected) Color.Black else Color.Gray
+                )
+            }
+        }
     }
 }
 
@@ -111,6 +187,8 @@ fun TextInputCardPreview() {
 }
 
 
+
+@Deprecated("Use WheelPicker instead")
 @Composable
 fun SnapWheelPicker(
     items: List<String>,

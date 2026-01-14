@@ -248,7 +248,13 @@ fun TaskDataInput(
                 placeholder = "Type here..."
             )
         }
-        TaskType.MATH -> {}
+        TaskType.MATH -> {
+            MathTaskInput(
+                onInputChange = { taskData = it
+                                 onTaskDataProvided(taskData)},
+                onFocusLost = { onTaskDataProvided(taskData) }
+            )
+        }
         else -> {}
     }
 }
@@ -268,7 +274,7 @@ fun parseData(taskType: TaskType, taskData: String) : String?  {
             }
             return null
         }
-        TaskType.MATH -> {return null}
+        TaskType.MATH -> {return taskData}
         else -> {return null}
     }
 }
