@@ -227,35 +227,52 @@ fun AlarmTypeSelector(
 @Composable
 fun TaskDataInput(
     taskType: TaskType,
-    onTaskDataProvided: (String) -> Unit
+    onTaskDataProvided: (String) -> Unit,
+    modifier: Modifier = Modifier
 ) {
     var taskData by remember { mutableStateOf("") }
-    when (taskType) {
-        TaskType.TIMER -> {}
-        TaskType.COUNTDOWN -> {
-            NumbersInput(
-                onNumbersChange = { taskData = it
-                                   onTaskDataProvided(taskData)},
-                onFocusLost = { onTaskDataProvided(taskData) },
-                placeholder = "..."
-            )
+
+    Box(
+        modifier = modifier,
+        contentAlignment = Alignment.Center
+    ) {
+        when (taskType) {
+            TaskType.TIMER -> {}
+            TaskType.COUNTDOWN -> {
+                NumbersInput(
+                    value = taskData,
+                    onValueChange = {
+                        taskData = it
+                        onTaskDataProvided(taskData)
+                    },
+                    onFocusLost = { onTaskDataProvided(taskData) },
+                    placeholder = "...",
+
+                )
+            }
+
+            TaskType.TEXT -> {
+                TextInputCard(
+                    onTextChange = {
+                        taskData = it
+                        onTaskDataProvided(taskData)
+                    },
+                    onFocusLost = { onTaskDataProvided(taskData) },
+                    placeholder = "Type here..."
+                )
+            }
+
+            TaskType.MATH -> {
+                MathTaskInput(
+                    onInputChange = {
+                        taskData = it
+                        onTaskDataProvided(taskData)
+                    },
+                    onFocusLost = { onTaskDataProvided(taskData) }
+                )
+            }
+            else -> {}
         }
-        TaskType.TEXT -> {
-            TextInputCard(
-                onTextChange = { taskData = it
-                               onTaskDataProvided(taskData)},
-                onFocusLost = { onTaskDataProvided(taskData) },
-                placeholder = "Type here..."
-            )
-        }
-        TaskType.MATH -> {
-            MathTaskInput(
-                onInputChange = { taskData = it
-                                 onTaskDataProvided(taskData)},
-                onFocusLost = { onTaskDataProvided(taskData) }
-            )
-        }
-        else -> {}
     }
 }
 

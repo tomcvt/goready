@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.tomcvt.goready.BuildConfig
+import com.tomcvt.goready.constants.MathType
 import com.tomcvt.goready.constants.TaskType
 import kotlin.math.sqrt
 
@@ -96,10 +97,21 @@ fun AlarmScreen(
                 }
             }
             TaskType.MATH -> {//TODO implement math alarm screen
-                SimpleAlarmScreen(
-                    alarmName = "Temp Alarm",
-                    onSwiped = onStopAlarm
-                )
+                if (BuildConfig.IS_ALARM_TEST) {
+                    DebugMathAlarmScreen(
+                        taskData = taskData?: "FIRST|1",
+                        onStopAlarm = onStopAlarm,
+                        onInteraction = onInteraction,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    MathAlarmScreen(
+                        taskData = taskData?: "FIRST|1",
+                        onStopAlarm = onStopAlarm,
+                        onInteraction = onInteraction,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
             }
         }
     }
@@ -484,6 +496,178 @@ fun DebugCountdownAlarmScreen(
         SimpleDeleteButton(
             onDelete = onStopAlarm,
             modifier = Modifier.align(Alignment.TopEnd)
+        )
+    }
+}
+
+fun generateMathTaskList(taskData: String) : List<Pair<String,Int>> {
+    val data = taskData.split("|")
+    val mathType = MathType.valueOf(data[0])
+    val number = data[1].toInt()
+    return MathType.generateRandomTaskList(mathType, number)
+}
+
+@Composable
+fun DebugMathAlarmScreen(
+    taskData: String,
+    onStopAlarm: () -> Unit,
+    onInteraction : () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black),
+        contentAlignment = Alignment.Center
+    ) {
+        MathAlarmScreen(
+            taskData = taskData,
+            onStopAlarm = onStopAlarm,
+            onInteraction = onInteraction,
+            modifier = modifier)
+        SimpleDeleteButton(
+            onDelete = onStopAlarm,
+            modifier = Modifier.align(Alignment.TopEnd)
+        )
+    }
+}
+
+@Composable
+fun MathAlarmScreen(
+    taskData: String,
+    onStopAlarm: () -> Unit,
+    onInteraction: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val taskList by remember { mutableStateOf(generateMathTaskList(taskData)) }
+    var currentTaskCount by remember { mutableStateOf(0) }
+    var interactionKey by remember { mutableStateOf(0L) }
+    var lastInteraction by remember { mutableStateOf(0L) }
+
+
+    LaunchedEffect(interactionKey) {
+        if (System.currentTimeMillis() - lastInteraction > 2000L) {
+            onInteraction()
+            lastInteraction = System.currentTimeMillis()
+        }
+    }
+    LaunchedEffect(currentTaskCount) {
+        if (currentTaskCount >= taskList.size) {
+            onStopAlarm()
+        }
+    }
+
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .pointerInput(Unit) {
+                awaitPointerEventScope {
+                    while (true) {
+                        awaitPointerEvent(PointerEventPass.Initial)
+                        interactionKey++
+                    }
+                }
+            }
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.SpaceBetween
+    ) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 48.dp),
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant
+            )
+        ) {
+            Column(
+                modifier = Modifier
+                    .padding(32.dp)
+                    .fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "Solve the task!",
+                    style = MaterialTheme.typography.headlineLarge,
+                    //fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+        if (currentTaskCount < taskList.size) {
+            MathTaskScreen(
+                taskPair = taskList[currentTaskCount],
+                onCompletion = { currentTaskCount++ },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 64.dp)
+            )
+        } else {
+            currentTaskCount++
+        }
+    }
+}
+
+@Composable
+fun MathTaskScreen(
+    taskPair: Pair<String,Int>,
+    onCompletion: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val solution = taskPair.second.toString()
+    var currentText by remember { mutableStateOf("") }
+    val checkSolution = {
+        if (currentText.equals(solution, ignoreCase = true)) {
+            currentText = ""
+            onCompletion()
+        }
+    }
+    LaunchedEffect(currentText) {
+        checkSolution()
+    }
+
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Top
+    ) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 48.dp),
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant
+            )
+        ) {
+            Box(
+                modifier = Modifier
+                    .padding(32.dp)
+                    .fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = taskPair.first,
+                    style = MaterialTheme.typography.headlineMedium,
+                    //fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+        NumbersInput(
+            value = currentText,
+            onValueChange = { currentText = it },
+            onFocusLost = {},
+            placeholder = " ",
+            modifier = Modifier.height(100.dp).width(200.dp),
+            fontSize = 32.sp
         )
     }
 }

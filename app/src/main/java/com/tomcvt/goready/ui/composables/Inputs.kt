@@ -5,6 +5,7 @@ import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -29,10 +30,12 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.TextUnit
 import androidx.core.text.isDigitsOnly
 import com.tomcvt.goready.constants.MathType
 
@@ -65,29 +68,28 @@ fun TextInputCard(
 
 @Composable
 fun NumbersInput(
-    onNumbersChange: (String) -> Unit,
+    value: String,
+    onValueChange: (String) -> Unit,
     onFocusLost: (String) -> Unit,
     placeholder: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    fontSize: TextUnit = 32.sp
 ) {
-    var internalText by remember { mutableStateOf("") }
-
     OutlinedTextField(
-        value = internalText,
-        onValueChange = { if (it.isDigitsOnly()) internalText = it;
-                            onNumbersChange(it)},
+        value = value,
+        onValueChange = { if (it.isDigitsOnly()) onValueChange(it) },
         placeholder = { Text(placeholder) },
-        modifier = Modifier
-            .size(50.dp)
+        modifier = modifier
             .padding(8.dp)
             .onFocusChanged { state ->
                 if(!state.isFocused) {
                     // Call parent lambda when focus leaves
-                    onFocusLost(internalText)
+                    onFocusLost(value)
                 }
             },
-
-        textStyle = MaterialTheme.typography.bodyLarge,
+        textStyle = MaterialTheme.typography.bodyLarge.copy(
+            textAlign = TextAlign.Center, fontSize = fontSize
+        ),
         singleLine = true
     )
 }
@@ -127,11 +129,10 @@ fun MathTaskInput(
     ) {
         Text(
             text = "Choose level and number of tasks:",
-            style = MaterialTheme.typography.headlineMedium,
-            modifier = Modifier.padding(16.dp)
+            style = MaterialTheme.typography.bodyLarge
         )
         Row(
-            modifier = modifier.fillMaxWidth().padding(32.dp),
+            modifier = modifier.fillMaxWidth().padding(PaddingValues(32.dp, 0.dp)),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
@@ -149,7 +150,7 @@ fun MathTaskInput(
                         scaleX = if (selected) 1.25f else 1f
                         scaleY = if (selected) 1.25f else 1f
                     },
-                    color = if (selected) Color.Black else Color.Gray
+                    color = if (selected) MaterialTheme.colorScheme.primary else Color.Gray
                 )
             }
             WheelPicker(
@@ -167,7 +168,7 @@ fun MathTaskInput(
                         scaleX = if (selected) 1.25f else 1f
                         scaleY = if (selected) 1.25f else 1f
                     },
-                    color = if (selected) Color.Black else Color.Gray
+                    color = if (selected) MaterialTheme.colorScheme.primary else Color.Gray
                 )
             }
         }
