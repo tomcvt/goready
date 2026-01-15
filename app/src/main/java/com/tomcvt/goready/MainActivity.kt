@@ -76,6 +76,7 @@ class MainActivity : ComponentActivity() {
         )
         alarmViewModelFactory = AlarmViewModelFactory(appAlarmManager)
         val systemAlarmManager = this.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
+        /*
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             Log.d("MainActivity", "SystemAlarmManager: $systemAlarmManager")
             val canSchedule = systemAlarmManager.canScheduleExactAlarms()
@@ -95,13 +96,6 @@ class MainActivity : ComponentActivity() {
             if (permissionCheck != PackageManager.PERMISSION_GRANTED) {
                 ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.FOREGROUND_SERVICE), 102)
             }
-        }
-        Log.d("MainActivity", "Foreground service permission")
-        val foregroundPermission = ContextCompat.checkSelfPermission(this, Manifest.permission.FOREGROUND_SERVICE)
-        if (foregroundPermission != PackageManager.PERMISSION_GRANTED) {
-            Log.d("MainActivity", "Foreground service permission not granted")
-        } else {
-            Log.d("MainActivity", "Foreground service permission granted")
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val permissionCheck = ContextCompat.checkSelfPermission(this, Manifest.permission.USE_FULL_SCREEN_INTENT)
@@ -144,7 +138,10 @@ class MainActivity : ComponentActivity() {
                     106
                 )
             }
+
         }
+
+         */
 
 
         enableEdgeToEdge()
@@ -215,7 +212,7 @@ fun GoReadyApp(alarmViewModelFactory: AlarmViewModelFactory) {
                     //AddAlarmRoute(vm, rootNavController) for now redundant
                 }
                 composable(RootTab.SETTINGS.name) {
-                    val vm = viewModel<AlarmViewModel>(factory = alarmViewModelFactory)
+                    //val vm = viewModel<AlarmViewModel>(factory = alarmViewModelFactory)
                     SettingsView()
                 }
             }

@@ -1,9 +1,13 @@
 package com.tomcvt.goready.viewmodel
 
 import android.Manifest
+import android.content.Intent
+import android.net.Uri
 import android.os.Build
+import android.provider.Settings
 import android.util.Log
 import androidx.compose.runtime.retain.RetainedValuesStoreRegistry
+import androidx.core.content.ContextCompat.startActivity
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tomcvt.goready.data.AlarmEntity
@@ -141,7 +145,14 @@ val permissionRegistry = listOf(
         description = "Allow app to sound alarms",
         permission = Manifest.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK,
         minSdk = Build.VERSION_CODES.Q,
-        callbackInt = 106)
+        callbackInt = 106),
+    PermissionSpec(
+        id = "use_exact_alarm",
+        label = "Use Exact Alarm",
+        description = "Use exact alarm",
+        permission = Manifest.permission.USE_EXACT_ALARM,
+        minSdk = Build.VERSION_CODES.TIRAMISU,
+        callbackInt = 108)
     )
 
 

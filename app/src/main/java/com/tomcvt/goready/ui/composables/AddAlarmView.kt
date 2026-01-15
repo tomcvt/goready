@@ -17,6 +17,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -96,7 +97,6 @@ fun AddAlarmView(viewModel: AlarmViewModel,
             Card(
                 elevation = CardDefaults.cardElevation(8.dp),
                 modifier = Modifier.padding(24.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFE0E0E0))
             ) {
                 Text(
                     "%02d:%02d".format(selectedHour, selectedMinute),
@@ -104,7 +104,9 @@ fun AddAlarmView(viewModel: AlarmViewModel,
                         .padding(16.dp)
                         .clickable {
                             picker.show()
-                        }
+                        },
+                    style = MaterialTheme.typography.displayMedium,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
             Row {
