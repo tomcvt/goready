@@ -215,6 +215,7 @@ fun GoReadyApp(alarmViewModelFactory: AlarmViewModelFactory) {
                     //AddAlarmRoute(vm, rootNavController) for now redundant
                 }
                 composable(RootTab.SETTINGS.name) {
+                    val vm = viewModel<AlarmViewModel>(factory = alarmViewModelFactory)
                     SettingsView()
                 }
             }
