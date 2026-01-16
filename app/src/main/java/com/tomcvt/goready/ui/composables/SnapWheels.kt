@@ -46,6 +46,7 @@ fun WheelPickerPreview() {
     MaterialTheme {
         WheelPicker(
             items = MathType.values().toList(),
+            startingItem = MathType.FOURTH,
             visibleItems = 3,
             itemHeight = 48.dp,
             onItemSelected = { mode ->
@@ -100,6 +101,10 @@ fun <T> WheelPicker(
     val density = LocalDensity.current
 
     var selectedIndex by remember { mutableStateOf(items.indexOf(startingItem)) }
+
+    LaunchedEffect(Unit) {
+        listState.scrollToItem(selectedIndex)
+    }
 
     Box(
         modifier = modifier

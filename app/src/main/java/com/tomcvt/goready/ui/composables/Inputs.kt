@@ -1,5 +1,6 @@
 package com.tomcvt.goready.ui.composables
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.Arrangement
@@ -23,6 +24,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -41,23 +43,23 @@ import com.tomcvt.goready.constants.MathType
 
 @Composable
 fun TextInputCard(
+    value: String,
     onTextChange: (String) -> Unit,
     onFocusLost: (String) -> Unit,
     placeholder: String,
     modifier: Modifier = Modifier
 ) {
-    var internalText by remember { mutableStateOf("") }
 
     OutlinedTextField(
-        value = internalText,
-        onValueChange = { internalText = it; onTextChange(it) },
+        value = value,
+        onValueChange = { onTextChange(it) },
         placeholder = { Text(placeholder) },
         modifier = modifier
             .fillMaxWidth()
             .onFocusChanged { state ->
                 if (!state.isFocused) {
                     // Call parent lambda when focus leaves
-                    onFocusLost(internalText)
+                    onFocusLost(value)
                 }
             },
         textStyle = MaterialTheme.typography.bodyLarge,
@@ -77,7 +79,7 @@ fun NumbersInput(
 ) {
     OutlinedTextField(
         value = value,
-        onValueChange = { if (it.isDigitsOnly()) onValueChange(it) },
+        onValueChange = { onValueChange(digitsOnly(it))},
         placeholder = { Text(placeholder) },
         modifier = modifier
             .padding(8.dp)
@@ -92,6 +94,10 @@ fun NumbersInput(
         ),
         singleLine = true
     )
+}
+
+fun digitsOnly(value: String): String {
+    return value.filter { it.isDigit() }
 }
 
 @Preview(showBackground = true)
@@ -113,11 +119,16 @@ fun MathTaskInput(
     onFocusLost: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val defaultValue = remember(value) { setDefault(value) }
+    Log.d("MathTaskInput", "defaultValue: $defaultValue")
+    //var selectedType by rememberUpdatedState(typeFromValue)
+    //var selectedRange by rememberUpdatedState(rangeFromValue)
     val mathTypes = MathType.getList()
-    var selectedType by remember { mutableStateOf(MathType.valueOf(value.split("|")[0])) }
+    //val defaultValue = setDefault(value)
+    var selectedType by remember { mutableStateOf(defaultValue.first) }
     val range = (1..15).toList()
-    var selectedRange by remember { mutableStateOf(value.split("|")[1].toInt()) }
-    var inputData by remember { mutableStateOf(value) }
+    var selectedRange by remember { mutableStateOf(defaultValue.second) }
+    var inputData by remember { mutableStateOf("${selectedType.name}|$selectedRange") }
     val encodeData = {
         inputData = "${selectedType.name}|${selectedRange}"
     }
@@ -140,7 +151,7 @@ fun MathTaskInput(
         ) {
             WheelPicker(
                 items = mathTypes,
-                startingItem = MathType.SECOND,
+                startingItem = defaultValue.first,
                 visibleItems = 3,
                 itemHeight = 40.dp,
                 onItemSelected = { selectedType = it }
@@ -157,7 +168,7 @@ fun MathTaskInput(
             }
             WheelPicker(
                 items = range,
-                startingItem = range[2],
+                startingItem = defaultValue.second,
                 visibleItems = 3,
                 itemHeight = 40.dp,
                 onItemSelected = { selectedRange = it },
@@ -177,6 +188,24 @@ fun MathTaskInput(
     }
 }
 
+fun setDefault(value: String) : Pair<MathType, Int> {
+    if (value.isBlank()) {
+        return MathType.SECOND to 3
+
+    }
+    var type = MathType.SECOND
+    var range = 3
+    if (!value.contains("|")) {
+        return MathType.SECOND to 3
+    }
+    try {
+        type = MathType.valueOf(value.split("|")[0])
+        range = value.split("|")[1].toInt()
+    } catch (e: Exception) {
+        return MathType.SECOND to 3
+    }
+    return type to range
+}
 
 @Preview(showBackground = true)
 @Composable

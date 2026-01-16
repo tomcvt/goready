@@ -33,10 +33,12 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.tomcvt.goready.application.AlarmApp
 import com.tomcvt.goready.manager.AppAlarmManager
 import com.tomcvt.goready.manager.SystemAlarmScheduler
@@ -166,9 +168,15 @@ class MainActivity : ComponentActivity() {
 fun GoReadyApp(alarmViewModelFactory: AlarmViewModelFactory) {
     val rootNavController = rememberNavController()
     val navbackStackEntry by rootNavController.currentBackStackEntryAsState()
-    val currentRootTab = RootTab.valueOf(
-        navbackStackEntry?.destination?.route ?: RootTab.HOME.name
-    )
+    val currentRootTab = try {
+            RootTab.valueOf(
+                navbackStackEntry?.destination?.route ?: RootTab.HOME.name
+            )
+        }
+        catch (e: IllegalArgumentException) {
+            RootTab.HOME
+        }
+
 
 
 
@@ -215,6 +223,14 @@ fun GoReadyApp(alarmViewModelFactory: AlarmViewModelFactory) {
                     //val vm = viewModel<AlarmViewModel>(factory = alarmViewModelFactory)
                     SettingsView()
                 }
+                composable(
+                    route = "edit_alarm/{alarmId}",
+                    arguments = listOf(navArgument("alarmId") { type = NavType.LongType })
+                ) { backStackEntry ->
+                    val alarmId = backStackEntry.arguments?.getLong("alarmId")
+                    val vm = viewModel<AlarmViewModel>(factory = alarmViewModelFactory)
+                    AddAlarmView(vm, rootNavController, alarmId = alarmId)
+                }
             }
         }
     }
@@ -257,6 +273,7 @@ fun AlarmListPreview() {
             onAddClick = {},
             onDeleteClick = {},
             onAlarmSwitchChange = { _, _ -> },
+            onCardClick = {},
             modifier = Modifier)
     }
 }

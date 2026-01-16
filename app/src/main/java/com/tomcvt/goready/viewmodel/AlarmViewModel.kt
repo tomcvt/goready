@@ -8,6 +8,7 @@ import android.provider.Settings
 import android.util.Log
 import androidx.compose.runtime.retain.RetainedValuesStoreRegistry
 import androidx.core.content.ContextCompat.startActivity
+import androidx.core.text.isDigitsOnly
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tomcvt.goready.constants.TaskType
@@ -34,6 +35,11 @@ class AlarmViewModel(
 
     val editorState: StateFlow<AlarmEditorState> =
         _editorState.asStateFlow()
+
+    private val _rememberedData = MutableStateFlow<MutableMap<String, String>>(mutableMapOf())
+
+    val rememberedData: StateFlow<MutableMap<String, String>> =
+        _rememberedData.asStateFlow()
 
     val alarmsStateFlow: StateFlow<List<AlarmEntity>> = appAlarmManager
         .getAlarmsFlow().stateIn(
@@ -62,6 +68,14 @@ class AlarmViewModel(
                     taskType = TaskType.valueOf(alarm.task?: "NONE"),
                     taskData = alarm.taskData?: ""
                 )
+                TaskType.values().forEach {
+                    if (it.name == alarm.task) {
+                        _rememberedData.value[it.name] = alarm.taskData?: ""
+                    } else {
+                        _rememberedData.value[it.name] = ""
+                    }
+                }
+                Log.d("AlarmViewModel", "Alarm loaded: $alarm")
             }
         }
     }
@@ -176,7 +190,16 @@ class AlarmViewModel(
     }
 
     fun setTaskData(data: String) {
+        val data = parseData(editorState.value.taskType, data)
+        if (data == null) {
+            _uiState.value = UiState.Error("Invalid data")
+            return
+        }
         _editorState.update { it.copy(taskData = data) }
+        _rememberedData.update {
+            it[editorState.value.taskType.name] = data
+            it
+        }
     }
 }
 
@@ -198,6 +221,29 @@ data class AlarmEditorState(
 ) {
     enum class Mode { CREATE, EDIT }
 }
+
+
+fun parseData(taskType: TaskType, taskData: String) : String?  {
+
+    when (taskType) {
+        TaskType.TIMER -> {return null}
+        TaskType.COUNTDOWN -> {
+            if (taskData.isDigitsOnly() && taskData.toInt() > 0) {
+                return taskData
+            }
+            return null
+        }
+        TaskType.TEXT -> {
+            if (taskData.isNotBlank()) {
+                return taskData
+            }
+            return null
+        }
+        TaskType.MATH -> {return taskData}
+        else -> {return null}
+    }
+}
+
 
 data class PermissionSpec(
     val id: String,

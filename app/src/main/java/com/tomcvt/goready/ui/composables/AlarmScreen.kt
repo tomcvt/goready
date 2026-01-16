@@ -375,6 +375,7 @@ fun TextAlarmScreen(
         }
         Spacer(modifier = Modifier.height(16.dp))
         TextInputCard(
+            value = currentText,
             onTextChange = {
                 currentText = it
                 interactionKey++

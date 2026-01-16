@@ -74,6 +74,9 @@ fun AddAlarmView(viewModel: AlarmViewModel,
 
     val state by viewModel.editorState.collectAsState()
 
+    val rememberedData by viewModel.rememberedData.collectAsState()
+
+
     var showModal by remember {mutableStateOf(false)}
  /*
     var selectedDays by remember {
@@ -130,15 +133,18 @@ fun AddAlarmView(viewModel: AlarmViewModel,
                 }
             }
             AlarmTypeSelector(
+                value = state.taskType,
                 options = TaskType.getList(),
                 onTypeSelected = { viewModel.setTaskType(it) }
             )
             TaskDataInput(
-                value = state.taskData,
+                value = rememberedData[state.taskType.name]?: "",
                 taskType = state.taskType,
                 onTaskDataProvided = {
                     Log.d("AddAlarmView", "Task data provided: ${it}")
-                    viewModel.setTaskData(it)
+                    if (!it.isBlank()){
+                        viewModel.setTaskData(it)
+                    }
                 }
             )
 
@@ -158,12 +164,13 @@ fun AddAlarmView(viewModel: AlarmViewModel,
                 AlarmAddedModal(
                     it,
                     taskData = state.taskData,
-                    onDismiss = { showModal = false
+                    onDismiss = { showModal = false/*
                                     rootNavController?.navigate(RootTab.ALARMS.name) {
                                         // Clear the "Add Alarm" screen from the history
                                         popUpTo(RootTab.ADD_ALARM.name) { inclusive = true }
                                         launchSingleTop = true
-                                    }
+                                    }*/
+                                    rootNavController?.popBackStack()
                                 },
                     hour = state.hour,
                     minute = state.minute,
@@ -178,11 +185,11 @@ fun AddAlarmView(viewModel: AlarmViewModel,
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AlarmTypeSelector(
+    value: TaskType,
     options: List<TaskType>,
     onTypeSelected: (TaskType) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var selectedType by remember { mutableStateOf(TaskType.NONE) }
     var expanded by remember { mutableStateOf(false) }
     //var selectedOption by remember { mutableStateOf(selectedType.label) }
     ExposedDropdownMenuBox(
@@ -190,7 +197,7 @@ fun AlarmTypeSelector(
         onExpandedChange = { expanded = !expanded }
     ) {
         TextField(
-            value = selectedType.name,
+            value = value.name,
             onValueChange = {},
             readOnly = true,
             label = { Text("Select an option") },
@@ -208,7 +215,6 @@ fun AlarmTypeSelector(
                 DropdownMenuItem(
                     text = { Text(option.name) },
                     onClick = {
-                        selectedType = option
                         onTypeSelected(option)  // call lambda
                         expanded = false
                     }
@@ -225,8 +231,6 @@ fun TaskDataInput(
     onTaskDataProvided: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var taskData by remember { mutableStateOf(value) }
-
     Box(
         modifier = modifier,
         contentAlignment = Alignment.Center
@@ -237,10 +241,9 @@ fun TaskDataInput(
                 NumbersInput(
                     value = value,
                     onValueChange = {
-                        taskData = it
-                        onTaskDataProvided(taskData)
+                        onTaskDataProvided(it)
                     },
-                    onFocusLost = { onTaskDataProvided(taskData) },
+                    onFocusLost = { onTaskDataProvided(it) },
                     placeholder = "...",
 
                 )
@@ -248,11 +251,11 @@ fun TaskDataInput(
 
             TaskType.TEXT -> {
                 TextInputCard(
+                    value = value,
                     onTextChange = {
-                        taskData = it
-                        onTaskDataProvided(taskData)
+                        onTaskDataProvided(it)
                     },
-                    onFocusLost = { onTaskDataProvided(taskData) },
+                    onFocusLost = { onTaskDataProvided(it) },
                     placeholder = "Type here..."
                 )
             }
@@ -261,10 +264,9 @@ fun TaskDataInput(
                 MathTaskInput(
                     value = value,
                     onInputChange = {
-                        taskData = it
-                        onTaskDataProvided(taskData)
+                        onTaskDataProvided(it)
                     },
-                    onFocusLost = { onTaskDataProvided(taskData) }
+                    onFocusLost = { onTaskDataProvided(it) }
                 )
             }
             else -> {}
