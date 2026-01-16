@@ -22,6 +22,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -49,38 +50,46 @@ import java.time.DayOfWeek
 
 @Composable
 fun AddAlarmRoute(viewModel: AlarmViewModel,
-                  rootNavController: NavHostController,
-                  modifier: Modifier = Modifier
+                  rootNavController: NavHostController?,
+                  modifier: Modifier = Modifier,
+                  alarmId: Long? = null
     ) {
-    AddAlarmView(viewModel, rootNavController, modifier)
+    AddAlarmView(viewModel, rootNavController, modifier, null)
 }
 
 @Composable
 fun AddAlarmView(viewModel: AlarmViewModel,
-                 rootNavController: NavHostController,
-                 modifier: Modifier = Modifier) {
+                 rootNavController: NavHostController?,
+                 modifier: Modifier = Modifier,
+                 alarmId: Long? = null
+) {
     val context = LocalContext.current
 
 
     val uiState by viewModel.uiState.collectAsState()
 
+    LaunchedEffect(alarmId) {
+        viewModel.initEditor(alarmId)
+    }
+
+    val state by viewModel.editorState.collectAsState()
+
+    var showModal by remember {mutableStateOf(false)}
+ /*
     var selectedDays by remember {
         mutableStateOf(setOf<DayOfWeek>())
     }
-    var showModal by remember {mutableStateOf(false)}
+
     var selectedHour by remember {mutableIntStateOf(8)}
     var selectedMinute by remember {mutableIntStateOf(30)}
     var selectedType by remember {mutableStateOf(TaskType.NONE)}
     var taskInputData by remember {mutableStateOf("")}
+*/
 
-    // Temporary variables to hold selected time from the picker
-    // These will be updated when the user selects a time
-    // and then saved to the state variables above when confirmed
     val picker = TimePickerDialog(
         context,
         { _, hour, minute ->
-            selectedHour = hour
-            selectedMinute = minute
+            viewModel.setTime(hour, minute)
         },
         8,
         30,
@@ -99,7 +108,7 @@ fun AddAlarmView(viewModel: AlarmViewModel,
                 modifier = Modifier.padding(24.dp),
             ) {
                 Text(
-                    "%02d:%02d".format(selectedHour, selectedMinute),
+                    "%02d:%02d".format(state.hour, state.minute),
                     modifier = Modifier
                         .padding(16.dp)
                         .clickable {
@@ -112,13 +121,9 @@ fun AddAlarmView(viewModel: AlarmViewModel,
             Row {
                 DayOfWeek.values().forEach { day ->
                     FilterChip(
-                        selected = day in selectedDays,
+                        selected = day in state.repeatDays,
                         onClick = {
-                            selectedDays =
-                                if (day in selectedDays)
-                                    selectedDays - day
-                                else
-                                    selectedDays + day
+                            viewModel.toggleDay(day)
                         },
                         label = { Text(day.name.take(1)) }
                     )
@@ -126,32 +131,19 @@ fun AddAlarmView(viewModel: AlarmViewModel,
             }
             AlarmTypeSelector(
                 options = TaskType.getList(),
-                onTypeSelected = { selectedType = it }
+                onTypeSelected = { viewModel.setTaskType(it) }
             )
             TaskDataInput(
-                taskType = selectedType,
+                value = state.taskData,
+                taskType = state.taskType,
                 onTaskDataProvided = {
                     Log.d("AddAlarmView", "Task data provided: ${it}")
-                    taskInputData = it
+                    viewModel.setTaskData(it)
                 }
             )
 
 
-            Button(onClick = {val parsedData = parseData(selectedType, taskInputData)?: return@Button
-                showModal = true
-                val newDraftAlarm = AlarmDraft(
-                    hour = selectedHour,
-                    minute = selectedMinute,
-                    repeatDays = selectedDays
-                )
-                Log.d("AddAlarmView", "Type: ${selectedType.name}")
-                newDraftAlarm.task = selectedType.name
-                newDraftAlarm.taskData = parsedData
-                Log.d("AddAlarmView", "Task data: $parsedData")
-                Log.d("AddAlarmView", "Alarm draft: $parsedData")
-                val snapshot = newDraftAlarm.copy()
-                viewModel.saveAlarm(snapshot)
-            }) {
+            Button(onClick = {showModal = true; viewModel.save() }) {
                 Text("Save Alarm")
             }
         }
@@ -165,17 +157,17 @@ fun AddAlarmView(viewModel: AlarmViewModel,
             message?.let {
                 AlarmAddedModal(
                     it,
-                    taskData = taskInputData,
+                    taskData = state.taskData,
                     onDismiss = { showModal = false
-                                    rootNavController.navigate(RootTab.ALARMS.name) {
+                                    rootNavController?.navigate(RootTab.ALARMS.name) {
                                         // Clear the "Add Alarm" screen from the history
                                         popUpTo(RootTab.ADD_ALARM.name) { inclusive = true }
                                         launchSingleTop = true
                                     }
                                 },
-                    hour = selectedHour,
-                    minute = selectedMinute,
-                    days = selectedDays
+                    hour = state.hour,
+                    minute = state.minute,
+                    days = state.repeatDays
                 )
             }
         }
@@ -228,11 +220,12 @@ fun AlarmTypeSelector(
 
 @Composable
 fun TaskDataInput(
+    value: String,
     taskType: TaskType,
     onTaskDataProvided: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var taskData by remember { mutableStateOf("") }
+    var taskData by remember { mutableStateOf(value) }
 
     Box(
         modifier = modifier,
@@ -242,7 +235,7 @@ fun TaskDataInput(
             TaskType.TIMER -> {}
             TaskType.COUNTDOWN -> {
                 NumbersInput(
-                    value = taskData,
+                    value = value,
                     onValueChange = {
                         taskData = it
                         onTaskDataProvided(taskData)
@@ -266,6 +259,7 @@ fun TaskDataInput(
 
             TaskType.MATH -> {
                 MathTaskInput(
+                    value = value,
                     onInputChange = {
                         taskData = it
                         onTaskDataProvided(taskData)

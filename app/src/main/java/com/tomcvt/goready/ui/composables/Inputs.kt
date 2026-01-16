@@ -99,6 +99,7 @@ fun NumbersInput(
 fun MathTypeInputPreview() {
     MaterialTheme {
         MathTaskInput(
+            value = "FIRST|7",
             onInputChange = {},
             onFocusLost = {}
         )
@@ -107,15 +108,16 @@ fun MathTypeInputPreview() {
 
 @Composable
 fun MathTaskInput(
+    value: String,
     onInputChange: (String) -> Unit,
     onFocusLost: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val mathTypes = MathType.getList()
-    var selectedType by remember { mutableStateOf(mathTypes[0]) }
+    var selectedType by remember { mutableStateOf(MathType.valueOf(value.split("|")[0])) }
     val range = (1..15).toList()
-    var selectedRange by remember { mutableStateOf(range[0]) }
-    var inputData by remember { mutableStateOf("") }
+    var selectedRange by remember { mutableStateOf(value.split("|")[1].toInt()) }
+    var inputData by remember { mutableStateOf(value) }
     val encodeData = {
         inputData = "${selectedType.name}|${selectedRange}"
     }

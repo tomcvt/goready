@@ -10,14 +10,18 @@ import androidx.compose.runtime.retain.RetainedValuesStoreRegistry
 import androidx.core.content.ContextCompat.startActivity
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.tomcvt.goready.constants.TaskType
 import com.tomcvt.goready.data.AlarmEntity
 import com.tomcvt.goready.domain.AlarmDraft
 import com.tomcvt.goready.domain.SimpleAlarmDraft
 import com.tomcvt.goready.manager.AppAlarmManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.time.DayOfWeek
 
 class AlarmViewModel(
     private val appAlarmManager: AppAlarmManager // inject manager
@@ -25,12 +29,42 @@ class AlarmViewModel(
     private val _uiState = MutableStateFlow<UiState>(UiState.Idle)
     val uiState: StateFlow<UiState> = _uiState
 
+    private val _editorState =
+        MutableStateFlow(AlarmEditorState())
+
+    val editorState: StateFlow<AlarmEditorState> =
+        _editorState.asStateFlow()
+
     val alarmsStateFlow: StateFlow<List<AlarmEntity>> = appAlarmManager
         .getAlarmsFlow().stateIn(
             viewModelScope,
             started = kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(1000),
             initialValue = emptyList()
         )
+
+    private var currentAlarmId: Long? = null
+
+    fun initEditor(alarmId: Long?) {
+        //if (currentAlarmId == alarmId) return
+
+        currentAlarmId = alarmId
+
+        if (alarmId == null) {
+            _editorState.value = AlarmEditorState(mode = AlarmEditorState.Mode.CREATE)
+        } else {
+            viewModelScope.launch {
+                val alarm = appAlarmManager.getAlarm(alarmId)?: return@launch
+                _editorState.value = AlarmEditorState(
+                    mode = AlarmEditorState.Mode.EDIT,
+                    hour = alarm.hour,
+                    minute = alarm.minute,
+                    repeatDays = alarm.repeatDays,
+                    taskType = TaskType.valueOf(alarm.task?: "NONE"),
+                    taskData = alarm.taskData?: ""
+                )
+            }
+        }
+    }
 
     fun saveAlarm(draft: AlarmDraft) {
         viewModelScope.launch {
@@ -78,6 +112,72 @@ class AlarmViewModel(
             }
         }
     }
+
+    fun loadForEdit(alarmId: Long) {
+        viewModelScope.launch {
+            val alarm = appAlarmManager.getAlarm(alarmId)?: return@launch
+            _editorState.value = AlarmEditorState(
+                mode = AlarmEditorState.Mode.EDIT,
+                hour = alarm.hour,
+                minute = alarm.minute,
+                repeatDays = alarm.repeatDays,
+                taskType = TaskType.valueOf(alarm.task?: "NONE"),
+                taskData = alarm.taskData?: ""
+            )
+        }
+    }
+
+    fun startNew() {
+        _editorState.value = AlarmEditorState()
+    }
+
+    fun save() {
+        viewModelScope.launch {
+            val s = editorState.value
+            if (s.mode == AlarmEditorState.Mode.CREATE) {
+                appAlarmManager.createAlarm(AlarmDraft(
+                    hour = s.hour,
+                    minute = s.minute,
+                    repeatDays = s.repeatDays,
+                    task = s.taskType.name,
+                    taskData = s.taskData
+                ))
+                _uiState.value = UiState.Success("Alarm saved")
+            } else {
+                appAlarmManager.updateAlarm(AlarmDraft(
+                    hour = s.hour,
+                    minute = s.minute,
+                    repeatDays = s.repeatDays,
+                    task = s.taskType.name,
+                    taskData = s.taskData
+                ), currentAlarmId?: return@launch)
+                _uiState.value = UiState.Success("Alarm updated")
+            }
+        }
+    }
+
+    fun setTime(hour: Int, minute: Int) {
+        _editorState.update {
+            it.copy(hour = hour, minute = minute)
+        }
+    }
+
+    fun toggleDay(day: DayOfWeek) {
+        _editorState.update {
+            val newDays =
+                if (day in it.repeatDays) it.repeatDays - day
+                else it.repeatDays + day
+            it.copy(repeatDays = newDays)
+        }
+    }
+
+    fun setTaskType(type: TaskType) {
+        _editorState.update { it.copy(taskType = type) }
+    }
+
+    fun setTaskData(data: String) {
+        _editorState.update { it.copy(taskData = data) }
+    }
 }
 
 // UI observes `uiState` and reacts
@@ -85,6 +185,18 @@ sealed class UiState {
     object Idle: UiState()
     data class Success(val message: String): UiState()
     data class Error(val message: String): UiState()
+}
+
+data class AlarmEditorState(
+    val mode: Mode = Mode.CREATE,
+    val hour: Int = 8,
+    val minute: Int = 30,
+    val repeatDays: Set<DayOfWeek> = emptySet(),
+    val taskType: TaskType = TaskType.NONE,
+    val taskData: String = "",
+    val isLoading: Boolean = false
+) {
+    enum class Mode { CREATE, EDIT }
 }
 
 data class PermissionSpec(

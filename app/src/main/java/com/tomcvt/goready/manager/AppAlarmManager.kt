@@ -40,6 +40,29 @@ open class AppAlarmManager(private val repository: AlarmRepository, private val 
         }
     }
 
+    suspend fun updateAlarm(draft: AlarmDraft, alarmId: Long) {
+        val oldAlarm = repository.getAlarmById(alarmId) ?: return
+        val updatedAlarm = oldAlarm.copy(
+            hour = draft.hour,
+            minute = draft.minute,
+            label = draft.label,
+            repeatDays = draft.repeatDays,
+            task = draft.task,
+            taskData = draft.taskData)
+        if (oldAlarm.hour != updatedAlarm.hour || oldAlarm.minute != updatedAlarm.minute) {
+            try {
+                systemScheduler.cancelAlarm(oldAlarm)
+                systemScheduler.scheduleAlarm(updatedAlarm, alarmId)
+            } catch (e: SecurityException) {
+                // Handle the exception, e.g., show an error message to the user
+                Log.e("AppAlarmManager", "Security exception while scheduling alarm", e)
+                //TODO add popup and ask user to grant permission
+            }
+        }
+        repository.updateAlarm(updatedAlarm)
+    }
+
+
     suspend fun toggleAlarm(alarm: AlarmEntity, enabled: Boolean) {
         val updatedAlarm = alarm.copy(isEnabled = enabled)
         Log.d("AppAlarmManager", "Alarm toggled: $updatedAlarm")

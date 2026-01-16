@@ -9,6 +9,7 @@ import android.os.Build
 import android.provider.Settings
 import android.util.Log
 import androidx.annotation.RequiresPermission
+import com.tomcvt.goready.MainActivity
 import com.tomcvt.goready.constants.EXTRA_ALARM_ID
 import com.tomcvt.goready.manager.AlarmReceiver
 import com.tomcvt.goready.data.AlarmEntity
@@ -72,7 +73,13 @@ class SystemAlarmScheduler(private val context: Context) {
         //val info = AppAlarmManager.AlarmClockInfo(triggerTime, pendingIntent)
         //appAlarmManager.setAlarmClock(info, pendingIntent)
         try {
+            /*
             scheduleRTCWakeup(
+                alarmId,
+                triggerTime,
+                pendingIntent
+            )*/
+            scheduleAlarmClock(
                 alarmId,
                 triggerTime,
                 pendingIntent
@@ -80,7 +87,6 @@ class SystemAlarmScheduler(private val context: Context) {
         } catch (e: SecurityException ) {
             Log.e("AlarmScheduler", "Security exception while scheduling alarm", e)
             //TODO add popup and ask user to grant permission
-
         }
 
     }
@@ -88,7 +94,7 @@ class SystemAlarmScheduler(private val context: Context) {
     fun cancelAlarm(alarm: AlarmEntity) {
         val intent = Intent(appContext, AlarmReceiver::class.java)
         val pendingIntent = PendingIntent.getBroadcast(
-            appContext.applicationContext,
+            appContext,
             alarm.id.toInt(),
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
@@ -111,8 +117,15 @@ class SystemAlarmScheduler(private val context: Context) {
         )
 
         val triggerTime = System.currentTimeMillis() + 15000
-
+        /*
         scheduleRTCWakeup(
+            alarmId,
+            triggerTime,
+            pendingIntent
+        )
+
+         */
+        scheduleAlarmClock(
             alarmId,
             triggerTime,
             pendingIntent
@@ -150,4 +163,23 @@ class SystemAlarmScheduler(private val context: Context) {
         }
     }
 
+    fun scheduleAlarmClock(alarmId: Long, triggerTime: Long, pendingIntent: PendingIntent) {
+        Log.d("AlarmScheduler", "Scheduling alarm with ID: ${alarmId} at ${triggerTime}")
+        //TODO add showIntent, for now nothing
+        val showIntent = Intent(appContext, MainActivity::class.java).apply {
+            putExtra(EXTRA_ALARM_ID, alarmId)
+        }
+        val showPending = PendingIntent.getActivity(appContext, 0, showIntent, PendingIntent.FLAG_IMMUTABLE)
+        val alarmClockInfo = AlarmManager.AlarmClockInfo(triggerTime, pendingIntent)
+        val alarmIntent = Intent(appContext, AlarmReceiver::class.java).apply {
+            putExtra(EXTRA_ALARM_ID, alarmId)
+        }
+        val alarmPendingIntent = PendingIntent.getBroadcast(
+            appContext,
+            alarmId.toInt(),  // unique per alarm
+            alarmIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        alarmManager.setAlarmClock(alarmClockInfo, alarmPendingIntent)
+    }
 }

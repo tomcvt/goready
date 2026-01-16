@@ -65,12 +65,16 @@ fun AlarmListRoute(
     val onAlarmSwitchChange: (AlarmEntity, Boolean) -> Unit = {
         alarm: AlarmEntity, enabled: Boolean -> viewModel.toggleAlarm(alarm, enabled)
     }
+    val onCardClick: (AlarmEntity) -> Unit = {
+        alarm: AlarmEntity -> rootController.navigate("edit_alarm/${alarm.id}")
+    }
 
     AlarmList(
         alarmList = alarmList,
         onAddClick = onAddAlarmClick,
         onDeleteClick = onDeleteClick,
         onAlarmSwitchChange = onAlarmSwitchChange,
+        onCardClick = onCardClick,
         modifier = modifier
     )
 
@@ -82,6 +86,7 @@ fun AlarmList(
     onAddClick: () -> Unit,
     onDeleteClick: (AlarmEntity) -> Unit,
     onAlarmSwitchChange: (AlarmEntity, Boolean) -> Unit,
+    onCardClick: (AlarmEntity) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Box(modifier = modifier.fillMaxSize()) {
@@ -106,6 +111,7 @@ fun AlarmList(
                         enabled = alarm.isEnabled,
                         onToggleEnabled = {onAlarmSwitchChange(alarm, it)},
                         repeatDays = alarm.repeatDays,
+                        onCardClick = { onCardClick(alarm) },
                         modifier = Modifier.padding(8.dp)
                     )
                 }
@@ -134,6 +140,7 @@ fun AlarmCard(alarmName: String,
               onDelete: () -> Unit,
               onToggleEnabled: (Boolean) -> Unit,
               repeatDays: Set<DayOfWeek>,
+              onCardClick: () -> Unit,
               modifier: Modifier = Modifier) {
     Box(modifier = modifier.fillMaxWidth()) {
         Card(
