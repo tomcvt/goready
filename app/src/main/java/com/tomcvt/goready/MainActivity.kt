@@ -25,6 +25,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -40,6 +41,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.tomcvt.goready.application.AlarmApp
+import com.tomcvt.goready.constants.EXTRA_ALARM_ID
 import com.tomcvt.goready.manager.AppAlarmManager
 import com.tomcvt.goready.manager.SystemAlarmScheduler
 import com.tomcvt.goready.preview.PreviewAlarms2
@@ -144,8 +146,11 @@ class MainActivity : ComponentActivity() {
         }
 
          */
-
-
+        val startIntent = intent
+        val alarmId = startIntent.getLongExtra(EXTRA_ALARM_ID, -1)
+        if (alarmId != -1L) {
+            Log.d("MainActivity", "Alarm ID to edit: $alarmId")
+        }
         enableEdgeToEdge()
         setContent {
             //val alarmViewModel: AlarmViewModel = AlarmViewModelProvider.provideAlarmViewModel(this)
@@ -155,7 +160,11 @@ class MainActivity : ComponentActivity() {
                 LocalRootNavigator provides rootNavigator
             ) {
                 GoReadyTheme {
-                    GoReadyApp(alarmViewModelFactory)
+                    if (alarmId != -1L) {
+                        GoReadyApp(alarmViewModelFactory, alarmId)
+                    } else {
+                        GoReadyApp(alarmViewModelFactory)
+                    }
                 }
             }
 
@@ -165,7 +174,8 @@ class MainActivity : ComponentActivity() {
 
 //@PreviewScreenSizes
 @Composable
-fun GoReadyApp(alarmViewModelFactory: AlarmViewModelFactory) {
+fun GoReadyApp(alarmViewModelFactory: AlarmViewModelFactory,
+               alarmId: Long? = null) {
     val rootNavController = rememberNavController()
     val navbackStackEntry by rootNavController.currentBackStackEntryAsState()
     val currentRootTab = try {
@@ -176,10 +186,6 @@ fun GoReadyApp(alarmViewModelFactory: AlarmViewModelFactory) {
         catch (e: IllegalArgumentException) {
             RootTab.HOME
         }
-
-
-
-
 
     NavigationSuiteScaffold(
         navigationSuiteItems = {
@@ -232,6 +238,11 @@ fun GoReadyApp(alarmViewModelFactory: AlarmViewModelFactory) {
                     AddAlarmView(vm, rootNavController, alarmId = alarmId)
                 }
             }
+        }
+    }
+    LaunchedEffect(Unit) {
+        if (alarmId != null) {
+            rootNavController.navigate("edit_alarm/$alarmId")
         }
     }
 }

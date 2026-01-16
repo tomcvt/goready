@@ -2,13 +2,16 @@ package com.tomcvt.goready.ui.composables
 
 import android.app.TimePickerDialog
 import android.util.Log
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -64,20 +67,14 @@ fun AddAlarmView(viewModel: AlarmViewModel,
                  alarmId: Long? = null
 ) {
     val context = LocalContext.current
-
-
     val uiState by viewModel.uiState.collectAsState()
-
     LaunchedEffect(alarmId) {
         viewModel.initEditor(alarmId)
     }
-
     val state by viewModel.editorState.collectAsState()
-
     val rememberedData by viewModel.rememberedData.collectAsState()
-
-
     var showModal by remember {mutableStateOf(false)}
+    var showExit by remember {mutableStateOf(false)}
  /*
     var selectedDays by remember {
         mutableStateOf(setOf<DayOfWeek>())
@@ -164,13 +161,14 @@ fun AddAlarmView(viewModel: AlarmViewModel,
                 AlarmAddedModal(
                     it,
                     taskData = state.taskData,
-                    onDismiss = { showModal = false/*
+                    onDismiss = { showModal = false
                                     rootNavController?.navigate(RootTab.ALARMS.name) {
-                                        // Clear the "Add Alarm" screen from the history
-                                        popUpTo(RootTab.ADD_ALARM.name) { inclusive = true }
-                                        launchSingleTop = true
-                                    }*/
-                                    rootNavController?.popBackStack()
+                                    popUpTo(rootNavController.graph.startDestinationId) {
+                                        saveState = false
+                                    }
+                                    launchSingleTop = true
+                                    restoreState = false
+                                }
                                 },
                     hour = state.hour,
                     minute = state.minute,
@@ -178,7 +176,18 @@ fun AddAlarmView(viewModel: AlarmViewModel,
                 )
             }
         }
-
+    }
+    BackHandler(
+        enabled = true,
+        onBack = { showExit = true }
+    )
+    if (showExit) {
+        StandardModal(
+            onDismiss = { showExit = false },
+            onConfirm = { rootNavController?.popBackStack() }
+        ) {
+            Text("Do you want to exit?")
+        }
     }
 }
 
@@ -244,8 +253,8 @@ fun TaskDataInput(
                         onTaskDataProvided(it)
                     },
                     onFocusLost = { onTaskDataProvided(it) },
-                    placeholder = "...",
-
+                    placeholder = "   ",
+                    modifier = Modifier.width(100.dp).height(70.dp)
                 )
             }
 

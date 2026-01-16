@@ -93,3 +93,34 @@ fun DeleteAlarmModal(onDismiss: () -> Unit, onConfirm: () -> Unit) {
         }
     }
 }
+
+@Composable
+fun StandardModal(
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit,
+    content: @Composable () -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.5f))
+            .clickable { onDismiss() },
+        contentAlignment = Alignment.Center
+    ) {
+        Card(
+            modifier = Modifier.clickable(enabled = false) {},
+            elevation = CardDefaults.cardElevation(8.dp)
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier.padding(24.dp)
+            ) {
+                content()
+                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Button(onClick = onDismiss) { Text("Cancel") }
+                    Button(onClick = onConfirm) { Text("OK") }
+                }
+            }
+        }
+    }
+}
