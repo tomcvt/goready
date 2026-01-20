@@ -88,3 +88,6 @@ enum class MathType(
         }
     }
 }
+
+val SNOOZE_MINUTES = listOf(1,3,5,10,15)
+val SNOOZE_COUNTS = (1..3).toList()
