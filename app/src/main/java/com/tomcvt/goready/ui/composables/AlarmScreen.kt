@@ -21,6 +21,7 @@ import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.toLowerCase
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -37,6 +38,9 @@ fun AlarmScreen(
     alarmName: String,
     taskType: TaskType,
     taskData: String?,
+    canSnooze: Boolean,
+    snoozeTime: Int,
+    onSnooze: () -> Unit,
     onStopAlarm: () -> Unit,
     onInteraction: () -> Unit,
     modifier: Modifier = Modifier
@@ -45,7 +49,11 @@ fun AlarmScreen(
     if (!passedGate) {
         SimpleAlarmScreen(
             alarmName = alarmName,
-            onSwiped = {passedGate = true}
+            onSwiped = {passedGate = true},
+            onSnooze = onSnooze,
+            canSnooze = canSnooze,
+            snoozeTime = snoozeTime,
+            modifier = Modifier.fillMaxSize()
         )
     } else {
         when (taskType) {
@@ -76,7 +84,10 @@ fun AlarmScreen(
             TaskType.TIMER -> {//TODO implement timer alarm screen
                 SimpleAlarmScreen(
                     alarmName = "Temp Alarm",
-                    onSwiped = onStopAlarm
+                    onSwiped = onStopAlarm,
+                    canSnooze = canSnooze,
+                    snoozeTime = snoozeTime,
+                    onSnooze = onSnooze,
                 )
             }
             TaskType.COUNTDOWN -> {
@@ -121,6 +132,9 @@ fun AlarmScreen(
 @Composable
 fun SimpleAlarmScreen(
     alarmName: String,
+    canSnooze: Boolean,
+    snoozeTime: Int,
+    onSnooze: () -> Unit,
     onSwiped: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -184,6 +198,34 @@ fun SimpleAlarmScreen(
                 )
             }
         }
+        //SNOOZE BUTTON
+        if (canSnooze) {
+            Box(
+                modifier = Modifier
+                    .size(150.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Button(
+                    onClick = onSnooze,
+                    shape = CircleShape,
+                    colors = ButtonDefaults.buttonColors(MaterialTheme.colorScheme.primary),
+                    modifier = Modifier
+                ) {
+                    Text(
+                        text = "SNOOZE",
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "$snoozeTime min",
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+        }
+
 
         // Bottom Circular Swipe Pane
         Box(

@@ -162,6 +162,8 @@ fun AddAlarmView(viewModel: AlarmViewModel,
                     it,
                     taskData = state.taskData,
                     onDismiss = { showModal = false
+                        //TODO check if its logically ok
+                                    rootNavController?.popBackStack()
                                     rootNavController?.navigate(RootTab.ALARMS.name) {
                                     popUpTo(rootNavController.graph.startDestinationId) {
                                         saveState = false
