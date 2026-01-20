@@ -149,6 +149,15 @@ fun AddAlarmView(viewModel: AlarmViewModel,
                 }
             )
 
+            SnoozeInfoRow(
+                snoozeCount = state.snoozeCount,
+                snoozeTime = state.snoozeTime,
+                snoozeActive = state.snoozeActive,
+                onClick = { snoozeModal = true },
+                onSwitchChange = { viewModel.setSnoozeActive(it) }
+            )
+
+
 
             Button(onClick = {showModal = true; viewModel.save() }) {
                 Text("Save Alarm")
@@ -193,6 +202,8 @@ fun AddAlarmView(viewModel: AlarmViewModel,
             onConfirm = { snoozeModal = false },
             onInputChange = { snoozeCount, snoozeTime ->
                 Log.d("SnoozeInputModal", "Snooze count: $snoozeCount, snooze time: $snoozeTime")
+                viewModel.setSnoozeCount(snoozeCount)
+                viewModel.setSnoozeTime(snoozeTime)
             }
         )
     }
@@ -329,11 +340,11 @@ fun SnoozeInfoRow(
     modifier: Modifier = Modifier
 ) {
     Row(
-        modifier = modifier,
         horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier.clickable { onClick() }
     ) {
-        Text("Snooze for %d %s".format(snoozeCount, if (snoozeCount == 1) "minute" else "minutes"))
+        Text("Snooze %d %s".format(snoozeTime, if (snoozeTime == 1) "minute" else "minutes"))
         Switch(
             checked = snoozeActive,
             onCheckedChange = { onSwitchChange(it)

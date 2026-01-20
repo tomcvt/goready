@@ -201,6 +201,24 @@ class AlarmViewModel(
             it
         }
     }
+
+    fun setSnoozeActive(active: Boolean) {
+        _editorState.update {
+            it.copy(snoozeActive = active)
+        }
+    }
+
+    fun setSnoozeTime(time: Int) {
+        _editorState.update {
+            it.copy(snoozeTime = time)
+        }
+    }
+
+    fun setSnoozeCount(count: Int) {
+        _editorState.update {
+            it.copy(snoozeCount = count)
+        }
+    }
 }
 
 // UI observes `uiState` and reacts
@@ -217,7 +235,10 @@ data class AlarmEditorState(
     val repeatDays: Set<DayOfWeek> = emptySet(),
     val taskType: TaskType = TaskType.NONE,
     val taskData: String = "",
-    val isLoading: Boolean = false
+    val isLoading: Boolean = false,
+    val snoozeTime: Int = 5,
+    val snoozeActive: Boolean = false,
+    val snoozeCount: Int = 1
 ) {
     enum class Mode { CREATE, EDIT }
 }

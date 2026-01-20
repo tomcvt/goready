@@ -107,7 +107,11 @@ class AlarmActivity : ComponentActivity() {
                     taskData = data,
                     onStopAlarm = stopAlarm,
                     onInteraction = onInteraction,
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier.fillMaxSize(),
+                    //TODO update later snooze,
+                    canSnooze = true,
+                    snoozeTime = 5,
+                    onSnooze = { onInteraction() }
                 )
             }
         }
