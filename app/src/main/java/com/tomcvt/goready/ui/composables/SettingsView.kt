@@ -1,6 +1,7 @@
 package com.tomcvt.goready.ui.composables
 
 import android.Manifest
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -36,6 +37,7 @@ import androidx.core.content.ContextCompat.startActivity
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.tomcvt.goready.MainActivity
 import com.tomcvt.goready.viewmodel.AlarmViewModel
 import com.tomcvt.goready.viewmodel.PermissionSpec
 import com.tomcvt.goready.viewmodel.permissionRegistry
@@ -47,7 +49,7 @@ fun SettingsView(modifier: Modifier = Modifier) {
 
 @Composable
 fun PermissionSettingsScreen() {
-    val context = LocalContext.current
+    val mainContext = LocalContext.current
 
     val permissionStateMap = remember {
         mutableStateMapOf<String, Boolean>()
@@ -56,7 +58,7 @@ fun PermissionSettingsScreen() {
     val launcher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted: Boolean ->
-        refreshPermissionState(context, permissionStateMap)
+        refreshPermissionState(mainContext, permissionStateMap)
     }
 
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -64,7 +66,7 @@ fun PermissionSettingsScreen() {
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
-                refreshPermissionState(context, permissionStateMap)
+                refreshPermissionState(mainContext, permissionStateMap)
             }
         }
 
@@ -76,7 +78,7 @@ fun PermissionSettingsScreen() {
     }
 
     LaunchedEffect(Unit) {
-        refreshPermissionState(context, permissionStateMap)
+        refreshPermissionState(mainContext, permissionStateMap)
     }
 
     PermissionList(
@@ -85,7 +87,7 @@ fun PermissionSettingsScreen() {
         onOptionClick = { id ->
             val spec = permissionRegistry.find { it.id == id }
             if (spec != null) {
-                requestPermission(context, spec, launcher)
+                requestPermission(mainContext, spec, launcher)
             }
         }
     )
@@ -116,6 +118,9 @@ fun requestPermission(context: Context, spec: PermissionSpec,
         intent.data = Uri.parse("package:$packageName")
         context.startActivity(intent)
     } else {
+        //TODO make compatible
+        //ActivityCompat.requestPermissions(context as Activity, arrayOf(spec.permission), spec.callbackInt)
+        val packageName = context.packageName
         launcher.launch(spec.permission)
     }
 }

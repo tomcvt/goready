@@ -150,6 +150,10 @@ class AlarmViewModel(
     fun save() {
         viewModelScope.launch {
             val s = editorState.value
+            if (!validateData(s.taskType, s.taskData)) {
+                _uiState.value = UiState.InputError("Input data for a task!")
+                return@launch
+            }
             if (s.mode == AlarmEditorState.Mode.CREATE) {
                 val draft = AlarmDraft(
                     hour = s.hour,
@@ -236,6 +240,8 @@ sealed class UiState {
     object Idle: UiState()
     data class Success(val message: String): UiState()
     data class Error(val message: String): UiState()
+
+    data class InputError(val message: String): UiState()
 }
 
 data class AlarmEditorState(
@@ -257,8 +263,10 @@ data class AlarmEditorState(
 fun parseData(taskType: TaskType, taskData: String) : String?  {
 
     when (taskType) {
+        TaskType.NONE -> {return null}
         TaskType.TIMER -> {return null}
         TaskType.COUNTDOWN -> {
+            if (taskData.isBlank()) return ""
             if (taskData.isDigitsOnly() && taskData.toInt() > 0) {
                 return taskData
             }
@@ -268,13 +276,34 @@ fun parseData(taskType: TaskType, taskData: String) : String?  {
             if (taskData.isNotBlank()) {
                 return taskData
             }
-            return null
+            return ""
         }
         TaskType.MATH -> {return taskData}
-        else -> {return null}
+        //else -> {return null}
     }
 }
 
+fun validateData(taskType: TaskType, taskData: String) : Boolean {
+    when (taskType) {
+        TaskType.NONE -> {return true}
+        TaskType.TIMER -> {return true}
+        TaskType.COUNTDOWN -> {
+            if (taskData.isBlank()) return false
+            if (taskData.isDigitsOnly() && taskData.toInt() > 0) {
+                return true
+            }
+        }
+        TaskType.TEXT -> {
+            if (taskData.isNotBlank()) {
+                return true
+            }
+        }
+        //TODO validate math task
+        TaskType.MATH -> {return true}
+        //else -> {return false}
+    }
+    return false
+}
 
 data class PermissionSpec(
     val id: String,

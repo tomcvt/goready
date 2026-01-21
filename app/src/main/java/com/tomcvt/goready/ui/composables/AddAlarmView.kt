@@ -40,6 +40,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.text.isDigitsOnly
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -79,6 +80,7 @@ fun AddAlarmView(viewModel: AlarmViewModel,
     var showModal by remember {mutableStateOf(false)}
     var showExit by remember {mutableStateOf(false)}
     var snoozeModal by remember {mutableStateOf(false)}
+    var showInputError by remember {mutableStateOf(false)}
  /*
     var selectedDays by remember {
         mutableStateOf(setOf<DayOfWeek>())
@@ -143,12 +145,11 @@ fun AddAlarmView(viewModel: AlarmViewModel,
                 taskType = state.taskType,
                 onTaskDataProvided = {
                     Log.d("AddAlarmView", "Task data provided: ${it}")
-                    if (!it.isBlank()){
-                        viewModel.setTaskData(it)
-                    }
+                    //if (!it.isBlank()){
+                    viewModel.setTaskData(it)
+                    //}
                 }
             )
-
             SnoozeInfoRow(
                 snoozeCount = state.snoozeCount,
                 snoozeTime = state.snoozeTime,
@@ -159,15 +160,20 @@ fun AddAlarmView(viewModel: AlarmViewModel,
 
 
 
-            Button(onClick = {showModal = true; viewModel.save() }) {
+            Button(onClick = {viewModel.save()}) {
                 Text("Save Alarm")
             }
         }
         val message = when (uiState) {
             is UiState.Success -> (uiState as UiState.Success).message
             is UiState.Error -> (uiState as UiState.Error).message
+            is UiState.InputError -> (uiState as UiState.InputError).message
             else -> null
         }
+        if (uiState is UiState.Success) showModal = true
+        if (uiState is UiState.Error) showInputError = true
+        if (uiState is UiState.InputError) showInputError = true
+
 
         if (showModal) {
             message?.let {
@@ -191,6 +197,15 @@ fun AddAlarmView(viewModel: AlarmViewModel,
                 )
             }
         }
+        if (showInputError) {
+            val msg = message?: "Input data for a task"
+            StandardModal(
+                onDismiss = { showInputError = false },
+                onConfirm = { showInputError = false }
+            ) {
+                Text(msg, textAlign = TextAlign.Center)
+            }
+        }
     }
     BackHandler(
         enabled = true,
@@ -204,9 +219,13 @@ fun AddAlarmView(viewModel: AlarmViewModel,
                 Log.d("SnoozeInputModal", "Snooze count: $snoozeCount, snooze time: $snoozeTime")
                 viewModel.setSnoozeCount(snoozeCount)
                 viewModel.setSnoozeTime(snoozeTime)
-            }
+            },
+            startingCount = state.snoozeCount,
+            startingTime = state.snoozeTime
         )
     }
+
+
 
     if (showExit) {
         StandardModal(
@@ -281,7 +300,7 @@ fun TaskDataInput(
                     },
                     onFocusLost = { onTaskDataProvided(it) },
                     placeholder = "   ",
-                    modifier = Modifier.width(100.dp).height(70.dp)
+                    modifier = Modifier.width(150.dp).height(100.dp)
                 )
             }
 
@@ -339,18 +358,29 @@ fun SnoozeInfoRow(
     onSwitchChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Row(
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier.clickable { onClick() }
+    Card(
+        elevation = CardDefaults.cardElevation(8.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 16.dp)
     ) {
-        Text("Snooze %d %s".format(snoozeTime, if (snoozeTime == 1) "minute" else "minutes"))
-        Switch(
-            checked = snoozeActive,
-            onCheckedChange = { onSwitchChange(it)
-                //TODO viewmodel switch snooze
+        Row(
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = modifier
+                .fillMaxWidth()
+                .padding(16.dp).padding(end = 16.dp)
+                .clickable { onClick() }
+        ) {
+            Text("Snooze %d %s".format(snoozeTime, if (snoozeTime == 1) "minute" else "minutes"))
+            Switch(
+                checked = snoozeActive,
+                onCheckedChange = {
+                    onSwitchChange(it)
+                    //TODO viewmodel switch snooze
                 },
-            modifier = Modifier.size(24.dp)
-        )
+                modifier = Modifier.size(18.dp)
+            )
+        }
     }
 }

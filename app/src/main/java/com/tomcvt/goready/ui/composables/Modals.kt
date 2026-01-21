@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -177,8 +178,9 @@ fun SnoozeInputModal(
                 Text("Choose snooze time")
                 Spacer(modifier = Modifier.height(16.dp))
                 Row(horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("Count")
-                    Text("Minutes")
+                    Text("Count:")
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Minutes:")
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(horizontalArrangement = Arrangement.SpaceBetween) {
@@ -187,7 +189,8 @@ fun SnoozeInputModal(
                         startingItem = snoozeCount,
                         visibleItems = 3,
                         itemHeight = 40.dp,
-                        onItemSelected = { snoozeCount = it }
+                        onItemSelected = { snoozeCount = it },
+                        modifier = Modifier.width(60.dp)
                     ) { item, selected ->
                         Text(
                             text = item.toString(),
@@ -197,12 +200,14 @@ fun SnoozeInputModal(
                             }
                         )
                     }
+                    Spacer(modifier = Modifier.width(16.dp))
                     WheelPicker(
                         items = SNOOZE_MINUTES,
                         startingItem = snoozeTime,
                         visibleItems = 3,
                         itemHeight = 40.dp,
-                        onItemSelected = { snoozeTime = it }
+                        onItemSelected = { snoozeTime = it },
+                        modifier = Modifier.width(60.dp)
                     ) { item, selected ->
                         Text(
                             text = item.toString(),
