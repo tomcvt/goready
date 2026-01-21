@@ -11,18 +11,21 @@ import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import com.tomcvt.goready.R
 import com.tomcvt.goready.constants.EXTRA_ALARM_ID
+import com.tomcvt.goready.constants.EXTRA_REMAINING_SNOOZE
 import com.tomcvt.goready.service.AlarmForegroundService
 
 class AlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         //TODO what about getAction
         val alarmId = intent.getLongExtra(EXTRA_ALARM_ID, -1L)
-        Log.d("AlarmReceiver", "Alarm received with ID: $alarmId")
+        val remainingSnooze = intent.getIntExtra(EXTRA_REMAINING_SNOOZE, -1)
+        Log.d("AlarmReceiver", "Alarm received with ID: $alarmId and snooze: $remainingSnooze")
         // Here you can trigger a notification, play a sound, vibrate, etc.
         //showNotification(context, alarmId)
 
         val serviceIntent = Intent(context, AlarmForegroundService::class.java).apply {
             putExtra(EXTRA_ALARM_ID, alarmId)
+            putExtra(EXTRA_REMAINING_SNOOZE, remainingSnooze)
         }
         ContextCompat.startForegroundService(context, serviceIntent)
     }

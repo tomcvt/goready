@@ -161,7 +161,8 @@ fun SnoozeInputModal(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black.copy(alpha = 0.5f))
-            .clickable { onDismiss() },
+            .clickable { onInputChange(snoozeCount, snoozeTime)
+                onDismiss() },
         contentAlignment = Alignment.Center
     ) {
         Card(

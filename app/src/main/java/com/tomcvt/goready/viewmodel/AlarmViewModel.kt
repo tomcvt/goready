@@ -27,6 +27,8 @@ import java.time.DayOfWeek
 class AlarmViewModel(
     private val appAlarmManager: AppAlarmManager // inject manager
 ) : ViewModel() {
+    private val TAG = "AlarmViewModel"
+
     private val _uiState = MutableStateFlow<UiState>(UiState.Idle)
     val uiState: StateFlow<UiState> = _uiState
 
@@ -149,13 +151,18 @@ class AlarmViewModel(
         viewModelScope.launch {
             val s = editorState.value
             if (s.mode == AlarmEditorState.Mode.CREATE) {
-                appAlarmManager.createAlarm(AlarmDraft(
+                val draft = AlarmDraft(
                     hour = s.hour,
                     minute = s.minute,
                     repeatDays = s.repeatDays,
                     task = s.taskType.name,
-                    taskData = s.taskData
-                ))
+                    taskData = s.taskData,
+                    snoozeDurationMinutes = s.snoozeTime,
+                    snoozeMaxCount = s.snoozeCount,
+                    snoozeEnabled = s.snoozeActive
+                )
+                Log.d(TAG, "Saving alarmDraft: $draft")
+                appAlarmManager.createAlarm(draft)
                 _uiState.value = UiState.Success("Alarm saved")
             } else {
                 appAlarmManager.updateAlarm(AlarmDraft(
@@ -163,7 +170,10 @@ class AlarmViewModel(
                     minute = s.minute,
                     repeatDays = s.repeatDays,
                     task = s.taskType.name,
-                    taskData = s.taskData
+                    taskData = s.taskData,
+                    snoozeDurationMinutes = s.snoozeTime,
+                    snoozeMaxCount = s.snoozeCount,
+                    snoozeEnabled = s.snoozeActive
                 ), currentAlarmId?: return@launch)
                 _uiState.value = UiState.Success("Alarm updated")
             }

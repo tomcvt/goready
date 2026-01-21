@@ -29,7 +29,9 @@ open class AppAlarmManager(private val repository: AlarmRepository, private val 
 
         // 3. Schedule system alarm
         try {
-            systemScheduler.scheduleAlarm(entity, newAlarmId)
+            val remainingSnooze = if (draft.snoozeEnabled) draft.snoozeMaxCount!! else 0
+            systemScheduler.scheduleAlarm(entity, newAlarmId, remainingSnooze)
+            //systemScheduler.scheduleAlarm(entity, newAlarmId)
         } catch (e: SecurityException) {
             // Handle the exception, e.g., show an error message to the user
             Log.e("AppAlarmManager", "Security exception while scheduling alarm", e)
@@ -38,6 +40,10 @@ open class AppAlarmManager(private val repository: AlarmRepository, private val 
             //TODO catch exception in activity and show error message
 
         }
+    }
+
+    fun scheduleSnoozeById(alarmId: Long, remainingSnooze: Int, snoozeTimeMinutes: Int) {
+        systemScheduler.scheduleSnooze(alarmId, remainingSnooze, snoozeTimeMinutes)
     }
 
     suspend fun updateAlarm(draft: AlarmDraft, alarmId: Long) {
@@ -49,10 +55,16 @@ open class AppAlarmManager(private val repository: AlarmRepository, private val 
             repeatDays = draft.repeatDays,
             task = draft.task,
             taskData = draft.taskData)
-        if (oldAlarm.hour != updatedAlarm.hour || oldAlarm.minute != updatedAlarm.minute) {
+        //if (oldAlarm.hour != updatedAlarm.hour || oldAlarm.minute != updatedAlarm.minute) {
+        if (true) {
             try {
-                systemScheduler.cancelAlarm(oldAlarm)
-                systemScheduler.scheduleAlarm(updatedAlarm, alarmId)
+                if (updatedAlarm.isEnabled) {
+                    val remainingSnooze = if (updatedAlarm.snoozeEnabled) updatedAlarm.snoozeMaxCount!! else 0
+                    systemScheduler.cancelAlarm(oldAlarm)
+                    systemScheduler.scheduleAlarm(updatedAlarm, alarmId, remainingSnooze)
+                } else {
+                    systemScheduler.cancelAlarm(oldAlarm)
+                }
             } catch (e: SecurityException) {
                 // Handle the exception, e.g., show an error message to the user
                 Log.e("AppAlarmManager", "Security exception while scheduling alarm", e)
@@ -100,7 +112,6 @@ open class AppAlarmManager(private val repository: AlarmRepository, private val 
     suspend fun deleteAlarm(alarm: AlarmEntity) {
         repository.deleteAlarm(alarm)
         systemScheduler.cancelAlarm(alarm)
-
     }
 
     suspend fun getAlarm(alarmId: Long): AlarmEntity? {

@@ -16,6 +16,9 @@ import androidx.lifecycle.lifecycleScope
 import com.tomcvt.goready.BuildConfig
 import com.tomcvt.goready.application.AlarmApp
 import com.tomcvt.goready.constants.EXTRA_ALARM_ID
+import com.tomcvt.goready.constants.EXTRA_REMAINING_SNOOZE
+import com.tomcvt.goready.constants.SNOOZE_COUNTS
+import com.tomcvt.goready.constants.SNOOZE_MINUTES
 import com.tomcvt.goready.constants.TaskType
 import com.tomcvt.goready.manager.AppAlarmManager
 import com.tomcvt.goready.manager.SystemAlarmScheduler
@@ -27,6 +30,7 @@ import kotlinx.coroutines.withContext
 
 
 class AlarmActivity : ComponentActivity() {
+    val TAG = "AlarmActivity"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -55,6 +59,9 @@ class AlarmActivity : ComponentActivity() {
         }
 
         val alarmId = intent.getLongExtra(EXTRA_ALARM_ID, -1)
+        val receivedRemainingSnooze = intent.getIntExtra(EXTRA_REMAINING_SNOOZE, -1)
+        Log.d(TAG, "Alarm ID: $alarmId, snooze: $receivedRemainingSnooze")
+
 
         val testAlarm = intent.getBooleanExtra("TestAlarm", false)
         var onInteraction = {
@@ -77,7 +84,6 @@ class AlarmActivity : ComponentActivity() {
             }
         }
 
-
         lifecycleScope.launch {
             val alarmEntity = withContext(Dispatchers.IO) {appAlarmManager.getAlarm(alarmId)}
             Log.d("AlarmActivity", "Alarm entity: $alarmEntity")
@@ -91,10 +97,31 @@ class AlarmActivity : ComponentActivity() {
             Log.d("AlarmActivity", "Task type: $taskType")
             val data = alarmEntity.taskData
             Log.d("AlarmActivity", "Task data: $data")
+            val snoozeTime = alarmEntity.snoozeDurationMinutes?: -1
+            Log.d("AlarmActivity", "Snooze time: $snoozeTime")
+
 
             if (data.isNullOrEmpty()) {
                 taskType = TaskType.NONE
             }
+            var canSnooze = receivedRemainingSnooze > 0
+            if (snoozeTime !in SNOOZE_MINUTES || !alarmEntity.snoozeEnabled) {
+                canSnooze = false
+            }
+            var onSnooze = {
+                Log.d("AlarmActivity", "Snoozing")
+                val remainingSnooze = receivedRemainingSnooze - 1
+                appAlarmManager.scheduleSnoozeById(alarmId, remainingSnooze, snoozeTime)
+                //TODO for now stop service and check if it reliably relaunches
+                stopAlarmService()
+                finish()
+            }
+            if (testAlarm) {
+                onSnooze = {
+                    Log.d("AlarmActivity", "Test snooze")
+                }
+            }
+            Log.d(TAG, "Can snooze: $canSnooze")
 
             //TODO: how to get the alarm entity context here
             //TODO differentiate composables based on alarm type
@@ -109,9 +136,9 @@ class AlarmActivity : ComponentActivity() {
                     onInteraction = onInteraction,
                     modifier = Modifier.fillMaxSize(),
                     //TODO update later snooze,
-                    canSnooze = true,
-                    snoozeTime = 5,
-                    onSnooze = { onInteraction() }
+                    canSnooze = canSnooze,
+                    snoozeTime = snoozeTime,
+                    onSnooze = { onSnooze() }
                 )
             }
         }

@@ -20,6 +20,7 @@ import androidx.core.app.NotificationCompat
 import com.tomcvt.goready.R
 import com.tomcvt.goready.activities.AlarmActivity
 import com.tomcvt.goready.constants.EXTRA_ALARM_ID
+import com.tomcvt.goready.constants.EXTRA_REMAINING_SNOOZE
 import com.tomcvt.goready.data.AlarmDatabase
 import com.tomcvt.goready.data.AlarmEntity
 import com.tomcvt.goready.repository.AlarmRepository
@@ -61,7 +62,8 @@ class AlarmForegroundService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val alarmId = intent?.getLongExtra(EXTRA_ALARM_ID, -1L) ?: -1
-        Log.d("AlarmForegroundService", "onStartCommand with alarm ID: $alarmId")
+        val remainingSnooze = intent?.getIntExtra(EXTRA_REMAINING_SNOOZE, -1) ?: -1
+        Log.d("AlarmForegroundService", "onStartCommand with alarm ID: $alarmId and snooze: $remainingSnooze")
 
         if (intent?.action == "USER_INTERACTION") {
             muteUntil = System.currentTimeMillis() + 5000
@@ -116,7 +118,7 @@ class AlarmForegroundService : Service() {
             }
 
             startAlarmSound(alarm)
-            startAsForeground(alarm)
+            startAsForeground(alarm, remainingSnooze)
         }
 
         serviceScope.launch {
@@ -170,11 +172,12 @@ class AlarmForegroundService : Service() {
         }
     }
 
-    private fun alarmActivityPendingIntent(alarmId: Long): PendingIntent {
+    private fun alarmActivityPendingIntent(alarmId: Long, remainingSnooze: Int): PendingIntent {
         val intent = Intent(this, AlarmActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or
                     Intent.FLAG_ACTIVITY_CLEAR_TOP
             putExtra(EXTRA_ALARM_ID, alarmId)
+            putExtra(EXTRA_REMAINING_SNOOZE, remainingSnooze)
         }
 
         return PendingIntent.getActivity(
@@ -185,10 +188,10 @@ class AlarmForegroundService : Service() {
         )
     }
 
-    private fun startAsForeground(alarm: AlarmEntity) {
+    private fun startAsForeground(alarm: AlarmEntity, remainingSnooze: Int) {
         createAlarmChannel()
 
-        val fullScreenIntent = alarmActivityPendingIntent(alarm.id)
+        val fullScreenIntent = alarmActivityPendingIntent(alarm.id, remainingSnooze)
 
         val notification = NotificationCompat.Builder(this, "alarm_channel")
             .setSmallIcon(R.drawable.ic_alarm)

@@ -2,6 +2,8 @@ package com.tomcvt.goready.constants
 
 const val EXTRA_ALARM_ID = "extra_alarm_id"
 
+const val EXTRA_REMAINING_SNOOZE = "extra_remaining_snooze"
+
 enum class TaskType(
     val label: String,
     val code: Long
