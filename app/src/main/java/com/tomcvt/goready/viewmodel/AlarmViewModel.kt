@@ -305,15 +305,7 @@ fun validateData(taskType: TaskType, taskData: String) : Boolean {
     return false
 }
 
-data class PermissionSpec(
-    val id: String,
-    val label: String,
-    val description: String,
-    val permission: String,
-    val minSdk: Int,
-    val callbackInt: Int = 0
-)
-
+/*
 val permissionRegistry = listOf(
     PermissionSpec(
         id = "exact_alarm",
@@ -373,7 +365,7 @@ val permissionRegistry = listOf(
         callbackInt = 108)
     )
 
-
+*/
 
 
 

@@ -38,9 +38,9 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.tomcvt.goready.MainActivity
+import com.tomcvt.goready.domain.PermissionSpec
+import com.tomcvt.goready.registries.getPermissionRegistryForSdk
 import com.tomcvt.goready.viewmodel.AlarmViewModel
-import com.tomcvt.goready.viewmodel.PermissionSpec
-import com.tomcvt.goready.viewmodel.permissionRegistry
 
 @Composable
 fun SettingsView(modifier: Modifier = Modifier) {
@@ -55,10 +55,12 @@ fun PermissionSettingsScreen() {
         mutableStateMapOf<String, Boolean>()
     }
 
+    val permissionRegistry = remember { getPermissionRegistryForSdk(Build.VERSION.SDK_INT) }
+
     val launcher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted: Boolean ->
-        refreshPermissionState(mainContext, permissionStateMap)
+        refreshPermissionState(mainContext, permissionRegistry, permissionStateMap)
     }
 
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -66,7 +68,7 @@ fun PermissionSettingsScreen() {
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
-                refreshPermissionState(mainContext, permissionStateMap)
+                refreshPermissionState(mainContext, permissionRegistry, permissionStateMap)
             }
         }
 
@@ -78,7 +80,7 @@ fun PermissionSettingsScreen() {
     }
 
     LaunchedEffect(Unit) {
-        refreshPermissionState(mainContext, permissionStateMap)
+        refreshPermissionState(mainContext, permissionRegistry, permissionStateMap)
     }
 
     PermissionList(
@@ -95,6 +97,7 @@ fun PermissionSettingsScreen() {
 
 fun refreshPermissionState(
     context: Context,
+    permissionRegistry: List<PermissionSpec>,
     permissionStateMap: MutableMap<String, Boolean>
 ) {
     permissionRegistry.forEach { spec ->
