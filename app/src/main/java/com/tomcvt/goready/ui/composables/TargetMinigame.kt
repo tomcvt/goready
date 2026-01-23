@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
@@ -21,7 +23,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.tomcvt.goready.constants.TaskType
 import kotlin.random.Random
@@ -40,16 +44,14 @@ fun CountdownTargetMinigame(
     var currentRound by remember { mutableStateOf(0) }
     val random = remember { Random(System.currentTimeMillis()) }
 
-    var offsetX = remember { mutableStateOf(0) }
-    var offsetY = remember { mutableStateOf(0) }
-
     var onPressed = {
-
+        currentRound++
+        onInteraction()
     }
 
     LaunchedEffect(currentRound) {
 
-        if (currentRound == rounds) {
+        if (currentRound >= rounds) {
             onFinish()
         }
     }
@@ -61,22 +63,30 @@ fun CountdownTargetMinigame(
     BoxWithConstraints(
         modifier = Modifier.fillMaxSize()
     ) {
-        val maxWidthDp = maxWidth
-        val maxHeightDp = maxHeight
+        val maxWidth = constraints.maxWidth
+        val maxHeight = constraints.maxHeight
 
-        val width = maxWidthDp.value
-        val height = maxHeightDp.value
+        var offset by remember { mutableStateOf(Offset.Zero)}
         val targetSizeFloat = targetSize.value
 
-        offsetX = random.nextInt((width-targetSizeFloat).toInt())
-        offsetY = random.nextInt((height-targetSizeFloat).toInt())
+        LaunchedEffect(currentRound, maxWidth, maxHeight) {
+            offset = Offset(
+                random.nextInt(maxWidth - targetSizeFloat.toInt()).toFloat(),
+                random.nextInt(maxHeight - targetSizeFloat.toInt()).toFloat()
+            )
+        }
 
         Box(modifier = Modifier
-            .fillMaxSize()
+            .size(targetSize)
             .align(Alignment.TopStart)
+            .offset {
+                IntOffset(offset.x.toInt(), offset.y.toInt())
+            }
         ) {
             GameTarget(
-
+                label = currentRound.toString(),
+                onClick = onPressed,
+                modifier = Modifier.fillMaxSize()
             )
         }
 
