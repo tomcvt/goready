@@ -38,11 +38,9 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.tomcvt.goready.MainActivity
-import com.tomcvt.goready.domain.PermissionSpec
-import com.tomcvt.goready.registries.getPermissionListForSdk
 import com.tomcvt.goready.viewmodel.AlarmViewModel
-
-val permissionRegistry = getPermissionListForSdk(Build.VERSION.SDK_INT)
+import com.tomcvt.goready.viewmodel.PermissionSpec
+import com.tomcvt.goready.viewmodel.permissionRegistry
 
 @Composable
 fun SettingsView(modifier: Modifier = Modifier) {

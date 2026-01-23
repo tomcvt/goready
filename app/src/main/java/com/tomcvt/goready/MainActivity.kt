@@ -79,12 +79,13 @@ class MainActivity : ComponentActivity() {
             systemScheduler = SystemAlarmScheduler(this)
         )
         alarmViewModelFactory = AlarmViewModelFactory(appAlarmManager)
-        //Permission requests here
         val systemAlarmManager = this.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
-
+        /*
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            Log.d("CAN_SCHEDULE_DEBUG", "SystemAlarmManager: $systemAlarmManager")
+            Log.d("MainActivity", "SystemAlarmManager: $systemAlarmManager")
             val canSchedule = systemAlarmManager.canScheduleExactAlarms()
+            Log.d("MainActivity", "AppAlarmManager: $appAlarmManager")
+            Log.d("MainActivity", "Can schedule: $canSchedule")
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -93,8 +94,20 @@ class MainActivity : ComponentActivity() {
                 ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.POST_NOTIFICATIONS), 101)
             }
         }
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+        //USE FULL SCREEN INTENT
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val permissionCheck = ContextCompat.checkSelfPermission(this, Manifest.permission.FOREGROUND_SERVICE)
+            if (permissionCheck != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.FOREGROUND_SERVICE), 102)
+            }
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val permissionCheck = ContextCompat.checkSelfPermission(this, Manifest.permission.USE_FULL_SCREEN_INTENT)
+            if (permissionCheck != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.USE_FULL_SCREEN_INTENT), 104)
+            }
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             val permissionCheck = ContextCompat.checkSelfPermission(this, Manifest.permission.SCHEDULE_EXACT_ALARM)
             if (permissionCheck != PackageManager.PERMISSION_GRANTED) {
                 ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.SCHEDULE_EXACT_ALARM), 103)
@@ -115,7 +128,24 @@ class MainActivity : ComponentActivity() {
             intent.data = Uri.parse("package:$packageName")
             startActivity(intent)
         }
+        //SYSTEM EXEMPTED FOREGROUND SERVICE
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val permissionCheck = ContextCompat.checkSelfPermission(this, Manifest.permission.FOREGROUND_SERVICE_SYSTEM_EXEMPTED)
+            if (permissionCheck != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.FOREGROUND_SERVICE_SYSTEM_EXEMPTED), 105)
+            }
+            val permissionCheck2 = ContextCompat.checkSelfPermission(this, Manifest.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK)
+            if (permissionCheck2 != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(
+                    this,
+                    arrayOf(Manifest.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK),
+                    106
+                )
+            }
 
+        }
+
+         */
         val startIntent = intent
         val alarmId = startIntent.getLongExtra(EXTRA_ALARM_ID, -1)
         if (alarmId != -1L) {
