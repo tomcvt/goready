@@ -33,6 +33,23 @@ private val LightColorScheme = lightColorScheme(
     */
 )
 
+private val VibrantUniColorScheme = lightColorScheme(
+    primary = Green60,
+    onPrimary = OnDark,
+
+    secondary = Orange60,
+    onSecondary = Orange40,
+
+    tertiary = RPink60,
+    onTertiary = OnDark,
+
+    background = Background90,
+    onBackground = OnLight,
+
+    surface = Surface90,
+    onSurface = OnLight
+)
+
 @Composable
 fun GoReadyTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
@@ -52,6 +69,17 @@ fun GoReadyTheme(
 
     MaterialTheme(
         colorScheme = colorScheme,
+        typography = Typography,
+        content = content
+    )
+}
+
+@Composable
+fun VibrantUniTheme(
+    content: @Composable () -> Unit
+) {
+    MaterialTheme(
+        colorScheme = VibrantUniColorScheme,
         typography = Typography,
         content = content
     )

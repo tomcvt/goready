@@ -24,6 +24,7 @@ import com.tomcvt.goready.manager.AppAlarmManager
 import com.tomcvt.goready.manager.SystemAlarmScheduler
 import com.tomcvt.goready.service.AlarmForegroundService
 import com.tomcvt.goready.ui.composables.*
+import com.tomcvt.goready.ui.theme.VibrantUniTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -127,19 +128,21 @@ class AlarmActivity : ComponentActivity() {
             //TODO differentiate composables based on alarm type
             enableEdgeToEdge()
             setContent {
-                AlarmScreen(
-                    alarmId = alarmId,
-                    alarmName = alarmEntity.label ?: "Alarm",
-                    taskType = taskType,
-                    taskData = data,
-                    onStopAlarm = stopAlarm,
-                    onInteraction = onInteraction,
-                    modifier = Modifier.fillMaxSize(),
-                    //TODO update later snooze,
-                    canSnooze = canSnooze,
-                    snoozeTime = snoozeTime,
-                    onSnooze = { onSnooze() }
-                )
+                VibrantUniTheme {
+                    AlarmScreen(
+                        alarmId = alarmId,
+                        alarmName = alarmEntity.label ?: "Alarm",
+                        taskType = taskType,
+                        taskData = data,
+                        onStopAlarm = stopAlarm,
+                        onInteraction = onInteraction,
+                        modifier = Modifier.fillMaxSize(),
+                        //TODO update later snooze,
+                        canSnooze = canSnooze,
+                        snoozeTime = snoozeTime,
+                        onSnooze = { onSnooze() }
+                    )
+                }
             }
         }
     }
