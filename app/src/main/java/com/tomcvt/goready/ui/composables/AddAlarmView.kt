@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -52,6 +53,7 @@ import com.tomcvt.goready.domain.SimpleAlarmDraft
 import com.tomcvt.goready.ui.navigation.RootTab
 import com.tomcvt.goready.viewmodel.AlarmViewModel
 import com.tomcvt.goready.viewmodel.UiState
+import org.checkerframework.framework.qual.Unused
 import java.time.DayOfWeek
 
 
@@ -300,7 +302,7 @@ fun TaskDataInput(
                     },
                     onFocusLost = { onTaskDataProvided(it) },
                     placeholder = "   ",
-                    modifier = Modifier.width(150.dp).height(100.dp)
+                    modifier = Modifier.widthIn(min = 100.dp, max = 250.dp)
                 )
             }
 
@@ -324,11 +326,24 @@ fun TaskDataInput(
                     onFocusLost = { onTaskDataProvided(it) }
                 )
             }
+            TaskType.TARGET -> {
+                //TODO implement inputs sizing by text size
+                NumbersInput(
+                    value = value,
+                    onValueChange = {
+                        onTaskDataProvided(it)
+                    },
+                    onFocusLost = { onTaskDataProvided(it) },
+                    placeholder = "   ",
+                    modifier = Modifier.widthIn(min = 100.dp, max = 250.dp)
+                )
+            }
             else -> {}
         }
     }
 }
 
+@Deprecated("Not used")
 fun parseData(taskType: TaskType, taskData: String) : String?  {
     when (taskType) {
         TaskType.TIMER -> {return null}

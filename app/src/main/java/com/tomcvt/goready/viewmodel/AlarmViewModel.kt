@@ -279,6 +279,13 @@ fun parseData(taskType: TaskType, taskData: String) : String?  {
             return ""
         }
         TaskType.MATH -> {return taskData}
+        TaskType.TARGET -> {
+            if (taskData.isBlank()) return ""
+            if (taskData.isDigitsOnly() && taskData.toInt() > 0) {
+                return taskData
+            }
+            return null
+        }
         //else -> {return null}
     }
 }
@@ -300,6 +307,12 @@ fun validateData(taskType: TaskType, taskData: String) : Boolean {
         }
         //TODO validate math task
         TaskType.MATH -> {return true}
+        TaskType.TARGET -> {
+            if (taskData.isBlank()) return false
+            if (taskData.isDigitsOnly() && taskData.toInt() > 0) {
+                return true
+            }
+        }
         //else -> {return false}
     }
     return false

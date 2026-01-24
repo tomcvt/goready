@@ -124,6 +124,17 @@ fun AlarmScreen(
                     )
                 }
             }
+            TaskType.TARGET -> {
+                var dismissable = false
+                if (BuildConfig.IS_ALARM_TEST) dismissable = true
+                TargetMinigameAlarmScreen(
+                    taskData = taskData?: "7",
+                    onStopAlarm = onStopAlarm,
+                    onInteraction = onInteraction,
+                    dismissable = dismissable,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
         }
     }
 }
@@ -281,7 +292,9 @@ fun SimpleAlarmScreen(
 
             Text(
                 text = "Swipe to Stop",
-                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 20.dp),
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 20.dp),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.primary
             )
@@ -427,7 +440,8 @@ fun TextAlarmScreen(
             },
             onFocusLost = {},
             placeholder = "Type your motto!",
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
                 .padding(bottom = 64.dp)
                 .focusRequester(focusRequester)
         )
@@ -709,8 +723,84 @@ fun MathTaskScreen(
             onValueChange = { currentText = it },
             onFocusLost = {},
             placeholder = " ",
-            modifier = Modifier.height(100.dp).width(200.dp),
+            modifier = Modifier
+                .height(100.dp)
+                .width(200.dp),
             fontSize = 32.sp
+        )
+    }
+}
+
+@Composable
+fun TargetMinigameAlarmScreen(
+    taskData: String,
+    onStopAlarm: () -> Unit,
+    onInteraction: () -> Unit,
+    modifier: Modifier = Modifier,
+    dismissable: Boolean = false
+) {
+    val rounds by remember { mutableStateOf(taskData.toInt()) }
+    var interactionKey by remember { mutableStateOf(0L) }
+    var lastInteraction by remember { mutableStateOf(0L) }
+
+
+    LaunchedEffect(interactionKey) {
+        if (System.currentTimeMillis() - lastInteraction > 2000L) {
+            onInteraction()
+            lastInteraction = System.currentTimeMillis()
+        }
+    }
+
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .pointerInput(Unit) {
+                awaitPointerEventScope {
+                    while (true) {
+                        awaitPointerEvent(PointerEventPass.Initial)
+                        interactionKey++
+                    }
+                }
+            }
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.SpaceBetween
+    ) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 48.dp),
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant
+            )
+        ) {
+            Column(
+                modifier = Modifier
+                    .padding(32.dp)
+                    .fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "Solve the task!",
+                    style = MaterialTheme.typography.headlineLarge,
+                    //fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+        CountdownTargetMinigame(
+            rounds = rounds,
+            onFinish = onStopAlarm,
+            onDismiss = onStopAlarm,
+            onInteraction = { },
+            dismissable = dismissable,
+            modifier = Modifier
+                .fillMaxWidth()
+                .fillMaxHeight()
+                .padding(bottom = 64.dp)
         )
     }
 }

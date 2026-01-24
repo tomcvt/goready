@@ -34,12 +34,12 @@ import kotlin.random.Random
 @Composable
 fun CountdownTargetMinigame(
     rounds: Int,
-    targetSize: Dp = 32.dp,
     dismissable: Boolean,
     onDismiss: () -> Unit,
     onInteraction: () -> Unit,
     onFinish: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    targetSize: Dp = 64.dp,
 ) {
     var currentRound by remember { mutableStateOf(0) }
     val random = remember { Random(System.currentTimeMillis()) }

@@ -10,9 +10,11 @@ enum class TaskType(
 ) {
     NONE("None", 0),
     TIMER("Timer", 1),
-    COUNTDOWN("Countdown", 2),
+    COUNTDOWN("Clicker", 2),
     TEXT("Text", 3),
-    MATH("Email", 4);
+    MATH("Math tasks", 4),
+    TARGET("Target Minigame", 5);
+
 
     companion object {
         fun fromLabel(label: String): TaskType? =
