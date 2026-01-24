@@ -4,6 +4,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.ui.text.style.TextAlign
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -50,8 +52,7 @@ fun CountdownTargetMinigame(
     }
 
     LaunchedEffect(currentRound) {
-
-        if (currentRound >= rounds) {
+        if (currentRound > rounds) {
             onFinish()
         }
     }
@@ -62,6 +63,7 @@ fun CountdownTargetMinigame(
     )
     BoxWithConstraints(
         modifier = Modifier.fillMaxSize()
+            .border(2.dp, MaterialTheme.colorScheme.primary, shape = RoundedCornerShape(16.dp))
     ) {
         val maxWidth = constraints.maxWidth
         val maxHeight = constraints.maxHeight

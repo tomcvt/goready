@@ -29,9 +29,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-
+const val TAG = "AlarmActivity"
 class AlarmActivity : ComponentActivity() {
-    val TAG = "AlarmActivity"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

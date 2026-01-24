@@ -13,7 +13,9 @@ enum class TaskType(
     COUNTDOWN("Clicker", 2),
     TEXT("Text", 3),
     MATH("Math tasks", 4),
-    TARGET("Target Minigame", 5);
+    TARGET("Target Minigame", 5),
+    TASK_CHAIN("Task Chain", 6);
+
 
 
     companion object {
@@ -25,6 +27,10 @@ enum class TaskType(
 
         fun getList() : List<TaskType> {
             return values().toList()
+        }
+
+        fun getTaskTypes() : List<TaskType> {
+            return values().filter { it != NONE && it != TASK_CHAIN }
         }
     }
 }
