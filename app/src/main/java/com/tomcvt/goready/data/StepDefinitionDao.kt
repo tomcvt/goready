@@ -14,7 +14,7 @@ interface StepDefinitionDao {
     fun getAllStepDefinitionsFlow(): Flow<List<StepDefinitionEntity>>
 
     @Insert(onConflict = OnConflictStrategy.ABORT)
-    suspend fun insertStepDefinition(stepDefinition: StepDefinitionEntity)
+    suspend fun insertStepDefinition(stepDefinition: StepDefinitionEntity) : Long
 
     @Delete
     suspend fun deleteStepDefinition(stepDefinition: StepDefinitionEntity)

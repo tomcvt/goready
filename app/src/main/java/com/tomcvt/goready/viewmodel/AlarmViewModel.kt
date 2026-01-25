@@ -24,11 +24,10 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
 
+const val TAG = "AlarmViewModel"
 class AlarmViewModel(
     private val appAlarmManager: AppAlarmManager // inject manager
 ) : ViewModel() {
-    private val TAG = "AlarmViewModel"
-
     private val _uiState = MutableStateFlow<UiState>(UiState.Idle)
     val uiState: StateFlow<UiState> = _uiState
 
@@ -286,7 +285,7 @@ fun parseData(taskType: TaskType, taskData: String) : String?  {
             }
             return null
         }
-        //else -> {return null}
+        else -> {return null}
     }
 }
 
@@ -313,7 +312,7 @@ fun validateData(taskType: TaskType, taskData: String) : Boolean {
                 return true
             }
         }
-        //else -> {return false}
+        else -> {return false}
     }
     return false
 }
