@@ -2,8 +2,10 @@ package com.tomcvt.goready.ui.composables
 
 import android.util.Log
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
@@ -48,24 +50,37 @@ fun RoutineListRoute(
 ) {
     val context = LocalContext.current
     val routineList by viewModel.routinesStateFlow.collectAsState()
+    var uiState by viewModel.uiState.collectAsState()
     val onAddRoutineClick = {
-        //TODO open new routine popup
+        viewModel.startNew()
     }
     val onDeleteClick: (RoutineEntity) -> Unit = { routine: RoutineEntity -> viewModel.deleteRoutine(routine) }
 
 
-    val onCardClick: (AlarmEntity) -> Unit = {
+    val onCardClick: (RoutineEntity) -> Unit = {
         //TODO open routine details
             //alarm: AlarmEntity -> rootController.navigate("edit_alarm/${alarm.id}")
     }
+    Box (modifier = Modifier.fillMaxSize()) {
+        RoutinesList(
+            routineList = routineList,
+            onAddClick = onAddRoutineClick,
+            onDeleteClick = onDeleteClick,
+            onCardClick = onCardClick,
+            modifier = modifier
+        )
+        if(uiState.isRoutineEditorOpen) {
+            //show routine editor
+        }
 
-    RoutinesList(
-        routineList = routineList,
-        onAddClick = onAddRoutineClick,
-        onDeleteClick = onDeleteClick,
-        onCardClick = onCardClick,
-        modifier = modifier
-    )
+
+
+        if (uiState.successMessage != null) {
+            //show succes modal
+            Log.d("RoutineListRoute", "Success message: ${uiState.successMessage}")
+
+        }
+    }
 
 }
 
@@ -74,7 +89,7 @@ fun RoutinesList(
     routineList: List<RoutineEntity>,
     onAddClick: () -> Unit,
     onDeleteClick: (RoutineEntity) -> Unit,
-    onCardClick: (AlarmEntity) -> Unit,
+    onCardClick: (RoutineEntity) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Box(modifier = modifier.fillMaxSize()) {
@@ -87,19 +102,12 @@ fun RoutinesList(
             LazyColumn {
                 items(routineList.size) { index ->
                     val routine = routineList[index]
-                    AlarmCard(
-                        alarmName = alarm.label ?: "Alarm",
-                        alarmTime = String.format(
-                            Locale.getDefault(),
-                            "%02d:%02d",
-                            alarm.hour,
-                            alarm.minute
-                        ),
-                        onDelete = { onDeleteClick(alarm) },
-                        enabled = alarm.isEnabled,
-                        onToggleEnabled = {onAlarmSwitchChange(alarm, it)},
-                        repeatDays = alarm.repeatDays,
-                        onCardClick = { onCardClick(alarm) },
+                    RoutineCard(
+                        name = routine.name,
+                        description = routine.description,
+                        icon = routine.icon,
+                        onDelete = { onDeleteClick(routine) },
+                        onCardClick = { onCardClick(routine) },
                         modifier = Modifier.padding(8.dp)
                     )
                 }
@@ -123,14 +131,14 @@ fun RoutinesList(
 }
 
 @Composable
-fun RoutineCard(alarmName: String,
-              alarmTime: String,
-              enabled: Boolean,
-              onDelete: () -> Unit,
-              onToggleEnabled: (Boolean) -> Unit,
-              repeatDays: Set<DayOfWeek>,
-              onCardClick: () -> Unit,
-              modifier: Modifier = Modifier) {
+fun RoutineCard(
+    name: String,
+    description: String,
+    icon: String,
+    onDelete: () -> Unit,
+    onCardClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     Box(modifier = modifier.fillMaxWidth()) {
         Card(
             modifier = Modifier
@@ -139,12 +147,12 @@ fun RoutineCard(alarmName: String,
                 .clickable { onCardClick() },
             elevation = CardDefaults.cardElevation(4.dp)
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(text = alarmName, style = MaterialTheme.typography.headlineSmall)
-                Text(text = alarmTime, style = MaterialTheme.typography.bodyMedium)
-                Box(modifier = Modifier) {
-                    DaysRow(repeatDays = repeatDays, modifier = Modifier.padding(top = 8.dp))
-                }
+            Row(modifier = Modifier.padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(text = name, style = MaterialTheme.typography.headlineSmall)
+                Text(text = icon, style = MaterialTheme.typography.bodyMedium)
             }
         }
 
@@ -155,27 +163,17 @@ fun RoutineCard(alarmName: String,
                 .align(Alignment.TopEnd)
         )
 
-        Switch(
-            checked = enabled,
-            onCheckedChange = onToggleEnabled,
-            thumbContent = if (enabled) {
-                {
-                    Icon(
-                        imageVector = IconBell,
-                        contentDescription = null,
-                        modifier = Modifier.size(SwitchDefaults.IconSize),
-                    )
-                }
-            } else {
-                null
-            },
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .offset((-24).dp, (-10).dp)
-                //.padding(4.dp)
-                .layoutId("switch")
-                .size(32.dp)
-
-        )
     }
 }
+
+@Composable
+fun RoutineEditor(
+    viewModel: AlarmViewModel,
+    navController: NavHostController,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+
+
+
+)

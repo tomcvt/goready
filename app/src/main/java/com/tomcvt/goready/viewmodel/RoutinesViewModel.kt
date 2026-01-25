@@ -2,6 +2,7 @@
 
 package com.tomcvt.goready.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tomcvt.goready.data.RoutineEntity
@@ -23,8 +24,10 @@ import kotlinx.coroutines.launch
 class RoutinesViewModel(
     private val routinesManager: AppRoutinesManager
 ) : ViewModel() {
-    private val _uiState = MutableStateFlow<UiState>(UiState.Idle)
-    val uiState: StateFlow<UiState> = _uiState
+    //private val _uiState = MutableStateFlow<UiState>(UiState.Idle)
+    //val uiState: StateFlow<UiState> = _uiState
+    private val _uiState = MutableStateFlow<RoutineUiState>(RoutineUiState())
+    val uiState: StateFlow<RoutineUiState> = _uiState.asStateFlow()
 
     private val _stepEditorState =
         MutableStateFlow(StepDefinitionState())
@@ -43,7 +46,6 @@ class RoutinesViewModel(
 
     private val selectedRoutineId = MutableStateFlow<Long?>(null)
 
-
     val selectedRoutineSteps: StateFlow<List<StepWithDefinition>> =
         selectedRoutineId.filterNotNull()
             .flatMapLatest { id ->
@@ -55,18 +57,21 @@ class RoutinesViewModel(
                 initialValue = emptyList()
             )
 
-    fun getStepWithDefinitionFlow(routineId: Long) = routinesManager.getRoutineStepsFlow(routineId)
+    //fun getStepWithDefinitionFlow(routineId: Long) = routinesManager.getRoutineStepsFlow(routineId)
+
+    fun addRoutineInEditor(routineId: Long) {
+        _uiState.update { it.copy(isRoutineEditorOpen = true) }
+    }
 
     fun selectRoutine(routineId: Long) {
         selectedRoutineId.value = routineId
     }
 
-
     fun saveStepDefinition() {
         viewModelScope.launch {
             val s = stepEditorState.value
             if(!validateStepData(s)) {
-                _uiState.value = UiState.InputError("Provide all data")
+                _uiState.update { it.copy(errorMessage = "Provide all data") }
                 return@launch
             }
             val draft = StepDefinitionDraft(
@@ -77,7 +82,7 @@ class RoutinesViewModel(
             )
             val addedId = routinesManager.addStepDefinition(draft)
             _stepEditorState.value = StepDefinitionState(lastAddedId = addedId)
-            _uiState.value = UiState.Success("Step definition added")
+            _uiState.update { it.copy(successMessage = "Step definition added") }
         }
     }
 
@@ -85,7 +90,7 @@ class RoutinesViewModel(
         viewModelScope.launch {
             val s = stepEditorState.value
             if(!validateStepData(s)) {
-                _uiState.value = UiState.InputError("Provide all data")
+                _uiState.update { it.copy(errorMessage = "Provide all data") }
                 return@launch
             }
             val draft = StepDefinitionDraft(
@@ -101,7 +106,8 @@ class RoutinesViewModel(
                 addStepDefToRoutineEditor(stepDefinition, index)
             }
             _stepEditorState.value = StepDefinitionState(lastAddedId = addedId)
-            _uiState.value = UiState.Success("Step definition added")
+            _uiState.update { it.copy(successMessage = "Step definition added") }
+            Log.d("RoutinesViewModel", "Step definition added")
         }
     }
 
@@ -111,7 +117,7 @@ class RoutinesViewModel(
         _routineEditorState.value = _routineEditorState.value.copy(steps = currentSteps)
     }
 
-    fun startNew() {
+    fun cleanStepEditor() {
         _stepEditorState.value = StepDefinitionState()
     }
 
@@ -135,7 +141,8 @@ class RoutinesViewModel(
         viewModelScope.launch {
             val s = routineEditorState.value
             if (!validateRoutineData(s)) {
-                _uiState.value = UiState.InputError("Provide all data")
+                _uiState.update { it.copy(errorMessage = "Provide all data") }
+                return@launch
             }
             val draft = RoutineDraft(
                 name = s.name,
@@ -144,7 +151,7 @@ class RoutinesViewModel(
                 steps = s.steps
             )
             routinesManager.addRoutine(draft)
-            _uiState.value = UiState.Success("Routine added")
+            _uiState.update { it.copy(successMessage = "Routine added") }
         }
     }
 
@@ -169,6 +176,13 @@ data class RoutineState(
     val description: String = "",
     val icon: String = "",
     val steps: List<Pair<StepDefinitionEntity,Int>> = emptyList()
+)
+
+data class RoutineUiState(
+    val isRoutineEditorOpen: Boolean = false,
+    val isStepEditorOpen: Boolean = false,
+    val successMessage: String? = null,
+    val errorMessage: String? = null
 )
 
 private fun validateStepData(state: StepDefinitionState) : Boolean {

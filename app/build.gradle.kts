@@ -101,6 +101,7 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.compose.foundation.layout)
     implementation(libs.androidx.compose.ui.unit)
+    implementation(libs.androidx.emoji2)
     kapt(libs.androidx.room.compiler)
 
 
