@@ -11,6 +11,10 @@ class StepDefinitionRepository(
         return stepDefinitionDao.getAllStepDefinitionsFlow()
     }
 
+    suspend fun getStepDefinition(id: Long) : StepDefinitionEntity? {
+        return stepDefinitionDao.getStepDefinitionById(id)
+    }
+
     suspend fun insertStepDefinition(stepDefinitionEntity: StepDefinitionEntity) : Long {
         return stepDefinitionDao.insertStepDefinition(stepDefinitionEntity)
     }

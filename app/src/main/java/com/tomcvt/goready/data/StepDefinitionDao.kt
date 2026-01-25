@@ -22,5 +22,6 @@ interface StepDefinitionDao {
     @Update
     suspend fun updateStepDefinition(stepDefinition: StepDefinitionEntity)
 
-
+    @Query("SELECT * FROM step_definitions WHERE id = :id")
+    suspend fun getStepDefinitionById(id: Long) : StepDefinitionEntity?
 }
