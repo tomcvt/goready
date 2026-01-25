@@ -43,13 +43,18 @@ import androidx.navigation.navArgument
 import com.tomcvt.goready.application.AlarmApp
 import com.tomcvt.goready.constants.EXTRA_ALARM_ID
 import com.tomcvt.goready.manager.AppAlarmManager
+import com.tomcvt.goready.manager.AppRoutinesManager
 import com.tomcvt.goready.manager.SystemAlarmScheduler
 import com.tomcvt.goready.preview.PreviewAlarms2
 import com.tomcvt.goready.repository.AlarmRepository
+import com.tomcvt.goready.repository.RoutineRepository
+import com.tomcvt.goready.repository.RoutineStepRepository
+import com.tomcvt.goready.repository.StepDefinitionRepository
 import com.tomcvt.goready.ui.composables.AddAlarmView
 import com.tomcvt.goready.ui.composables.AlarmList
 import com.tomcvt.goready.ui.composables.AlarmsNavHost
 import com.tomcvt.goready.ui.composables.HomeScreen
+import com.tomcvt.goready.ui.composables.RoutineListRoute
 import com.tomcvt.goready.ui.composables.SettingsView
 import com.tomcvt.goready.ui.navigation.LocalRootNavigator
 import com.tomcvt.goready.ui.navigation.RootNavigatorImpl
@@ -57,6 +62,8 @@ import com.tomcvt.goready.ui.navigation.RootTab
 import com.tomcvt.goready.ui.theme.GoReadyTheme
 import com.tomcvt.goready.viewmodel.AlarmViewModel
 import com.tomcvt.goready.viewmodel.AlarmViewModelFactory
+import com.tomcvt.goready.viewmodel.RoutinesViewModel
+import com.tomcvt.goready.viewmodel.RoutinesViewModelFactory
 
 class MainActivity : ComponentActivity() {
 
@@ -65,9 +72,14 @@ class MainActivity : ComponentActivity() {
 
     lateinit var appAlarmManager: AppAlarmManager
         private set
+    lateinit var appRoutinesManager: AppRoutinesManager
+        private set
 
     lateinit var alarmViewModelFactory: AlarmViewModelFactory
         private set
+    lateinit var routinesViewModelFactory: RoutinesViewModelFactory
+        private set
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -78,7 +90,15 @@ class MainActivity : ComponentActivity() {
             repository = AlarmRepository(appObject.db.alarmDao()),
             systemScheduler = SystemAlarmScheduler(this)
         )
+        appRoutinesManager = AppRoutinesManager(
+            RoutineRepository(appObject.db.routineDao()),
+            RoutineStepRepository(appObject.db.routineStepDao()),
+            StepDefinitionRepository(appObject.db.stepDefinitionDao())
+        )
+
         alarmViewModelFactory = AlarmViewModelFactory(appAlarmManager)
+        routinesViewModelFactory = RoutinesViewModelFactory(appRoutinesManager)
+
         val systemAlarmManager = this.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
         /*
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -161,9 +181,10 @@ class MainActivity : ComponentActivity() {
             ) {
                 GoReadyTheme {
                     if (alarmId != -1L) {
-                        GoReadyApp(alarmViewModelFactory, alarmId)
+                        GoReadyApp(
+                            alarmViewModelFactory, routinesViewModelFactory, alarmId)
                     } else {
-                        GoReadyApp(alarmViewModelFactory)
+                        GoReadyApp(alarmViewModelFactory, routinesViewModelFactory)
                     }
                 }
             }
@@ -175,6 +196,7 @@ class MainActivity : ComponentActivity() {
 //@PreviewScreenSizes
 @Composable
 fun GoReadyApp(alarmViewModelFactory: AlarmViewModelFactory,
+               routinesViewModelFactory: RoutinesViewModelFactory,
                alarmId: Long? = null) {
     val rootNavController = rememberNavController()
     val navbackStackEntry by rootNavController.currentBackStackEntryAsState()
@@ -214,11 +236,12 @@ fun GoReadyApp(alarmViewModelFactory: AlarmViewModelFactory,
                 modifier = Modifier.padding(innerPadding)
             ) {
                 composable(RootTab.HOME.name) {
-                    HomeScreen()
+                    val vm = viewModel<RoutinesViewModel>(factory = routinesViewModelFactory)
+                    RoutineListRoute(vm, rootNavController)
                 }
                 composable(RootTab.ALARMS.name) {
                     //val vm = viewModel<AlarmViewModel>(factory = alarmViewModelFactory)
-                    AlarmsNavHost(alarmViewModelFactory, rootNavController) //navhost for future extension with separate vm
+                    AlarmsNavHost(alarmViewModelFactory, rootNavController)
                 }
                 composable(RootTab.ADD_ALARM.name) {
                     val vm = viewModel<AlarmViewModel>(factory = alarmViewModelFactory)

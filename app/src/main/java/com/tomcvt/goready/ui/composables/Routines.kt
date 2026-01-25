@@ -11,9 +11,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FloatingActionButton
@@ -22,6 +24,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -35,6 +38,8 @@ import com.tomcvt.goready.data.AlarmEntity
 import com.tomcvt.goready.data.RoutineEntity
 import com.tomcvt.goready.test.launchAlarmNow
 import com.tomcvt.goready.ui.imagevectors.IconBell
+import com.tomcvt.goready.util.hasExactlyOneGrapheme
+import com.tomcvt.goready.util.isExactlyOneEmoji
 import com.tomcvt.goready.viewmodel.AlarmViewModel
 import com.tomcvt.goready.viewmodel.RoutinesViewModel
 import java.time.DayOfWeek
@@ -44,15 +49,15 @@ import java.util.Locale
 @Composable
 fun RoutineListRoute(
     viewModel: RoutinesViewModel,
-    navController: NavHostController,
     rootController: NavHostController,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     val routineList by viewModel.routinesStateFlow.collectAsState()
-    var uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
     val onAddRoutineClick = {
-        viewModel.startNew()
+        //For now just adding
+        viewModel.addRoutineInEditor(0)
     }
     val onDeleteClick: (RoutineEntity) -> Unit = { routine: RoutineEntity -> viewModel.deleteRoutine(routine) }
 
@@ -70,10 +75,12 @@ fun RoutineListRoute(
             modifier = modifier
         )
         if(uiState.isRoutineEditorOpen) {
-            //show routine editor
+            RoutineEditor(
+                viewModel = viewModel,
+                //navController = navController,
+                modifier = modifier
+            )
         }
-
-
 
         if (uiState.successMessage != null) {
             //show succes modal
@@ -95,7 +102,7 @@ fun RoutinesList(
     Box(modifier = modifier.fillMaxSize()) {
         Column(modifier = modifier.fillMaxSize()) {
             Text(
-                text = "Alarms",
+                text = "Routines",
                 style = MaterialTheme.typography.headlineSmall,
                 modifier = Modifier.padding(16.dp)
             )
@@ -168,12 +175,79 @@ fun RoutineCard(
 
 @Composable
 fun RoutineEditor(
-    viewModel: AlarmViewModel,
-    navController: NavHostController,
+    viewModel: RoutinesViewModel,
+    //navController: NavHostController,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val uiState by viewModel.uiState.collectAsState()
+    val rEditorState by viewModel.routineEditorState.collectAsState()
 
+    Box (modifier = modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Card(
+                elevation = CardDefaults.cardElevation(8.dp),
+                modifier = Modifier.fillMaxWidth().padding(24.dp),
+            ) {
+                Row (horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TextField(
+                        value = rEditorState.name,
+                        onValueChange = { viewModel.setRoutineName(it) },
+                        modifier = Modifier.weight(1f)
+                    )
+                    TextField(
+                        value = rEditorState.icon,
+                        onValueChange = { if (isExactlyOneEmoji(it)) viewModel.setRoutineIcon(it) },
+                        modifier = Modifier.width(50.dp)
+                    )
+                }
+                TextField(
+                    value = rEditorState.description,
+                    onValueChange = { viewModel.setRoutineDescription(it) },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+            LazyColumn(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(rEditorState.steps.size) { index ->
+                    val step = rEditorState.steps[index]
+                    Card(
+                        elevation = CardDefaults.cardElevation(8.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                    ) {
+                        Text(step.first.name)
+                        Text(step.first.icon)
+                        Text(step.second.toString())
+                    }
+                }
+            }
+            Button(
+                onClick = {
+                //TODO show modal to add step
+                },
+                modifier = Modifier.padding(16.dp)
+            ) {
+                Text("Add step")
+            }
+            FloatingActionButton(
+                onClick = { viewModel.saveRoutine() },
+                modifier = Modifier.padding(16.dp),
+                containerColor = MaterialTheme.colorScheme.primary
+            ) {
+                Text("Save")
+            }
+        }
+    }
+}
 
-
-)

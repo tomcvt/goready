@@ -135,6 +135,7 @@ fun AlarmScreen(
                     modifier = Modifier.fillMaxSize()
                 )
             }
+            else -> {}
         }
     }
 }

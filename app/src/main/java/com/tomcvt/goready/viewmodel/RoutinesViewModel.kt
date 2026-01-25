@@ -34,8 +34,8 @@ class RoutinesViewModel(
     val stepEditorState: StateFlow<StepDefinitionState> =
         _stepEditorState.asStateFlow()
 
-    private val _routineEditorState = MutableStateFlow<RoutineState>(RoutineState())
-    val routineEditorState: StateFlow<RoutineState> = _routineEditorState.asStateFlow()
+    private val _routineEditorState = MutableStateFlow<RoutineEditorState>(RoutineEditorState())
+    val routineEditorState: StateFlow<RoutineEditorState> = _routineEditorState
 
     val routinesStateFlow: StateFlow<List<RoutineEntity>> = routinesManager
         .getAllRoutinesFlow().stateIn(
@@ -60,7 +60,23 @@ class RoutinesViewModel(
     //fun getStepWithDefinitionFlow(routineId: Long) = routinesManager.getRoutineStepsFlow(routineId)
 
     fun addRoutineInEditor(routineId: Long) {
+        //TODO add editing later
         _uiState.update { it.copy(isRoutineEditorOpen = true) }
+    }
+
+    fun setRoutineName(name: String) {
+        _routineEditorState.update { it.copy(name = name) }
+    }
+
+    fun setRoutineDescription(description: String) {
+        _routineEditorState.update { it.copy(description = description) }
+    }
+    fun setRoutineIcon(icon: String) {
+        _routineEditorState.update { it.copy(icon = icon) }
+    }
+
+    fun closeRoutineEditor() {
+        _uiState.update { it.copy(isRoutineEditorOpen = false) }
     }
 
     fun selectRoutine(routineId: Long) {
@@ -171,7 +187,7 @@ data class StepDefinitionState (
     val icon: String = ""
 )
 
-data class RoutineState(
+data class RoutineEditorState(
     val name: String = "",
     val description: String = "",
     val icon: String = "",
@@ -191,7 +207,7 @@ private fun validateStepData(state: StepDefinitionState) : Boolean {
     return true
 }
 
-private fun validateRoutineData(state: RoutineState) : Boolean {
+private fun validateRoutineData(state: RoutineEditorState) : Boolean {
     if (state.name.isBlank()) return false
     if (state.steps.isEmpty()) return false
     for (step in state.steps) {
