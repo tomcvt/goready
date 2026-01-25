@@ -35,6 +35,16 @@ class AppRoutinesManager(
         val routineEntity = routineDraft.toEntity()
         val routineId = routineRepository.insertRoutine(routineEntity)
         //TODO add steps
+        for (step in routineDraft.steps) {
+            val routineStepEntity = com.tomcvt.goready.data.RoutineStepEntity(
+                routineId = routineId,
+                stepId = step.first.id,
+                stepNumber = 0,
+                length = step.second.toLong()
+            )
+            //can get i here but for what?
+            routineStepRepository.insertRoutineStep(routineStepEntity)
+        }
     }
 }
 

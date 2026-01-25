@@ -32,7 +32,7 @@ interface RoutineStepDao {
     fun getRoutineStepsWithDefinitionFlow(routineId: Long): Flow<List<StepWithDefinition>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertRoutineStep(routineStep: RoutineStepEntity)
+    suspend fun insertRoutineStep(routineStep: RoutineStepEntity) : Long
 
     @Deprecated("Use by id instead")
     @Query("DELETE FROM routine_steps WHERE routineId = :routineId AND stepId = :stepId")

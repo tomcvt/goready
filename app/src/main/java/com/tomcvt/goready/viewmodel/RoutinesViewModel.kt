@@ -1,15 +1,22 @@
+@file:OptIn(ExperimentalCoroutinesApi::class)
+
 package com.tomcvt.goready.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.tomcvt.goready.data.RoutineEntity
 import com.tomcvt.goready.data.StepDefinitionEntity
 import com.tomcvt.goready.data.StepWithDefinition
 import com.tomcvt.goready.domain.RoutineDraft
 import com.tomcvt.goready.domain.StepDefinitionDraft
 import com.tomcvt.goready.manager.AppRoutinesManager
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -25,8 +32,34 @@ class RoutinesViewModel(
         _stepEditorState.asStateFlow()
 
     private val _routineEditorState = MutableStateFlow<RoutineState>(RoutineState())
-
     val routineEditorState: StateFlow<RoutineState> = _routineEditorState.asStateFlow()
+
+    val routinesStateFlow: StateFlow<List<RoutineEntity>> = routinesManager
+        .getAllRoutinesFlow().stateIn(
+            viewModelScope,
+            started = kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(1000),
+            initialValue = emptyList()
+        )
+
+    private val selectedRoutineId = MutableStateFlow<Long?>(null)
+
+
+    val selectedRoutineSteps: StateFlow<List<StepWithDefinition>> =
+        selectedRoutineId.filterNotNull()
+            .flatMapLatest { id ->
+                routinesManager.getRoutineStepsWithDefinitionFlow(id)
+            }
+            .stateIn(
+                viewModelScope,
+                started = kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(1000),
+                initialValue = emptyList()
+            )
+
+    fun getStepWithDefinitionFlow(routineId: Long) = routinesManager.getRoutineStepsFlow(routineId)
+
+    fun selectRoutine(routineId: Long) {
+        selectedRoutineId.value = routineId
+    }
 
 
     fun saveStepDefinition() {
@@ -115,6 +148,12 @@ class RoutinesViewModel(
         }
     }
 
+    fun deleteRoutine(routine: RoutineEntity) {
+        viewModelScope.launch {
+            //TODO implement delete routine
+            //routinesManager.deleteRoutine(routine)
+        }
+    }
 }
 
 data class StepDefinitionState (

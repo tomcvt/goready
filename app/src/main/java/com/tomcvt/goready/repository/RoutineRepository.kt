@@ -15,9 +15,21 @@ class RoutineRepository(
         return routineDao.getAllRoutinesFlow()
     }
 
-    suspend fun insertRoutine(routine: RoutineEntity) {
-        routineDao.insertRoutine(routine)
+    suspend fun insertRoutine(routine: RoutineEntity): Long {
+        return routineDao.insertRoutine(routine)
     }
 
+    suspend fun getRoutineById(id: Long): RoutineEntity {
+        return routineDao.getRoutineById(id)
+    }
+
+    suspend fun deleteRoutine(routine: RoutineEntity) {
+        routineDao.deleteRoutine(routine)
+    }
+
+    suspend fun updateRoutine(routine: RoutineEntity) {
+        routineDao.updateRoutine(routine)
+    }
+    // maybe later add methods for whole routine
 
 }
