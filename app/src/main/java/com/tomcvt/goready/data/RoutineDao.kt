@@ -17,7 +17,7 @@ interface RoutineDao {
     suspend fun insertRoutine(routine: RoutineEntity) : Long
 
     @Query("SELECT * FROM routines WHERE id = :id")
-    suspend fun getRoutineById(id: Long): RoutineEntity
+    suspend fun getRoutineById(id: Long): RoutineEntity?
 
     @Delete
     suspend fun deleteRoutine(routine: RoutineEntity)

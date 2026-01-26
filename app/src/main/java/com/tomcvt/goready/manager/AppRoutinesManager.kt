@@ -24,7 +24,7 @@ class AppRoutinesManager(
     suspend fun getStepDefinition(id: Long) = stepDefinitionRepository.getStepDefinition(id)
 
     //fun getRoutineStep(id: Long) = routineStepRepository.getRoutineStep(id)
-
+    suspend fun getRoutineById(id: Long) = routineRepository.getRoutineById(id)
 
     suspend fun addStepDefinition(stepDefinitionDraft: StepDefinitionDraft) : Long {
         val stepDefinitionEntity = stepDefinitionDraft.toEntity()
@@ -34,6 +34,7 @@ class AppRoutinesManager(
     suspend fun addRoutine(routineDraft: RoutineDraft) {
         val routineEntity = routineDraft.toEntity()
         val routineId = routineRepository.insertRoutine(routineEntity)
+
         //TODO add steps
         for (step in routineDraft.steps) {
             val routineStepEntity = com.tomcvt.goready.data.RoutineStepEntity(
@@ -45,6 +46,11 @@ class AppRoutinesManager(
             //can get i here but for what?
             routineStepRepository.insertRoutineStep(routineStepEntity)
         }
+    }
+
+    suspend fun deleteRoutine(routine: RoutineEntity) {
+        routineRepository.deleteRoutine(routine)
+        routineStepRepository.deleteRoutineStepsForRoutine(routine.id)
     }
 }
 

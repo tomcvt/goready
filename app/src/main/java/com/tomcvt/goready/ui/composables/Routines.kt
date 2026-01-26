@@ -67,8 +67,8 @@ fun RoutineListRoute(
 
 
     val onCardClick: (RoutineEntity) -> Unit = {
-        //TODO open routine details
-            //alarm: AlarmEntity -> rootController.navigate("edit_alarm/${alarm.id}")
+        viewModel.selectRoutine(it.id)
+        viewModel.openRoutineEditorWithSelectedRoutine()
     }
     Box (modifier = Modifier.fillMaxSize()) {
         RoutinesList(
@@ -88,6 +88,12 @@ fun RoutineListRoute(
 
         if (uiState.successMessage != null) {
             //show succes modal
+            StandardModal(
+                onDismiss = { viewModel.clearSuccessMessage() },
+                onConfirm = { viewModel.clearSuccessMessage() }
+            ) {
+                Text(text = uiState.successMessage?: "ERROR")
+            }
             Log.d("RoutineListRoute", "Success message: ${uiState.successMessage}")
 
         }
@@ -256,7 +262,9 @@ fun RoutineEditor(
                 Text("Add step")
             }
             FloatingActionButton(
-                onClick = { viewModel.saveRoutine() },
+                onClick = { viewModel.saveRoutine()
+                           viewModel.closeRoutineEditor()
+                            viewModel.clearRoutineEditor() },
                 modifier = Modifier.padding(16.dp),
                 containerColor = MaterialTheme.colorScheme.primary
             ) {

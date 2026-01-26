@@ -59,7 +59,38 @@ class RoutinesViewModel(
                 initialValue = emptyList()
             )
 
+    fun openRoutineEditorWithSelectedRoutine() {
+        viewModelScope.launch {
+            val routineId = selectedRoutineId.value ?: return@launch
+            val routine = routinesManager.getRoutineById(routineId) ?: return@launch
+            val steps = selectedRoutineSteps.value
+            //TODO think about emmbedable
+            val stepsList = steps.map(
+                transform = { Pair(StepDefinitionEntity(
+                    it.stepId,
+                    it.stepType,
+                    it.name,
+                    it.description,
+                    it.icon
+                ), it.length.toInt()) }
+            )
+            _routineEditorState.update {
+                it.copy(
+                    name = routine.name,
+                    description = routine.description,
+                    icon = routine.icon,
+                    steps = stepsList
+                )
+            }
+            _uiState.update { it.copy(isRoutineEditorOpen = true) }
+        }
+    }
+
     //fun getStepWithDefinitionFlow(routineId: Long) = routinesManager.getRoutineStepsFlow(routineId)
+
+    fun clearSuccessMessage() {
+        _uiState.update { it.copy(successMessage = null) }
+    }
 
     fun addRoutineInEditor(routineId: Long) {
         //TODO add editing later
@@ -79,6 +110,10 @@ class RoutinesViewModel(
 
     fun closeRoutineEditor() {
         _uiState.update { it.copy(isRoutineEditorOpen = false) }
+    }
+
+    fun clearRoutineEditor() {
+        _routineEditorState.value = RoutineEditorState()
     }
 
     fun selectRoutine(routineId: Long) {
@@ -197,8 +232,7 @@ class RoutinesViewModel(
 
     fun deleteRoutine(routine: RoutineEntity) {
         viewModelScope.launch {
-            //TODO implement delete routine
-            //routinesManager.deleteRoutine(routine)
+            routinesManager.deleteRoutine(routine)
         }
     }
 }

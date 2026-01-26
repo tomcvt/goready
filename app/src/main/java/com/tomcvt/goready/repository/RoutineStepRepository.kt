@@ -19,4 +19,8 @@ class RoutineStepRepository(
     suspend fun insertRoutineStep(routineStep: RoutineStepEntity) : Long {
         return routineStepDao.insertRoutineStep(routineStep)
     }
+
+    suspend fun deleteRoutineStepsForRoutine(routineId: Long) {
+        routineStepDao.deleteRoutineStepsForRoutine(routineId)
+    }
 }

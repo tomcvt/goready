@@ -38,6 +38,9 @@ interface RoutineStepDao {
     @Query("DELETE FROM routine_steps WHERE routineId = :routineId AND stepId = :stepId")
     suspend fun deleteRoutineStepDuplicated(routineId: Long, stepId: Long)
 
+    @Query("DELETE FROM routine_steps WHERE routineId = :routineId")
+    suspend fun deleteRoutineStepsForRoutine(routineId: Long)
+
     @Query("DELETE FROM routine_steps WHERE id = :id")
     suspend fun deleteRoutineStepById(id: Long)
 

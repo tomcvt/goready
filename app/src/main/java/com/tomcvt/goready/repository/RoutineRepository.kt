@@ -19,7 +19,7 @@ class RoutineRepository(
         return routineDao.insertRoutine(routine)
     }
 
-    suspend fun getRoutineById(id: Long): RoutineEntity {
+    suspend fun getRoutineById(id: Long): RoutineEntity? {
         return routineDao.getRoutineById(id)
     }
 
