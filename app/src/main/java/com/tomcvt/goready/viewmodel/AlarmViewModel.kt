@@ -24,7 +24,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
 
-const val TAG = "AlarmViewModel"
+private const val TAG = "AlarmViewModel"
 class AlarmViewModel(
     private val appAlarmManager: AppAlarmManager // inject manager
 ) : ViewModel() {

@@ -1,11 +1,13 @@
 package com.tomcvt.goready.ui.composables
 
 import android.util.Log
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
@@ -30,8 +32,10 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.layoutId
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.tomcvt.goready.data.AlarmEntity
@@ -183,7 +187,13 @@ fun RoutineEditor(
     val uiState by viewModel.uiState.collectAsState()
     val rEditorState by viewModel.routineEditorState.collectAsState()
 
-    Box (modifier = modifier.fillMaxSize()) {
+    Box (
+        modifier = Modifier
+        .fillMaxSize()
+        .background(Color.Black.copy(alpha = 0.5f))
+        .clickable { viewModel.closeRoutineEditor() },
+        contentAlignment = Alignment.Center
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -191,24 +201,31 @@ fun RoutineEditor(
             verticalArrangement = Arrangement.spacedBy(8.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            Text("Edit routine", style = MaterialTheme.typography.headlineSmall,
+                textAlign = TextAlign.Center)
             Card(
                 elevation = CardDefaults.cardElevation(8.dp),
-                modifier = Modifier.fillMaxWidth().padding(24.dp),
+                modifier = Modifier.fillMaxWidth(),
             ) {
-                Row (horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                Row (horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth().padding(16.dp)
                 ) {
                     TextField(
                         value = rEditorState.name,
                         onValueChange = { viewModel.setRoutineName(it) },
                         modifier = Modifier.weight(1f)
                     )
+                    //Spacer(modifier = Modifier.size(8.dp))
                     TextField(
                         value = rEditorState.icon,
-                        onValueChange = { if (isExactlyOneEmoji(it)) viewModel.setRoutineIcon(it) },
+                        onValueChange = {
+                            if (isExactlyOneEmoji(it) || it.isEmpty()) viewModel.setRoutineIcon(it) },
+                        placeholder = { Text("\uD83D\uDC4D") },
                         modifier = Modifier.width(50.dp)
                     )
                 }
+                Spacer(modifier = Modifier.size(8.dp))
                 TextField(
                     value = rEditorState.description,
                     onValueChange = { viewModel.setRoutineDescription(it) },
@@ -233,9 +250,7 @@ fun RoutineEditor(
                 }
             }
             Button(
-                onClick = {
-                //TODO show modal to add step
-                },
+                onClick = { viewModel.openStepEditor() },
                 modifier = Modifier.padding(16.dp)
             ) {
                 Text("Add step")
@@ -248,6 +263,86 @@ fun RoutineEditor(
                 Text("Save")
             }
         }
+        if (uiState.isStepEditorOpen) {
+            StepEditor(
+                viewModel = viewModel,
+                //navController = navController,
+                modifier = modifier
+            )
+        }
     }
+}
+
+@Composable
+fun StepEditor(
+    viewModel: RoutinesViewModel,
+    //navController: NavHostController,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    val uiState by viewModel.uiState.collectAsState()
+    val stepEditorState by viewModel.stepEditorState.collectAsState()
+
+    Box (
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.5f))
+            .clickable { viewModel.closeStepEditor() },
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                "Add step", style = MaterialTheme.typography.headlineSmall,
+                textAlign = TextAlign.Center
+            )
+            Card(
+                elevation = CardDefaults.cardElevation(8.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth().padding(16.dp)
+                ) {
+                    TextField(
+                        value = stepEditorState.name,
+                        onValueChange = { viewModel.setStepName(it) },
+                        modifier = Modifier.weight(1f)
+                    )
+                    Spacer(modifier = Modifier.size(8.dp))
+                    TextField(
+                        value = stepEditorState.icon,
+                        onValueChange = {
+                            if (isExactlyOneEmoji(it) || it.isEmpty()) viewModel.setStepIcon(it)
+                        },
+                        placeholder = { Text("\uD83D\uDC4D") },
+                        modifier = Modifier.width(50.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.size(8.dp))
+                TextField(
+                    value = stepEditorState.description,
+                    onValueChange = { viewModel.setStepDescription(it) },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+            Text("step type")
+            FloatingActionButton(
+                onClick = { viewModel.saveStepDefinitionAndAdd()
+                          viewModel.closeStepEditor() },
+                modifier = Modifier.padding(16.dp),
+                containerColor = MaterialTheme.colorScheme.primary
+            ) {
+                Text("Save")
+            }
+        }
+    }
+
 }
 

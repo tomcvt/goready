@@ -21,6 +21,8 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+private const val TAG = "RoutinesViewModel"
+
 class RoutinesViewModel(
     private val routinesManager: AppRoutinesManager
 ) : ViewModel() {
@@ -83,6 +85,26 @@ class RoutinesViewModel(
         selectedRoutineId.value = routineId
     }
 
+    fun openStepEditor() {
+        _uiState.update { it.copy(isStepEditorOpen = true) }
+    }
+
+    fun closeStepEditor() {
+        _uiState.update { it.copy(isStepEditorOpen = false) }
+    }
+
+    fun setStepName(name: String) {
+        _stepEditorState.update { it.copy(name = name) }
+    }
+
+    fun setStepDescription(description: String) {
+        _stepEditorState.update { it.copy(description = description) }
+    }
+
+    fun setStepIcon(icon: String) {
+        _stepEditorState.update { it.copy(icon = icon) }
+    }
+
     fun saveStepDefinition() {
         viewModelScope.launch {
             val s = stepEditorState.value
@@ -106,6 +128,7 @@ class RoutinesViewModel(
         viewModelScope.launch {
             val s = stepEditorState.value
             if(!validateStepData(s)) {
+                Log.d(TAG, "Invalid data: $s")
                 _uiState.update { it.copy(errorMessage = "Provide all data") }
                 return@launch
             }
@@ -121,6 +144,7 @@ class RoutinesViewModel(
             if (stepDefinition != null) {
                 addStepDefToRoutineEditor(stepDefinition, index)
             }
+            cleanStepEditor()
             _stepEditorState.value = StepDefinitionState(lastAddedId = addedId)
             _uiState.update { it.copy(successMessage = "Step definition added") }
             Log.d("RoutinesViewModel", "Step definition added")
@@ -202,7 +226,8 @@ data class RoutineUiState(
 )
 
 private fun validateStepData(state: StepDefinitionState) : Boolean {
-    if (state.stepType.isBlank()) return false
+    //TODO for now we dont care about the type
+    if (state.stepType.isBlank()) return true
     if (state.name.isBlank()) return false
     return true
 }
