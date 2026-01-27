@@ -1,0 +1,23 @@
+
+syntax = "proto3";
+
+option java_package = "com.goready.datastore";
+option java_multiple_files = true;
+
+message RoutineSessionState {
+  string routine_id = 1;
+  string step_id = 2;
+
+  StepStatus step_status = 3;
+
+  int64 step_ends_at = 4;          // epoch millis
+  string ui_session_token = 5;     // UUID as string
+  int64 last_ui_heartbeat_at = 6;  // epoch millis
+}
+
+enum StepStatus {
+  STEP_STATUS_UNSPECIFIED = 0;
+  RUNNING = 1;
+  PAUSED = 2;
+  COMPLETED = 3;
+}

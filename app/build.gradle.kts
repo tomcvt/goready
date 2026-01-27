@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.kapt)
+    id("com.google.protobuf") version "0.9.6"
 }
 
 android {
@@ -81,6 +82,22 @@ android {
                 "true"
             )
         }
+
+        protobuf {
+            protoc {
+                artifact = "com.google.protobuf:protoc:3.25.1"
+            }
+
+            generateProtoTasks {
+                all().forEach { task ->
+                    task.builtins {
+                        create("java") {
+                            option("lite")
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -103,7 +120,9 @@ dependencies {
     implementation(libs.androidx.compose.ui.unit)
     implementation(libs.androidx.emoji2)
     kapt(libs.androidx.room.compiler)
-
+    implementation("androidx.datastore:datastore:1.1.1")
+    implementation("com.google.protobuf:protobuf-javalite:3.25.1")
+    implementation("androidx.datastore:datastore-preferences:1.1.1")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
