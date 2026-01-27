@@ -19,6 +19,9 @@ interface RoutineDao {
     @Query("SELECT * FROM routines WHERE id = :id")
     suspend fun getRoutineById(id: Long): RoutineEntity?
 
+    @Query("SELECT * FROM routines WHERE id = :id")
+    fun getRoutineByIdFlow(id: Long): Flow<RoutineEntity?>
+
     @Delete
     suspend fun deleteRoutine(routine: RoutineEntity)
 

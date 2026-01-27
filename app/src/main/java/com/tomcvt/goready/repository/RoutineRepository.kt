@@ -15,6 +15,10 @@ class RoutineRepository(
         return routineDao.getAllRoutinesFlow()
     }
 
+    fun getRoutineByIdFlow(id: Long): Flow<RoutineEntity?> {
+        return routineDao.getRoutineByIdFlow(id)
+    }
+
     suspend fun insertRoutine(routine: RoutineEntity): Long {
         return routineDao.insertRoutine(routine)
     }

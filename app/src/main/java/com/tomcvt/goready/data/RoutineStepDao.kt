@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 
@@ -43,6 +44,15 @@ interface RoutineStepDao {
 
     @Query("DELETE FROM routine_steps WHERE id = :id")
     suspend fun deleteRoutineStepById(id: Long)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertRoutineSteps(routineSteps: List<RoutineStepEntity>)
+
+    @Transaction
+    suspend fun replaceRoutineSteps(routineId: Long, routineSteps: List<RoutineStepEntity>) {
+        deleteRoutineStepsForRoutine(routineId)
+        insertRoutineSteps(routineSteps)
+    }
 
     @Update(onConflict = OnConflictStrategy.REPLACE)
     suspend fun updateRoutineStep(routineStep: RoutineStepEntity)

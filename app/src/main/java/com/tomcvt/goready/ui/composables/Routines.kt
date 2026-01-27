@@ -68,7 +68,7 @@ fun RoutineListRoute(
 
     val onCardClick: (RoutineEntity) -> Unit = {
         viewModel.selectRoutine(it.id)
-        viewModel.openRoutineEditorWithSelectedRoutine()
+        viewModel.openRoutineDetails()
     }
     Box (modifier = Modifier.fillMaxSize()) {
         RoutinesList(
@@ -78,6 +78,13 @@ fun RoutineListRoute(
             onCardClick = onCardClick,
             modifier = modifier
         )
+        if(uiState.isRoutineDetailsOpen) {
+            RoutineDetailsScreen(
+                viewModel = viewModel,
+                //navController = navController,
+                modifier = modifier
+            )
+        }
         if(uiState.isRoutineEditorOpen) {
             RoutineEditor(
                 viewModel = viewModel,
@@ -351,6 +358,117 @@ fun StepEditor(
             }
         }
     }
-
 }
 
+@Composable
+fun RoutineDetailsScreen(
+    viewModel: RoutinesViewModel,
+    //navController: NavHostController,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    val uiState by viewModel.uiState.collectAsState()
+    val routineSteps by viewModel.selectedRoutineSteps.collectAsState()
+    val routineEntity by viewModel.selectedRoutineEntity.collectAsState()
+
+    Box (
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.5f))
+            .clickable { viewModel.closeRoutineDetails() },
+        contentAlignment = Alignment.Center
+    ) {
+        Card(
+            elevation = CardDefaults.cardElevation(8.dp),
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    "Edit routine", style = MaterialTheme.typography.headlineSmall,
+                    textAlign = TextAlign.Center
+                )
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = routineEntity?.name ?: "NULL",
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Text(
+                            text = routineEntity?.icon ?: "N",
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.width(50.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.size(8.dp))
+                    Text(
+                        text = routineEntity?.description ?: "NULL",
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(routineSteps.size) { index ->
+                        val step = routineSteps[index]
+                        Card(
+                            elevation = CardDefaults.cardElevation(8.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                        ) {
+                            Row(
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.fillMaxWidth().padding(16.dp)
+                            ) {
+                                Text(
+                                    step.name,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                Text(
+                                    step.icon,
+                                    modifier = Modifier.width(50.dp)
+                                )
+                                Text(
+                                    step.length.toString(),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    modifier = Modifier.width(50.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+                Button(
+                    onClick = { viewModel.openRoutineEditorWithSelectedRoutine() },
+                    modifier = Modifier.padding(16.dp)
+                ) {
+                    Text("EDIT")
+                } /*
+            FloatingActionButton(
+                onClick = { viewModel.saveRoutine()
+                    viewModel.closeRoutineEditor()
+                    viewModel.clearRoutineEditor() },
+                modifier = Modifier.padding(16.dp),
+                containerColor = MaterialTheme.colorScheme.primary
+            ) {
+                Text("Save")
+            }
+            */
+            }
+        }
+    }
+}

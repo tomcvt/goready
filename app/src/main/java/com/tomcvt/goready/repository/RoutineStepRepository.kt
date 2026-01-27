@@ -23,4 +23,9 @@ class RoutineStepRepository(
     suspend fun deleteRoutineStepsForRoutine(routineId: Long) {
         routineStepDao.deleteRoutineStepsForRoutine(routineId)
     }
+
+    suspend fun replaceRoutineSteps(routineId: Long, routineSteps: List<RoutineStepEntity>) {
+        routineStepDao.replaceRoutineSteps(routineId, routineSteps)
+    }
+
 }

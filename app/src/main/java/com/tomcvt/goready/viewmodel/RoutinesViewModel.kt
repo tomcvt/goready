@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -59,11 +60,24 @@ class RoutinesViewModel(
                 initialValue = emptyList()
             )
 
+    val selectedRoutineEntity: StateFlow<RoutineEntity?> =
+        selectedRoutineId.filterNotNull()
+            .flatMapLatest { id ->
+                routinesManager.getRoutineByIdFlow(id)
+            }.filterNotNull()
+            .stateIn(
+                viewModelScope,
+                started = kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(1000),
+                initialValue = null
+            )
+
     fun openRoutineEditorWithSelectedRoutine() {
         viewModelScope.launch {
             val routineId = selectedRoutineId.value ?: return@launch
             val routine = routinesManager.getRoutineById(routineId) ?: return@launch
-            val steps = selectedRoutineSteps.value
+            val stepsFlow = routinesManager.getRoutineStepsWithDefinitionFlow(routineId)
+            val steps = stepsFlow.first()
+
             //TODO think about emmbedable
             val stepsList = steps.map(
                 transform = { Pair(StepDefinitionEntity(
@@ -76,6 +90,7 @@ class RoutinesViewModel(
             )
             _routineEditorState.update {
                 it.copy(
+                    id = routine.id,
                     name = routine.name,
                     description = routine.description,
                     icon = routine.icon,
@@ -86,14 +101,23 @@ class RoutinesViewModel(
         }
     }
 
+    fun openRoutineDetails() {
+        _uiState.update { it.copy(isRoutineDetailsOpen = true) }
+    }
+
+    fun closeRoutineDetails() {
+        _uiState.update { it.copy(isRoutineDetailsOpen = false) }
+    }
+
     //fun getStepWithDefinitionFlow(routineId: Long) = routinesManager.getRoutineStepsFlow(routineId)
 
     fun clearSuccessMessage() {
         _uiState.update { it.copy(successMessage = null) }
     }
 
+    //routineId not used here
     fun addRoutineInEditor(routineId: Long) {
-        //TODO add editing later
+        _routineEditorState.value = RoutineEditorState()
         _uiState.update { it.copy(isRoutineEditorOpen = true) }
     }
 
@@ -118,6 +142,10 @@ class RoutinesViewModel(
 
     fun selectRoutine(routineId: Long) {
         selectedRoutineId.value = routineId
+    }
+
+    fun unselectRoutine() {
+        selectedRoutineId.value = null
     }
 
     fun openStepEditor() {
@@ -220,6 +248,7 @@ class RoutinesViewModel(
                 return@launch
             }
             val draft = RoutineDraft(
+                id = s.id,
                 name = s.name,
                 description = s.description,
                 icon = s.icon,
@@ -246,6 +275,7 @@ data class StepDefinitionState (
 )
 
 data class RoutineEditorState(
+    val id: Long? = null,
     val name: String = "",
     val description: String = "",
     val icon: String = "",
@@ -255,6 +285,7 @@ data class RoutineEditorState(
 data class RoutineUiState(
     val isRoutineEditorOpen: Boolean = false,
     val isStepEditorOpen: Boolean = false,
+    val isRoutineDetailsOpen: Boolean = false,
     val successMessage: String? = null,
     val errorMessage: String? = null
 )

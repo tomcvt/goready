@@ -1,6 +1,8 @@
 package com.tomcvt.goready.manager
 
+import androidx.room.Transaction
 import com.tomcvt.goready.data.RoutineEntity
+import com.tomcvt.goready.data.RoutineStepEntity
 import com.tomcvt.goready.data.StepDefinitionEntity
 import com.tomcvt.goready.domain.RoutineDraft
 import com.tomcvt.goready.domain.StepDefinitionDraft
@@ -14,6 +16,9 @@ class AppRoutinesManager(
     private val stepDefinitionRepository: StepDefinitionRepository
 ) {
     fun getAllRoutinesFlow() = routineRepository.getAllRoutinesFlow()
+
+    fun getRoutineByIdFlow(id: Long) = routineRepository.getRoutineByIdFlow(id)
+
 
     fun getAllStepDefinitionsFlow() = stepDefinitionRepository.getAllStepDefinitionsFlow()
 
@@ -31,20 +36,41 @@ class AppRoutinesManager(
         return stepDefinitionRepository.insertStepDefinition(stepDefinitionEntity)
     }
 
-    suspend fun addRoutine(routineDraft: RoutineDraft) {
-        val routineEntity = routineDraft.toEntity()
-        val routineId = routineRepository.insertRoutine(routineEntity)
+    //Add/edit routine by id
 
-        //TODO add steps
-        for (step in routineDraft.steps) {
-            val routineStepEntity = com.tomcvt.goready.data.RoutineStepEntity(
-                routineId = routineId,
-                stepId = step.first.id,
-                stepNumber = 0,
-                length = step.second.toLong()
-            )
-            //can get i here but for what?
-            routineStepRepository.insertRoutineStep(routineStepEntity)
+    suspend fun addRoutine(routineDraft: RoutineDraft) {
+        if (routineDraft.id == null) {
+            val routineEntity = routineDraft.toEntity()
+            val routineId = routineRepository.insertRoutine(routineEntity)
+
+            //TODO add steps
+            for (i in routineDraft.steps.indices) {
+                val step = routineDraft.steps[i]
+                val routineStepEntity = RoutineStepEntity(
+                    routineId = routineId,
+                    stepId = step.first.id,
+                    stepNumber = i,
+                    length = step.second.toLong()
+                )
+                //can get i here but for what?
+                routineStepRepository.insertRoutineStep(routineStepEntity)
+            }
+        } else {
+            val routineEntity = routineDraft.toEntity()
+            routineRepository.updateRoutine(routineEntity)
+            val routineId = routineEntity.id
+            val list = mutableListOf<RoutineStepEntity>()
+            for (i in routineDraft.steps.indices) {
+                val step = routineDraft.steps[i]
+                val routineStepEntity = RoutineStepEntity(
+                    routineId = routineId,
+                    stepId = step.first.id,
+                    stepNumber = i,
+                    length = step.second.toLong()
+                )
+                list.add(routineStepEntity)
+            }
+            routineStepRepository.replaceRoutineSteps(routineId, list)
         }
     }
 
@@ -65,6 +91,7 @@ private fun StepDefinitionDraft.toEntity() : StepDefinitionEntity {
 
 private fun RoutineDraft.toEntity() : RoutineEntity {
     return RoutineEntity(
+        id = this.id?: 0,
         name = this.name,
         description = this.description,
         icon = this.icon
