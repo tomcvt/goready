@@ -7,6 +7,9 @@ import com.tomcvt.goready.application.AlarmApp
 import com.tomcvt.goready.constants.EXTRA_ROUTINE_ID
 import com.tomcvt.goready.constants.EXTRA_ROUTINE_INFO
 import com.tomcvt.goready.constants.EXTRA_ROUTINE_STEP
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class RoutineReceiver : BroadcastReceiver() {
 
@@ -21,7 +24,15 @@ class RoutineReceiver : BroadcastReceiver() {
         val routineStep = intent.getIntExtra(EXTRA_ROUTINE_STEP, -1)
 
         if (info == "START_ROUTINE") {
-            routineFlowManager.startRoutine(routineId)
+            CoroutineScope(Dispatchers.IO).launch {
+                routineFlowManager.startRoutine(routineId)
+            }
+        }
+
+        if (info == "STEP_FINISHED") {
+            CoroutineScope(Dispatchers.IO).launch {
+                routineFlowManager.stepFinishedTimeout(routineId, routineStep)
+            }
         }
 
     }

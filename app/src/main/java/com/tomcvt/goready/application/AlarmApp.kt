@@ -34,8 +34,14 @@ class AlarmApp : Application() {
     lateinit var routineFlowManager: RoutineFlowManager
         private set
 
+    lateinit var routineScheduler: RoutineScheduler
+        private set
+
     override fun onCreate() {
         super.onCreate()
+
+        val appContext = applicationContext
+
         db = AlarmDatabase.getDatabase(this)
         alarmRepository = AlarmRepository(db.alarmDao())
         //TODO init alarm manager in activities, check if works
