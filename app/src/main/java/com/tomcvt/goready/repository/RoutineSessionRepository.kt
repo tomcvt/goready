@@ -9,6 +9,10 @@ data class RoutineSessionRepository(
 ) {
     fun getRoutineSessionByIdFlow(id: Long) = routineSessionDao.getRoutineSessionByIdFlow(id)
 
+    suspend fun insertRoutineSession(routineSession: RoutineSession) : Long {
+        return routineSessionDao.insertRoutineSession(routineSession)
+    }
+
     suspend fun updateRoutineSession(routineSession: RoutineSession) {
         routineSessionDao.updateRoutineSession(routineSession)
     }

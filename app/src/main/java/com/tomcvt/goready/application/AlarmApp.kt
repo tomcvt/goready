@@ -6,6 +6,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import androidx.emoji2.text.EmojiCompat
 import com.tomcvt.goready.data.AlarmDatabase
 import com.tomcvt.goready.manager.RoutineFlowManager
+import com.tomcvt.goready.manager.RoutineScheduler
 import com.tomcvt.goready.repository.AlarmRepository
 import com.tomcvt.goready.repository.RoutineRepository
 import com.tomcvt.goready.repository.RoutineSessionRepository
@@ -50,14 +51,17 @@ class AlarmApp : Application() {
         routineRepository = RoutineRepository(db.routineDao())
         routineStepRepository = RoutineStepRepository(db.routineStepDao())
         stepDefinitionRepository = StepDefinitionRepository(db.stepDefinitionDao())
-
         routineSessionRepository = RoutineSessionRepository(db.routineSessionDao())
+
+        routineScheduler = RoutineScheduler(this)
 
         routineFlowManager = RoutineFlowManager(
             routineRepository,
             routineStepRepository,
             stepDefinitionRepository,
-            routineSessionRepository
+            routineSessionRepository,
+            routineScheduler,
+            appContext
         )
 
     }

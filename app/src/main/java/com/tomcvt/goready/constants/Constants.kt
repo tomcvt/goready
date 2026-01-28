@@ -2,6 +2,8 @@ package com.tomcvt.goready.constants
 
 const val EXTRA_ALARM_ID = "extra_alarm_id"
 const val EXTRA_REMAINING_SNOOZE = "extra_remaining_snooze"
+
+const val EXTRA_ROUTINE_SESSION_ID = "extra_routine_session_id"
 const val EXTRA_ROUTINE_ID = "extra_routine_id"
 const val EXTRA_ROUTINE_INFO = "extra_routine_info"
 const val EXTRA_ROUTINE_STEP = "extra_routine_step"
