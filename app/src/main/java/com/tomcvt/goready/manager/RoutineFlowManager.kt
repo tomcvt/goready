@@ -57,7 +57,7 @@ class RoutineFlowManager(
         getRoutineFlowChannel()
         //TODO how this notif channel things work
 
-        val uiIntent = routineActivityIntent(sessionId, stepNumber)
+        val uiIntent = routineActivityIntent(sessionId, stepNumber, "RUNNING")
         val pendingIntentUi = PendingIntent.getActivity(
             context,
             SHOW_UI_REQUEST_CODE,
@@ -85,8 +85,9 @@ class RoutineFlowManager(
             .setChronometerCountDown(true)
             .addAction(notifActionUi)
             .build()
-
-
+        //launch
+        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.notify(NOTIF_ID, notification)
     }
 
     suspend fun stepFinishedTimeout(sessionId: Long, routineId: Long, stepNumber: Int) {
