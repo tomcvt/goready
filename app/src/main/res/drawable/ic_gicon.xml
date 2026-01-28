@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="64"
+    android:viewportHeight="64">
+
+    <!-- Background circle -->
+    <path
+        android:fillColor="#2B2238"
+        android:pathData="
+            M32,2
+            A30,30 0 1,1 31.999,2
+            Z" />
+
+    <!-- G outer arc -->
+    <path
+        android:pathData="
+            M48,34
+            A16,16 0 1,1 44,23.4"
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#FF8C42"
+        android:strokeWidth="5"
+        android:strokeLineCap="round" />
+
+    <!-- G inner bar -->
+    <path
+        android:pathData="M32,34 L48,34"
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#FF8C42"
+        android:strokeWidth="5"
+        android:strokeLineCap="round" />
+
+    <!-- Alarm buzzer left -->
+    <path
+        android:pathData="M21.2,13.8 L15.2,18.2"
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#FF8C42"
+        android:strokeWidth="5"
+        android:strokeLineCap="round" />
+
+    <!-- Alarm buzzer right -->
+    <path
+        android:pathData="M42.8,13.8 L48.8,18.2"
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#FF8C42"
+        android:strokeWidth="5"
+        android:strokeLineCap="round" />
+
+</vector>
