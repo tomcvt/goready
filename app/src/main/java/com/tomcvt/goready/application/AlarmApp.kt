@@ -5,16 +5,34 @@ import android.content.Context
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.emoji2.text.EmojiCompat
 import com.tomcvt.goready.data.AlarmDatabase
+import com.tomcvt.goready.manager.RoutineFlowManager
 import com.tomcvt.goready.repository.AlarmRepository
+import com.tomcvt.goready.repository.RoutineRepository
+import com.tomcvt.goready.repository.RoutineSessionRepository
+import com.tomcvt.goready.repository.RoutineStepRepository
+import com.tomcvt.goready.repository.StepDefinitionRepository
 
 class AlarmApp : Application() {
     lateinit var alarmRepository: AlarmRepository
         private set
 
+    lateinit var routineRepository: RoutineRepository
+        private set
+
+    lateinit var routineStepRepository: RoutineStepRepository
+        private set
+
+    lateinit var stepDefinitionRepository: StepDefinitionRepository
+        private set
+
+    lateinit var routineSessionRepository: RoutineSessionRepository
+        private set
+
     lateinit var db : AlarmDatabase
         private set
 
-    val Context.routineDataStore by preferencesDataStore(name = "routine_session")
+    lateinit var routineFlowManager: RoutineFlowManager
+        private set
 
     override fun onCreate() {
         super.onCreate()
@@ -22,6 +40,19 @@ class AlarmApp : Application() {
         alarmRepository = AlarmRepository(db.alarmDao())
         //TODO init alarm manager in activities, check if works
         EmojiCompat.init(this)
+
+        routineRepository = RoutineRepository(db.routineDao())
+        routineStepRepository = RoutineStepRepository(db.routineStepDao())
+        stepDefinitionRepository = StepDefinitionRepository(db.stepDefinitionDao())
+
+        routineSessionRepository = RoutineSessionRepository(db.routineSessionDao())
+
+        routineFlowManager = RoutineFlowManager(
+            routineRepository,
+            routineStepRepository,
+            stepDefinitionRepository,
+            routineSessionRepository
+        )
 
     }
 }
