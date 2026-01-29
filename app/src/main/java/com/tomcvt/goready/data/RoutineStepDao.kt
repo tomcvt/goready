@@ -32,6 +32,23 @@ interface RoutineStepDao {
     """)
     fun getRoutineStepsWithDefinitionFlow(routineId: Long): Flow<List<StepWithDefinition>>
 
+    @Query("""
+        SELECT
+            rs.id,
+            rs.routineId,
+            rs.stepId,
+            rs.stepNumber,
+            rs.length,
+            sd.stepType,
+            sd.name,
+            sd.description,
+            sd.icon
+        FROM routine_steps rs
+        JOIN step_definitions sd ON rs.stepId = sd.id
+        WHERE rs.routineId = :routineId AND rs.stepNumber = :stepNumber
+    """)
+    fun getRoutineStepByNumberFlow(routineId: Long, stepNumber: Int): Flow<StepWithDefinition?>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertRoutineStep(routineStep: RoutineStepEntity) : Long
 

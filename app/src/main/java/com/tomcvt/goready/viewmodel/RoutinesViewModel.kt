@@ -36,9 +36,9 @@ class RoutinesViewModel(
     private val _uiEvents = MutableSharedFlow<UiEvent>()
     val uiEvents = _uiEvents.asSharedFlow()
 
-    fun launchRoutine(routineId: Long) {
+    fun openRoutineLauncher(routineId: Long) {
         viewModelScope.launch {
-            _uiEvents.emit(UiEvent.LaunchRoutine(routineId))
+            _uiEvents.emit(UiEvent.OpenRoutineLauncher(routineId))
         }
     }
 
@@ -301,7 +301,7 @@ data class RoutineUiState(
 )
 
 sealed class UiEvent {
-    data class LaunchRoutine(val routineId: Long) : UiEvent()
+    data class OpenRoutineLauncher(val routineId: Long) : UiEvent()
 }
 
 private fun validateStepData(state: StepDefinitionState) : Boolean {

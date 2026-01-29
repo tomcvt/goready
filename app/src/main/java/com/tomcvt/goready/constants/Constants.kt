@@ -8,6 +8,11 @@ const val EXTRA_ROUTINE_ID = "extra_routine_id"
 const val EXTRA_ROUTINE_INFO = "extra_routine_info"
 const val EXTRA_ROUTINE_STEP = "extra_routine_step"
 
+
+const val ACTION_ROUTINE_LAUNCHER = "ACTION_ROUTINE_LAUNCHER"
+const val ACTION_ROUTINE_STEP_COMPLETE = "ACTION_ROUTINE_STEP_COMPLETE"
+const val ACTION_ROUTINE_COMPLETE = "ACTION_ROUTINE_COMPLETE"
+
 enum class TaskType(
     val label: String,
     val code: Long

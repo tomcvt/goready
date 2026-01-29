@@ -16,6 +16,10 @@ class RoutineStepRepository(
         return routineStepDao.getRoutineStepsWithDefinitionFlow(routineId)
     }
 
+    fun getRoutineStepByNumberFlow(routineId: Long, stepNumber: Int): Flow<StepWithDefinition?> {
+        return routineStepDao.getRoutineStepByNumberFlow(routineId, stepNumber)
+    }
+
     suspend fun insertRoutineStep(routineStep: RoutineStepEntity) : Long {
         return routineStepDao.insertRoutineStep(routineStep)
     }

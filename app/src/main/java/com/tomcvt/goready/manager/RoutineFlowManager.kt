@@ -39,6 +39,15 @@ class RoutineFlowManager(
     private val context: Context
 ) {
 
+    fun getRoutineSessionByIdFlow(sessionId: Long) = routineSessionRepository.getRoutineSessionByIdFlow(sessionId)
+
+    fun getRoutineByIdFlow(routineId: Long) = routineRepository.getRoutineByIdFlow(routineId)
+
+    fun getRoutineStepsWithDefinitionFlow(routineId: Long) = routineStepRepository.getRoutineStepsWithDefinitionFlow(routineId)
+
+    fun getRoutineStepByNumberFlow(routineId: Long, stepNumber: Int) = routineStepRepository.getRoutineStepByNumberFlow(routineId, stepNumber)
+
+
     suspend fun stepStartedPersistentNotify(sessionId: Long, routineId: Long, stepNumber: Int) {
         val session = routineSessionRepository.getRoutineSessionByIdFlow(sessionId).first()
         if (session == null) {

@@ -68,7 +68,7 @@ fun RoutineListRoute(
     LaunchedEffect(Unit) {
         viewModel.uiEvents.collect {
             when (it) {
-                is UiEvent.LaunchRoutine ->  {
+                is UiEvent.OpenRoutineLauncher ->  {
                     val intent = Intent(
                         context,
                         RoutineFlowActivity::class.java
@@ -99,7 +99,7 @@ fun RoutineListRoute(
             onDeleteClick = onDeleteClick,
             onCardClick = onCardClick,
             onStartClick = {
-                viewModel.launchRoutine(it.id)
+                viewModel.openRoutineLauncher(it.id)
             },
             modifier = modifier
         )
