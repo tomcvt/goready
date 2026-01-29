@@ -118,6 +118,7 @@ class RoutineFlowActivity : ComponentActivity() {
         Log.d(TAG, "onNewIntent: action, rId: $action, $sessionId, $routineId, $stepNumber, $info")
         setContent {
             GoReadyTheme {
+                val vm = viewModel<RoutineFlowViewModel>(factory = routineFlowViewModelFactory)
                 if (action == ACTION_ROUTINE_LAUNCHER) {
                     val vm = viewModel<RoutineFlowViewModel>(factory = routineFlowViewModelFactory)
                     vm.setLauncherOverlay(true)

@@ -27,7 +27,7 @@ fun RoutineFlowContent(
     val sessionState by viewModel.sessionState.collectAsState()
 
     Box(
-        modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize()
     ) {
         if (uiState.launcherOverlay) {
             RoutineLauncherView(viewModel, uiState.launcherRoutineId)
