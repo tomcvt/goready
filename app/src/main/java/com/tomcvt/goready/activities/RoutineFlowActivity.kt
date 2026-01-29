@@ -35,12 +35,15 @@ class RoutineFlowActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         appObject = (application as AlarmApp)
+        /*
         appRoutinesManager = AppRoutinesManager(
             RoutineRepository(appObject.db.routineDao()),
             RoutineStepRepository(appObject.db.routineStepDao()),
             StepDefinitionRepository(appObject.db.stepDefinitionDao())
         )
         routinesViewModelFactory = RoutinesViewModelFactory(appRoutinesManager)
+
+         */
 
         val sessionId = intent.getLongExtra(EXTRA_ROUTINE_SESSION_ID, -1L)
         val stepNumber = intent.getIntExtra(EXTRA_ROUTINE_STEP, -1)
