@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import com.tomcvt.goready.application.AlarmApp
+import com.tomcvt.goready.constants.ACTION_STEP_TIMEOUT
 import com.tomcvt.goready.constants.EXTRA_ROUTINE_ID
 import com.tomcvt.goready.constants.EXTRA_ROUTINE_INFO
 import com.tomcvt.goready.constants.EXTRA_ROUTINE_SESSION_ID
@@ -39,7 +40,7 @@ class RoutineReceiver : BroadcastReceiver() {
             }
         }
 
-        if (action == "ACTION_STEP_TIMEOUT") {
+        if (action == ACTION_STEP_TIMEOUT) {
             CoroutineScope(Dispatchers.IO).launch {
                 routineFlowManager.stepFinishedTimeout(sessionId, routineId, routineStep)
             }

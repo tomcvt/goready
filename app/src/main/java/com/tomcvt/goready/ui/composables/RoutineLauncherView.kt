@@ -17,8 +17,7 @@ import com.tomcvt.goready.viewmodel.RoutineFlowViewModel
 
 @Composable
 fun RoutineLauncherView(
-    viewModel: RoutineFlowViewModel,
-    routineId: Long
+    viewModel: RoutineFlowViewModel
 ) {
     val sessionId by viewModel.selectedSessionId.collectAsState()
     val uiState by viewModel.flowUiState.collectAsState()
@@ -33,7 +32,7 @@ fun RoutineLauncherView(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text("Selected session: $sessionId")
-            Text("RoutineLauncherView: $routineId")
+            Text("RoutineLauncherView: ${uiState.launcherRoutineId}")
             Button(
                 onClick = { viewModel.launchRoutine(uiState.launcherRoutineId) }
             ) {

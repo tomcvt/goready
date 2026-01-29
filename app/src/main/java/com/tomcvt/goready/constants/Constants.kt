@@ -8,10 +8,20 @@ const val EXTRA_ROUTINE_ID = "extra_routine_id"
 const val EXTRA_ROUTINE_INFO = "extra_routine_info"
 const val EXTRA_ROUTINE_STEP = "extra_routine_step"
 
-
-const val ACTION_ROUTINE_LAUNCHER = "ACTION_ROUTINE_LAUNCHER"
-const val ACTION_ROUTINE_STEP_COMPLETE = "ACTION_ROUTINE_STEP_COMPLETE"
+// communication between activity/service and receiver (timeouts too)
+const val ACTION_START_ROUTINE = "ACTION_START_ROUTINE"
+const val ACTION_STEP_TIMEOUT = "ACTION_STEP_TIMEOUT"
+const val ACTION_STEP_COMPLETE = "ACTION_STEP_COMPLETE"
 const val ACTION_ROUTINE_COMPLETE = "ACTION_ROUTINE_COMPLETE"
+
+
+// activity launching intents
+const val ACTION_RF_UI_LAUNCHER = "ACTION_RF_UI_LAUNCHER"
+const val ACTION_RF_UI_SHOW = "ACTION_RF_UI_SHOW"
+const val ACTION_RF_UI_STEP_TIMEOUT = "ACTION_RF_UI_STEP_TIMEOUT"
+const val ACTION_RF_UI_STEP_COMPLETE = "ACTION_ROUTINE_STEP_COMPLETE"
+//alarms
+const val ACTION_ALARM_TRIGGERED = "ACTION_ALARM_TRIGGERED"
 
 enum class TaskType(
     val label: String,

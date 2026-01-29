@@ -30,7 +30,10 @@ fun RoutineFlowContent(
         modifier = Modifier.fillMaxSize()
     ) {
         if (uiState.launcherOverlay) {
-            RoutineLauncherView(viewModel, uiState.launcherRoutineId)
+            RoutineLauncherView(viewModel)
+        } else {
+            RoutineFlowView(viewModel)
+        }
     }
 }
 

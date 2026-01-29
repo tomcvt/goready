@@ -56,9 +56,6 @@ import com.tomcvt.goready.ui.composables.AlarmsNavHost
 import com.tomcvt.goready.ui.composables.HomeScreen
 import com.tomcvt.goready.ui.composables.RoutineListRoute
 import com.tomcvt.goready.ui.composables.SettingsView
-import com.tomcvt.goready.ui.navigation.LocalRootNavigator
-import com.tomcvt.goready.ui.navigation.RootNavigatorImpl
-import com.tomcvt.goready.ui.navigation.RootTab
 import com.tomcvt.goready.ui.theme.GoReadyTheme
 import com.tomcvt.goready.viewmodel.AlarmViewModel
 import com.tomcvt.goready.viewmodel.AlarmViewModelFactory
@@ -99,7 +96,6 @@ class MainActivity : ComponentActivity() {
         alarmViewModelFactory = AlarmViewModelFactory(appAlarmManager)
         routinesViewModelFactory = RoutinesViewModelFactory(appRoutinesManager)
 
-        val systemAlarmManager = this.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
         /*
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             Log.d("MainActivity", "SystemAlarmManager: $systemAlarmManager")
@@ -173,22 +169,14 @@ class MainActivity : ComponentActivity() {
         }
         enableEdgeToEdge()
         setContent {
-            //val alarmViewModel: AlarmViewModel = AlarmViewModelProvider.provideAlarmViewModel(this)
-            val rootNavigator = remember { RootNavigatorImpl(start = RootTab.HOME) }
-            //TODO root navigator and comp local provider not needed here
-            CompositionLocalProvider(
-                LocalRootNavigator provides rootNavigator
-            ) {
-                GoReadyTheme {
-                    if (alarmId != -1L) {
-                        GoReadyApp(
-                            alarmViewModelFactory, routinesViewModelFactory, alarmId)
-                    } else {
-                        GoReadyApp(alarmViewModelFactory, routinesViewModelFactory)
-                    }
+            GoReadyTheme {
+                if (alarmId != -1L) {
+                    GoReadyApp(
+                        alarmViewModelFactory, routinesViewModelFactory, alarmId)
+                } else {
+                    GoReadyApp(alarmViewModelFactory, routinesViewModelFactory)
                 }
             }
-
         }
     }
 }
@@ -270,6 +258,15 @@ fun GoReadyApp(alarmViewModelFactory: AlarmViewModelFactory,
     }
 }
 
+enum class RootTab(val label: String,
+                   val icon: ImageVector,
+) {
+    HOME("Home", Icons.Default.Home),
+    ALARMS("Alarms", Icons.Default.Home),
+    SETTINGS("Profile", Icons.Default.Settings),
+    ADD_ALARM("Add Alarm", Icons.Default.AddCircle);
+}
+
 
 
 enum class AppDestinations(
@@ -319,3 +316,4 @@ fun AddAlarmViewPreview() {
         //AddAlarmView(dummyViewModel)
     }
 }
+

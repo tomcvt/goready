@@ -41,6 +41,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.tomcvt.goready.activities.RoutineFlowActivity
+import com.tomcvt.goready.constants.ACTION_RF_UI_LAUNCHER
 import com.tomcvt.goready.constants.EXTRA_ROUTINE_ID
 import com.tomcvt.goready.data.AlarmEntity
 import com.tomcvt.goready.data.RoutineEntity
@@ -74,7 +75,7 @@ fun RoutineListRoute(
                         RoutineFlowActivity::class.java
                     ).apply {
                         putExtra(EXTRA_ROUTINE_ID, it.routineId)
-                        setAction("ACTION_ROUTINE_LAUNCHER")
+                        setAction(ACTION_RF_UI_LAUNCHER)
                     }
                     context.startActivity(intent)
                 }

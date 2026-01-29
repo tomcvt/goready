@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.util.Log
+import com.tomcvt.goready.constants.ACTION_STEP_TIMEOUT
 import com.tomcvt.goready.constants.EXTRA_ROUTINE_ID
 import com.tomcvt.goready.constants.EXTRA_ROUTINE_INFO
 import com.tomcvt.goready.constants.EXTRA_ROUTINE_SESSION_ID
@@ -26,7 +27,7 @@ class RoutineScheduler(private val context: Context) {
             putExtra(EXTRA_ROUTINE_SESSION_ID, sessionId)
             putExtra(EXTRA_ROUTINE_ID, routineId)
             putExtra(EXTRA_ROUTINE_STEP, stepNumber)
-            setAction("ACTION_STEP_TIMEOUT")
+            setAction(ACTION_STEP_TIMEOUT)
         }
         val requestCode = hashRequestCode(sessionId)
         val pendingIntent = PendingIntent.getBroadcast(
@@ -44,7 +45,7 @@ class RoutineScheduler(private val context: Context) {
     fun cancelStepTimeout(sessionId: Long) {
         val intent = Intent(appContext, RoutineReceiver::class.java).apply {
             //putExtra(EXTRA_ROUTINE_SESSION_ID, sessionId)
-            setAction("ACTION_STEP_TIMEOUT")
+            setAction(ACTION_STEP_TIMEOUT)
         }
         val requestCode = hashRequestCode(sessionId)
         val pendingIntent = PendingIntent.getBroadcast(

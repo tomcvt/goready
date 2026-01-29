@@ -10,6 +10,7 @@ import android.provider.Settings
 import android.util.Log
 import androidx.annotation.RequiresPermission
 import com.tomcvt.goready.MainActivity
+import com.tomcvt.goready.constants.ACTION_ALARM_TRIGGERED
 import com.tomcvt.goready.constants.EXTRA_ALARM_ID
 import com.tomcvt.goready.constants.EXTRA_REMAINING_SNOOZE
 import com.tomcvt.goready.manager.AlarmReceiver
@@ -30,6 +31,7 @@ class SystemAlarmScheduler(private val context: Context) {
             , AlarmReceiver::class.java).apply {
             putExtra(EXTRA_ALARM_ID, alarmId)
             putExtra(EXTRA_REMAINING_SNOOZE, remainingSnooze)
+            setAction(ACTION_ALARM_TRIGGERED)
         }
 
         val pendingIntent = PendingIntent.getBroadcast(
@@ -38,35 +40,29 @@ class SystemAlarmScheduler(private val context: Context) {
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        /*
-        Log.d("AlarmScheduler", "Intent appContext name: ${appContext}")
-        Log.d("AlarmScheduler", "Intent package name: ${intent.component?.packageName.toString()}")
-        Log.d("AlarmScheduler", "Intent action: ${intent.action.toString()}")
-        Log.d("AlarmScheduler", "Intent data: ${intent.data.toString()}")
-        Log.d("AlarmScheduler", "Intent extras: ${intent.extras.toString()}")
-        Log.d("AlarmScheduler", "Scheduling alarm with ID: $alarmId and PendingIntent: $pendingIntent")
-        Log.d("AlarmScheduler", "Scheduling alarm with ID: $alarmId and intent: $intent")
-        */
 
+        //printDebug(context, intent, alarmId, pendingIntent)
 
-        // For simplicity, exact alarm at hour:minute
         var triggerTime = Calendar.getInstance().apply {
             set(Calendar.HOUR_OF_DAY, alarm.hour)
             set(Calendar.MINUTE, alarm.minute)
             set(Calendar.SECOND, 0)
             set(Calendar.MILLISECOND, 0)
-        }.timeInMillis
-        //TODO change to calendar logic
-        if (triggerTime <= System.currentTimeMillis()) {
-            // If time has already passed today, set for tomorrow
-            triggerTime += 24 * 60 * 60 * 1000
         }
+        //TODO change to calendar logic
+        if (triggerTime.timeInMillis <= System.currentTimeMillis()) {
+            // If time has already passed today, set for tomorrow
+            //triggerTime += 24 * 60 * 60 * 1000
+            triggerTime.add(Calendar.DAY_OF_MONTH, 1)
+        }
+        var triggerTimeMillis = triggerTime.timeInMillis
+
 
         Log.d(
             "ALARM_DEBUG",
             "now=${Date(System.currentTimeMillis())}, " +
                     "alarm.hour=${alarm.hour}, alarm.minute=${alarm.minute}, " +
-                    "calendar=${Date(triggerTime)}"
+                    "calendar=${Date(triggerTimeMillis)}"
         )
 
         //triggerTime = System.currentTimeMillis() + 15000
@@ -82,7 +78,7 @@ class SystemAlarmScheduler(private val context: Context) {
             )*/
             scheduleAlarmClock(
                 alarmId,
-                triggerTime,
+                triggerTimeMillis,
                 pendingIntent
             )
         } catch (e: SecurityException ) {
@@ -96,6 +92,7 @@ class SystemAlarmScheduler(private val context: Context) {
             , AlarmReceiver::class.java).apply {
             putExtra(EXTRA_ALARM_ID, alarmId)
             putExtra(EXTRA_REMAINING_SNOOZE, remainingSnooze)
+            setAction(ACTION_ALARM_TRIGGERED)
         }
 
         val pendingIntent = PendingIntent.getBroadcast(
@@ -110,7 +107,7 @@ class SystemAlarmScheduler(private val context: Context) {
         }.timeInMillis
 
         if (triggerTime <= System.currentTimeMillis()) {
-            Log.d("AlarmScheduler", "Snooze time is in the past, some bug occurred")
+            Log.e("AlarmScheduler", "Snooze time is in the past, some bug occurred")
             return
         }
 
@@ -132,14 +129,15 @@ class SystemAlarmScheduler(private val context: Context) {
     }
 
     fun cancelAlarm(alarm: AlarmEntity) {
-        val intent = Intent(appContext, AlarmReceiver::class.java)
+        val intent = Intent(appContext, AlarmReceiver::class.java).apply {
+            setAction(ACTION_ALARM_TRIGGERED)
+        }
         val pendingIntent = PendingIntent.getBroadcast(
             appContext,
             alarm.id.toInt(),
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        //val appAlarmManager = appContext.getSystemService(Context.ALARM_SERVICE) as android.app.AppAlarmManager
         alarmManager.cancel(pendingIntent)
         Log.d("AlarmScheduler", "Intent Alarm cancelled with ID: ${alarm.id}")
     }
@@ -163,7 +161,6 @@ class SystemAlarmScheduler(private val context: Context) {
             triggerTime,
             pendingIntent
         )
-
          */
         scheduleAlarmClock(
             alarmId,
@@ -213,5 +210,20 @@ class SystemAlarmScheduler(private val context: Context) {
         //TODO implement show intent
         val alarmClockInfo = AlarmManager.AlarmClockInfo(triggerTime, showPending)
         alarmManager.setAlarmClock(alarmClockInfo, pendingIntent)
+    }
+
+    fun printDebug(
+        context: Context,
+        intent: Intent,
+        alarmId: Long,
+        pendingIntent: PendingIntent
+    ) {
+        Log.d("AlarmScheduler", "Intent context name: ${context}")
+        Log.d("AlarmScheduler", "Intent package name: ${intent.component?.packageName.toString()}")
+        Log.d("AlarmScheduler", "Intent action: ${intent.action.toString()}")
+        Log.d("AlarmScheduler", "Intent data: ${intent.data.toString()}")
+        Log.d("AlarmScheduler", "Intent extras: ${intent.extras.toString()}")
+        Log.d("AlarmScheduler", "Scheduling alarm with ID: $alarmId and PendingIntent: $pendingIntent")
+        Log.d("AlarmScheduler", "Scheduling alarm with ID: $alarmId and intent: $intent")
     }
 }

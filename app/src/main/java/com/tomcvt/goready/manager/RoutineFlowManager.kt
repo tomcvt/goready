@@ -13,6 +13,8 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.tomcvt.goready.R
 import com.tomcvt.goready.activities.RoutineFlowActivity
+import com.tomcvt.goready.constants.ACTION_RF_UI_STEP_TIMEOUT
+import com.tomcvt.goready.constants.ACTION_RF_UI_SHOW
 import com.tomcvt.goready.constants.EXTRA_ROUTINE_INFO
 import com.tomcvt.goready.constants.EXTRA_ROUTINE_SESSION_ID
 import com.tomcvt.goready.constants.EXTRA_ROUTINE_STEP
@@ -61,12 +63,14 @@ class RoutineFlowManager(
         }
         val steps = routineStepRepository.getRoutineStepsWithDefinitionFlow(routineId).first()
         val isLastStep = stepNumber == steps.size - 1
+        Log.d(TAG, "isLastStep: $isLastStep")
+
         val timeoutMinutes = steps[stepNumber].length
 
         getRoutineFlowChannel()
         //TODO how this notif channel things work
 
-        val uiIntent = routineActivityIntent(sessionId, stepNumber, "RUNNING")
+        val uiIntent = routineActivityIntentShowUiPersistent(sessionId, stepNumber, "RUNNING")
         val pendingIntentUi = PendingIntent.getActivity(
             context,
             SHOW_UI_REQUEST_CODE,
@@ -118,7 +122,7 @@ class RoutineFlowManager(
         getRoutineFlowChannel()
         //TODO how this notif channel things work
 
-        val uiIntent = routineActivityIntent(sessionId, stepNumber)
+        val uiIntent = routineActivityIntentShowUiStepTimeout(sessionId, stepNumber)
         val pendingIntentUi = PendingIntent.getActivity(
             context,
             SHOW_UI_REQUEST_CODE,
@@ -199,14 +203,26 @@ class RoutineFlowManager(
         }
     }
 
-    private fun routineActivityIntent(sessionId: Long, stepNumber: Int, info: String? = null) : Intent {
+    private fun routineActivityIntentShowUiPersistent(sessionId: Long, stepNumber: Int, info: String? = null) : Intent {
         val intent = Intent(context, RoutineFlowActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or
                     Intent.FLAG_ACTIVITY_CLEAR_TOP
             putExtra(EXTRA_ROUTINE_SESSION_ID, sessionId)
             putExtra(EXTRA_ROUTINE_STEP, stepNumber)
             putExtra(EXTRA_ROUTINE_INFO, info)
-            setAction("ACTION_SHOW_UI")
+            setAction(ACTION_RF_UI_SHOW)
+        }
+        return intent
+    }
+
+    private fun routineActivityIntentShowUiStepTimeout(sessionId: Long, stepNumber: Int, info: String? = null) : Intent {
+        val intent = Intent(context, RoutineFlowActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+                    Intent.FLAG_ACTIVITY_CLEAR_TOP
+            putExtra(EXTRA_ROUTINE_SESSION_ID, sessionId)
+            putExtra(EXTRA_ROUTINE_STEP, stepNumber)
+            putExtra(EXTRA_ROUTINE_INFO, info)
+            setAction(ACTION_RF_UI_STEP_TIMEOUT)
         }
         return intent
     }

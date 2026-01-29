@@ -15,13 +15,20 @@ import com.tomcvt.goready.constants.EXTRA_REMAINING_SNOOZE
 import com.tomcvt.goready.service.AlarmForegroundService
 
 class AlarmReceiver : BroadcastReceiver() {
+
+    //TODO !!!! after alarm intent received,
+    // -> if next days enabled, schedule next, if not next days disable, extra is first alarm, if yes do the things and check if enabled, if not dont check enabled
+    companion object {
+        private const val TAG = "AlarmReceiver"
+    }
+
+
     override fun onReceive(context: Context, intent: Intent) {
-        //TODO what about getAction
+
         val alarmId = intent.getLongExtra(EXTRA_ALARM_ID, -1L)
         val remainingSnooze = intent.getIntExtra(EXTRA_REMAINING_SNOOZE, -1)
-        Log.d("AlarmReceiver", "Alarm received with ID: $alarmId and snooze: $remainingSnooze")
-        // Here you can trigger a notification, play a sound, vibrate, etc.
-        //showNotification(context, alarmId)
+        Log.d(TAG, "Alarm received with ID: $alarmId and snooze: $remainingSnooze")
+        Log.d(TAG, "Intent action: ${intent.action.toString()}")
 
         val serviceIntent = Intent(context, AlarmForegroundService::class.java).apply {
             putExtra(EXTRA_ALARM_ID, alarmId)
@@ -30,6 +37,8 @@ class AlarmReceiver : BroadcastReceiver() {
         ContextCompat.startForegroundService(context, serviceIntent)
     }
 
+
+    //TODO implement next alarm notification
     private fun showNotification(context: Context, alarmId: Long) {
         val notificationManager =
             context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
