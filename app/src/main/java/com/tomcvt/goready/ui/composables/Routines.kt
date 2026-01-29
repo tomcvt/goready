@@ -1,5 +1,6 @@
 package com.tomcvt.goready.ui.composables
 
+import android.content.Intent
 import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -28,6 +29,7 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -38,6 +40,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import com.tomcvt.goready.activities.RoutineFlowActivity
+import com.tomcvt.goready.constants.EXTRA_ROUTINE_ID
 import com.tomcvt.goready.data.AlarmEntity
 import com.tomcvt.goready.data.RoutineEntity
 import com.tomcvt.goready.test.launchAlarmNow
@@ -46,6 +50,7 @@ import com.tomcvt.goready.util.hasExactlyOneGrapheme
 import com.tomcvt.goready.util.isExactlyOneEmoji
 import com.tomcvt.goready.viewmodel.AlarmViewModel
 import com.tomcvt.goready.viewmodel.RoutinesViewModel
+import com.tomcvt.goready.viewmodel.UiEvent
 import java.time.DayOfWeek
 import java.util.Locale
 
@@ -59,12 +64,29 @@ fun RoutineListRoute(
     val context = LocalContext.current
     val routineList by viewModel.routinesStateFlow.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
+
+    LaunchedEffect(Unit) {
+        viewModel.uiEvents.collect {
+            when (it) {
+                is UiEvent.LaunchRoutine ->  {
+                    val intent = Intent(
+                        context,
+                        RoutineFlowActivity::class.java
+                    ).apply {
+                        putExtra(EXTRA_ROUTINE_ID, it.routineId)
+                        setAction("ACTION_ROUTINE_LAUNCHER")
+                    }
+                    context.startActivity(intent)
+                }
+            }
+        }
+    }
+
     val onAddRoutineClick = {
         //For now just adding
         viewModel.addRoutineInEditor(0)
     }
     val onDeleteClick: (RoutineEntity) -> Unit = { routine: RoutineEntity -> viewModel.deleteRoutine(routine) }
-
 
     val onCardClick: (RoutineEntity) -> Unit = {
         viewModel.selectRoutine(it.id)
@@ -76,6 +98,9 @@ fun RoutineListRoute(
             onAddClick = onAddRoutineClick,
             onDeleteClick = onDeleteClick,
             onCardClick = onCardClick,
+            onStartClick = {
+                viewModel.launchRoutine(it.id)
+            },
             modifier = modifier
         )
         if(uiState.isRoutineDetailsOpen) {
@@ -114,6 +139,7 @@ fun RoutinesList(
     onAddClick: () -> Unit,
     onDeleteClick: (RoutineEntity) -> Unit,
     onCardClick: (RoutineEntity) -> Unit,
+    onStartClick: (RoutineEntity) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Box(modifier = modifier.fillMaxSize()) {
@@ -132,6 +158,7 @@ fun RoutinesList(
                         icon = routine.icon,
                         onDelete = { onDeleteClick(routine) },
                         onCardClick = { onCardClick(routine) },
+                        onStartClick = { onStartClick(routine) },
                         modifier = Modifier.padding(8.dp)
                     )
                 }
@@ -161,6 +188,7 @@ fun RoutineCard(
     icon: String,
     onDelete: () -> Unit,
     onCardClick: () -> Unit,
+    onStartClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Box(modifier = modifier.fillMaxWidth()) {
@@ -181,11 +209,28 @@ fun RoutineCard(
         }
 
         // The Delete Button
-        SimpleDeleteButton(
-            onDelete = onDelete,
+        Row (
             modifier = Modifier
                 .align(Alignment.TopEnd)
-        )
+                .padding(10.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            SimpleStartButton(
+                onStart = onStartClick,
+                modifier = Modifier,
+                size = 32.dp,
+                contentDescription = "Start Routine"
+            )
+            FlexDeleteButton(
+                onDelete = onDelete,
+                modifier = Modifier,
+                size = 32.dp,
+                contentDescription = "Delete Routine"
+            )
+        }
+
+        // The Start Button
+
 
     }
 }

@@ -12,8 +12,10 @@ import com.tomcvt.goready.domain.RoutineDraft
 import com.tomcvt.goready.domain.StepDefinitionDraft
 import com.tomcvt.goready.manager.AppRoutinesManager
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
@@ -31,6 +33,14 @@ class RoutinesViewModel(
     //val uiState: StateFlow<UiState> = _uiState
     private val _uiState = MutableStateFlow<RoutineUiState>(RoutineUiState())
     val uiState: StateFlow<RoutineUiState> = _uiState.asStateFlow()
+    private val _uiEvents = MutableSharedFlow<UiEvent>()
+    val uiEvents = _uiEvents.asSharedFlow()
+
+    fun launchRoutine(routineId: Long) {
+        viewModelScope.launch {
+            _uiEvents.emit(UiEvent.LaunchRoutine(routineId))
+        }
+    }
 
     private val _stepEditorState =
         MutableStateFlow(StepDefinitionState())
@@ -289,6 +299,10 @@ data class RoutineUiState(
     val successMessage: String? = null,
     val errorMessage: String? = null
 )
+
+sealed class UiEvent {
+    data class LaunchRoutine(val routineId: Long) : UiEvent()
+}
 
 private fun validateStepData(state: StepDefinitionState) : Boolean {
     //TODO for now we dont care about the type

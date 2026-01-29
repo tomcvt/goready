@@ -157,6 +157,7 @@ class RoutineFlowManager(
         )
         val sessionId = routineSessionRepository.insertRoutineSession(session)
         routineScheduler.scheduleStepTimeout(sessionId, routineId, 0, firstEndTimeMinutes.toInt())
+        stepStartedPersistentNotify(sessionId, routineId, 0)
         return sessionId
     }
 
@@ -196,6 +197,7 @@ class RoutineFlowManager(
             putExtra(EXTRA_ROUTINE_SESSION_ID, sessionId)
             putExtra(EXTRA_ROUTINE_STEP, stepNumber)
             putExtra(EXTRA_ROUTINE_INFO, info)
+            setAction("ACTION_SHOW_UI")
         }
         return intent
     }
