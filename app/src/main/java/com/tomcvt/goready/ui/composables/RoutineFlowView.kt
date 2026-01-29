@@ -1,6 +1,8 @@
 package com.tomcvt.goready.ui.composables
 
 import android.os.SystemClock
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Text
@@ -11,9 +13,26 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import com.tomcvt.goready.viewmodel.RoutineFlowViewModel
 import kotlinx.coroutines.delay
+
+@Composable
+fun RoutineFlowContent(
+    viewModel: RoutineFlowViewModel
+) {
+    val uiState by viewModel.flowUiState.collectAsState()
+    val sessionState by viewModel.sessionState.collectAsState()
+
+    Box(
+        modifier.fillMaxSize(),
+    ) {
+        if (uiState.launcherOverlay) {
+            RoutineLauncherView(viewModel, uiState.launcherRoutineId)
+    }
+}
 
 @Composable
 fun RoutineFlowView(
@@ -27,9 +46,11 @@ fun RoutineFlowView(
 
 
     Column(
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Text(text = "Session: ${sessionState}")
+        Text(text = "Session state: ${sessionState}")
         Text(text = "Routine: ${currentRoutine}")
         Text(text = "Step: ${currentStep}")
         Text(text = "Step start time: ${sessionState?.startTime}")
@@ -50,7 +71,7 @@ fun StepTimer(
         LaunchedEffect(currentFinishTime) {
             while (true) {
                 val remainingMs =
-                    currentFinishTime!! - SystemClock.elapsedRealtime()
+                    currentFinishTime!! - System.currentTimeMillis()
 
                 if (remainingMs <= 0) {
                     timeText = "0:00"

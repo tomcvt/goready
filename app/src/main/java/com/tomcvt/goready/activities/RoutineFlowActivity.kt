@@ -115,14 +115,13 @@ class RoutineFlowActivity : ComponentActivity() {
         val stepNumber = intent.getIntExtra(EXTRA_ROUTINE_STEP, -1)
         val info = intent.getStringExtra(EXTRA_ROUTINE_INFO)
         val action = intent.action
-
-        val testString = "Session ID: $sessionId, Step ID: $stepNumber, Info: $info"
+        Log.d(TAG, "onNewIntent: action, rId: $action, $sessionId, $routineId, $stepNumber, $info")
         setContent {
             GoReadyTheme {
                 if (action == ACTION_ROUTINE_LAUNCHER) {
                     val vm = viewModel<RoutineFlowViewModel>(factory = routineFlowViewModelFactory)
                     vm.setLauncherOverlay(true)
-                    Log.d(TAG, "onNewIntent: action, rId: $action, $routineId")
+                    vm.setLauncherRoutine(routineId)
                     RoutineLauncherView(
                         vm,
                         routineId = routineId,
@@ -131,7 +130,6 @@ class RoutineFlowActivity : ComponentActivity() {
                     val vm = viewModel<RoutineFlowViewModel>(factory = routineFlowViewModelFactory)
                     vm.selectSession(sessionId)
                     vm.setLauncherOverlay(false)
-                    Log.d(TAG, "onCreate: action, rId: $action, $sessionId")
                     RoutineFlowView(
                         vm
                     )
@@ -140,3 +138,5 @@ class RoutineFlowActivity : ComponentActivity() {
         }
     }
 }
+
+

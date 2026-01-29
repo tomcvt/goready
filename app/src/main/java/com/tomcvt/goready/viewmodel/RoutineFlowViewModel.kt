@@ -58,7 +58,7 @@ class RoutineFlowViewModel(
         sessionState
             .filterNotNull()
             .flatMapLatest { session ->
-                routineFlowManager.getRoutineByIdFlow(session.id)
+                routineFlowManager.getRoutineByIdFlow(session.routineId)
             }
             .filterNotNull()
             .stateIn(
@@ -86,14 +86,15 @@ class RoutineFlowViewModel(
 
             step.length * MINUTE + session.stepStartTime
         }
-            .stateIn(
-                viewModelScope,
-                started = kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(1000),
-                initialValue = null
-            )
+        .stateIn(
+            viewModelScope,
+            started = kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(1000),
+            initialValue = null
+        )
 
-
-
+    fun setLauncherRoutine(routineId: Long) {
+        _flowUiState.update { it.copy(launcherRoutineId = routineId) }
+    }
 
     fun setLauncherOverlay(show: Boolean) {
         _flowUiState.update { it.copy(launcherOverlay = show) }
@@ -101,22 +102,10 @@ class RoutineFlowViewModel(
 
 
 
+
 }
 
-
-
-
-
-data class SessionState(
-    val routineId: Long = 0,
-    val stepNumber: Int = 0,
-    val stepStatus: StepStatus = StepStatus.RUNNING,
-    val stepStartTime: Long = 0L,
-    val status: RoutineStatus = RoutineStatus.RUNNING,
-    val startTime: Long = 0L,
-    val endTime: Long? = null
-)
-
 data class FlowUiState(
-    val launcherOverlay: Boolean = false
+    val launcherOverlay: Boolean = false,
+    val launcherRoutineId: Long = 0
 )
