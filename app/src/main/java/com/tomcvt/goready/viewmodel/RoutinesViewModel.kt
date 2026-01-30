@@ -41,6 +41,8 @@ class RoutinesViewModel(
             _uiEvents.emit(UiEvent.OpenRoutineLauncher(routineId))
         }
     }
+    //TODO opening routines flow
+    //fun openRoutinesFlow()
 
     private val _stepEditorState =
         MutableStateFlow(StepDefinitionState())

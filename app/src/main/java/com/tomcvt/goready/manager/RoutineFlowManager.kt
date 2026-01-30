@@ -170,19 +170,25 @@ class RoutineFlowManager(
             Log.e(TAG, "Session not found")
             return
         }
-        val nextStep = routineStepRepository.getRoutineStepByNumberFlow(session.routineId, session.stepNumber + 1).first()
 
+        //TODO FINISH TIMEOUT ADDING AND CANCELING PREVIOUS
         if (session.stepNumber == session.maxSteps - 1) {
             Log.d(TAG, "Routine finished")
             routineSessionRepository.updateRoutineSession(session.copy(status = RoutineStatus.COMPLETED))
         } else {
+            val nextStep = routineStepRepository.getRoutineStepByNumberFlow(session.routineId, session.stepNumber + 1).first()
+            if (nextStep == null) {
+                Log.e(TAG, "Next step not found")
+                return
+            }
             val nextNumber = session.stepNumber + 1
             val nextStartTime = System.currentTimeMillis()
             routineSessionRepository.updateRoutineSession(
                 session.copy(stepNumber = nextNumber, stepStartTime = nextStartTime))
+            routineScheduler.cancelStepTimeout(sessionId)
+            routineScheduler.scheduleStepTimeout(sessionId, session.routineId, nextNumber, nextStep.length.toInt())
         }
-
-
+        stepStartedPersistentNotify(sessionId, session.routineId, session.stepNumber)
     }
 
     suspend fun startRoutine(routineId: Long) : Long {

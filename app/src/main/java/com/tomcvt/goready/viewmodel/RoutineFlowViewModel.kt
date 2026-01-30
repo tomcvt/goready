@@ -139,7 +139,8 @@ class RoutineFlowViewModel(
 
     fun nextStep() {
         viewModelScope.launch {
-            routineFlowManager.advanceToNextStep(selectedSessionId.value)
+            if (selectedSessionId.value == null) return@launch
+            routineFlowManager.advanceToNextStep(selectedSessionId.value?: 0)
         }
     }
 }

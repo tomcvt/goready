@@ -182,9 +182,6 @@ private val emptyStep = StepWithDefinition(
 )
 
 
-
-
-
 fun formatMillis(millis: Long): String {
     val seconds = millis / 1000
     val minutes = seconds / 60
