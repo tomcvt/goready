@@ -31,6 +31,10 @@ private const val TAG = "RoutineFlowManager"
 private const val MINUTE = 60000L
 private const val NOTIF_ID = 1119
 private const val SHOW_UI_REQUEST_CODE = 13
+private const val STATUS_CHANNEL = "routine_status_channel"
+//TODO refactor to routine alarm channel
+private const val FLOW_CHANNEL = "routine_flow_channel"
+
 
 class RoutineFlowManager(
     private val routineRepository: RoutineRepository,
@@ -65,10 +69,14 @@ class RoutineFlowManager(
         val isLastStep = stepNumber == steps.size - 1
         Log.d(TAG, "isLastStep: $isLastStep")
 
-        val timeoutMinutes = steps[stepNumber].length
+        val currentStep = steps[stepNumber]
+        Log.d(TAG, "currentStep: $currentStep")
 
-        getRoutineFlowChannel()
-        //TODO how this notif channel things work
+
+        val timeoutMinutes = currentStep.length
+
+        getRoutineStatusChannel()
+        //TODO how this notif channel things work, initialize somewhere else
 
         val uiIntent = routineActivityIntentShowUiPersistent(sessionId, stepNumber, "RUNNING")
         val pendingIntentUi = PendingIntent.getActivity(
@@ -83,21 +91,23 @@ class RoutineFlowManager(
             "Show Ui",
             pendingIntentUi
         ).build()
-        val chronometerTime = SystemClock.elapsedRealtime() + timeoutMinutes * MINUTE
+        //val chronometerTime = SystemClock.elapsedRealtime() + timeoutMinutes * MINUTE
+        val chronometerTime = System.currentTimeMillis() + timeoutMinutes * MINUTE
 
-        val notification = NotificationCompat.Builder(context, "routine_flow_channel")
+
+        val notification = NotificationCompat.Builder(context, STATUS_CHANNEL)
             .setSmallIcon(R.drawable.ic_gicon)
             .setContentTitle("Routine ${routine.name} running")
             .setContentText("Step ${stepNumber + 1} of ${steps.size} running")
-            .setCategory(NotificationCompat.CATEGORY_STATUS)
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setCategory(NotificationCompat.CATEGORY_SERVICE)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
             .setOngoing(true)
             .setAutoCancel(false)
-            .setFullScreenIntent(pendingIntentUi, true)
+            .setContentIntent(pendingIntentUi)
             .setWhen(chronometerTime)
             .setUsesChronometer(true)
             .setChronometerCountDown(true)
-            .addAction(notifActionUi)
+            //.addAction(notifActionUi)
             .build()
         Log.d(TAG, "Notification built $notification")
         //launch
@@ -138,7 +148,7 @@ class RoutineFlowManager(
             pendingIntentUi
         ).build()
 
-        val notification = NotificationCompat.Builder(context, "routine_flow_channel")
+        val notification = NotificationCompat.Builder(context, FLOW_CHANNEL)
             .setSmallIcon(R.drawable.ic_gicon)
             .setContentTitle("Routine ${routine.name}")
             .setContentText("Step ${stepNumber + 1} of ${steps.size} time is up")
@@ -186,16 +196,38 @@ class RoutineFlowManager(
     private fun getRoutineFlowChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val existingChannel = context.getSystemService(NotificationManager::class.java)
-                .getNotificationChannel("routine_flow_channel")
+                .getNotificationChannel(FLOW_CHANNEL)
             if (existingChannel != null) {
                 return
             }
             val defaultSoundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
             val channel = NotificationChannel(
-                "routine_flow_channel",
+                FLOW_CHANNEL,
                 "Routine Flow",
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
+                setSound(defaultSoundUri, null)
+                enableVibration(true)
+                lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+            }
+            context.getSystemService(NotificationManager::class.java)
+                .createNotificationChannel(channel)
+        }
+    }
+
+    private fun getRoutineStatusChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val existingChannel = context.getSystemService(NotificationManager::class.java)
+                .getNotificationChannel("routine_status_channel")
+            if (existingChannel != null) {
+                return
+            }
+            val defaultSoundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+            val channel = NotificationChannel(
+                "routine_status_channel",
+                "Routine Status",
+                NotificationManager.IMPORTANCE_LOW
+                ).apply {
                 setSound(defaultSoundUri, null)
                 enableVibration(true)
                 lockscreenVisibility = Notification.VISIBILITY_PUBLIC
