@@ -164,18 +164,44 @@ class RoutineFlowManager(
         notificationManager.notify(NOTIF_ID, notification)
     }
 
+    suspend fun advanceToNextStep(sessionId: Long) {
+        val session = routineSessionRepository.getRoutineSessionByIdFlow(sessionId).first()
+        if (session == null) {
+            Log.e(TAG, "Session not found")
+            return
+        }
+        val nextStep = routineStepRepository.getRoutineStepByNumberFlow(session.routineId, session.stepNumber + 1).first()
+
+        if (session.stepNumber == session.maxSteps - 1) {
+            Log.d(TAG, "Routine finished")
+            routineSessionRepository.updateRoutineSession(session.copy(status = RoutineStatus.COMPLETED))
+        } else {
+            val nextNumber = session.stepNumber + 1
+            val nextStartTime = System.currentTimeMillis()
+            routineSessionRepository.updateRoutineSession(
+                session.copy(stepNumber = nextNumber, stepStartTime = nextStartTime))
+        }
+
+
+    }
+
     suspend fun startRoutine(routineId: Long) : Long {
         clearRunningRoutines()
         val routine = routineRepository.getRoutineById(routineId)
         val steps = routineStepRepository.getRoutineStepsWithDefinitionFlow(routineId).first()
-        //val firstEndTimeMinutes = steps.firstOrNull()?.length ?: 5L
+        val firstEndTimeMinutes = steps.firstOrNull()?.length ?: 0L
         //TODO later change, for now test
-        val firstEndTimeMinutes = 5L
+        //val firstEndTimeMinutes = 5L
+        if (firstEndTimeMinutes == 0L) {
+            Log.e(TAG, "Routine has no steps")
+            return -1
+        }
         val session = RoutineSession(
             routineId = routineId,
             stepNumber = 0,
             stepStatus = StepStatus.RUNNING,
             stepStartTime = System.currentTimeMillis(),
+            maxSteps = steps.size,
             status = RoutineStatus.RUNNING,
             startTime = System.currentTimeMillis(),
             endTime = null //TODO calculate end time

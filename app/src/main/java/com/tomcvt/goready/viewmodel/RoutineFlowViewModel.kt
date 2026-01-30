@@ -77,13 +77,24 @@ class RoutineFlowViewModel(
                 initialValue = emptyList()
             )
 
+    val currentRoutineSteps: StateFlow<List<StepWithDefinition>> =
+        sessionState
+            .filterNotNull()
+            .flatMapLatest {
+                routineFlowManager.getRoutineStepsWithDefinitionFlow(it.routineId)
+            }
+            .stateIn(
+                viewModelScope,
+                started = kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(1000),
+                initialValue = emptyList()
+            )
+
     val currentRoutine: StateFlow<RoutineEntity?> =
         sessionState
             .filterNotNull()
             .flatMapLatest { session ->
                 routineFlowManager.getRoutineByIdFlow(session.routineId)
             }
-            .filterNotNull()
             .stateIn(
                 viewModelScope,
                 started = kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(1000),
@@ -96,7 +107,6 @@ class RoutineFlowViewModel(
             .flatMapLatest { session ->
                 routineFlowManager.getRoutineStepByNumberFlow(session.routineId, session.stepNumber)
             }
-            .filterNotNull()
             .stateIn(
                 viewModelScope,
                 started = kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(1000),
@@ -127,9 +137,11 @@ class RoutineFlowViewModel(
         _flowUiState.update { it.copy(launcherOverlay = show) }
     }
 
-
-
-
+    fun nextStep() {
+        viewModelScope.launch {
+            routineFlowManager.advanceToNextStep(selectedSessionId.value)
+        }
+    }
 }
 
 data class FlowUiState(

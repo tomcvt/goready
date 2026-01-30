@@ -11,6 +11,7 @@ data class RoutineSession(
     val stepNumber: Int,
     val stepStatus: StepStatus,
     val stepStartTime: Long,
+    val maxSteps: Int,
     val status: RoutineStatus,
     val startTime: Long,
     val endTime: Long?

@@ -503,7 +503,8 @@ fun RoutineDetailsScreen(
 @Composable
 fun RoutineEntityDetails(
     routineEntity: RoutineEntity?,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+
 ) {
     Column(
         modifier = Modifier.fillMaxWidth().padding(16.dp),
@@ -516,7 +517,6 @@ fun RoutineEntityDetails(
             Text(
                 text = routineEntity?.name ?: "NULL",
                 style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.weight(1f)
             )
             Text(
                 text = routineEntity?.icon ?: "N",
