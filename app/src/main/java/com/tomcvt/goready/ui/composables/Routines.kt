@@ -494,7 +494,7 @@ fun RoutineDetailsScreen(
                     )
                 }
                 LazyColumn(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().weight(1f),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(routineSteps.size) { index ->

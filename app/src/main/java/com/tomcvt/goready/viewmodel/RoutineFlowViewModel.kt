@@ -66,6 +66,16 @@ class RoutineFlowViewModel(
             )
 
     val launcherRoutineSteps: StateFlow<List<StepWithDefinition>> =
+        flowUiState
+            .flatMapLatest {
+                routineFlowManager.getRoutineStepsWithDefinitionFlow(it.launcherRoutineId?: 0)
+            }
+            .filterNotNull()
+            .stateIn(
+                viewModelScope,
+                started = kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(1000),
+                initialValue = emptyList()
+            )
 
     val currentRoutine: StateFlow<RoutineEntity?> =
         sessionState
@@ -104,6 +114,10 @@ class RoutineFlowViewModel(
             started = kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(1000),
             initialValue = null
         )
+
+    fun closeRoutineLauncher() {
+        _flowUiState.update { it.copy(launcherOverlay = false, launcherRoutineId = null) }
+    }
 
     fun setLauncherRoutine(routineId: Long) {
         _flowUiState.update { it.copy(launcherRoutineId = routineId) }

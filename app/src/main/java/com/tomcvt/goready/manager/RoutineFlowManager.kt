@@ -53,12 +53,12 @@ class RoutineFlowManager(
     suspend fun stepStartedPersistentNotify(sessionId: Long, routineId: Long, stepNumber: Int) {
         val session = routineSessionRepository.getRoutineSessionByIdFlow(sessionId).first()
         if (session == null) {
-            Log.e(TAG, "Session not found")
+            Log.d(TAG, "Session not found")
             return
         }
         val routine = routineRepository.getRoutineById(routineId)
         if (routine == null) {
-            Log.e(TAG, "Routine not found")
+            Log.d(TAG, "Routine not found")
             return
         }
         val steps = routineStepRepository.getRoutineStepsWithDefinitionFlow(routineId).first()
@@ -93,11 +93,13 @@ class RoutineFlowManager(
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setOngoing(true)
             .setAutoCancel(false)
+            .setFullScreenIntent(pendingIntentUi, true)
             .setWhen(chronometerTime)
             .setUsesChronometer(true)
             .setChronometerCountDown(true)
             .addAction(notifActionUi)
             .build()
+        Log.d(TAG, "Notification built $notification")
         //launch
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.notify(NOTIF_ID, notification)
