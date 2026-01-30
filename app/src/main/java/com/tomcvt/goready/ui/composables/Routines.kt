@@ -2,6 +2,7 @@ package com.tomcvt.goready.ui.composables
 
 import android.content.Intent
 import android.util.Log
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -45,6 +46,7 @@ import com.tomcvt.goready.constants.ACTION_RF_UI_LAUNCHER
 import com.tomcvt.goready.constants.EXTRA_ROUTINE_ID
 import com.tomcvt.goready.data.AlarmEntity
 import com.tomcvt.goready.data.RoutineEntity
+import com.tomcvt.goready.data.StepWithDefinition
 import com.tomcvt.goready.test.launchAlarmNow
 import com.tomcvt.goready.ui.imagevectors.IconBell
 import com.tomcvt.goready.util.hasExactlyOneGrapheme
@@ -446,6 +448,11 @@ fun RoutineDetailsScreen(
     val routineSteps by viewModel.selectedRoutineSteps.collectAsState()
     val routineEntity by viewModel.selectedRoutineEntity.collectAsState()
 
+    BackHandler(
+        enabled = true,
+        onBack = { viewModel.closeRoutineDetails() }
+    )
+
     Box (
         modifier = Modifier
             .fillMaxSize()
@@ -457,93 +464,104 @@ fun RoutineDetailsScreen(
             elevation = CardDefaults.cardElevation(8.dp),
             modifier = Modifier.fillMaxWidth().padding(16.dp),
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+            Box (
+                modifier = Modifier.fillMaxSize().padding(16.dp),
+                contentAlignment = Alignment.Center
             ) {
-                Text(
-                    "Edit routine", style = MaterialTheme.typography.headlineSmall,
-                    textAlign = TextAlign.Center
-                )
                 Column(
-                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            text = routineEntity?.name ?: "NULL",
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.weight(1f)
-                        )
-                        Text(
-                            text = routineEntity?.icon ?: "N",
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.width(50.dp)
-                        )
-                    }
-                    Spacer(modifier = Modifier.size(8.dp))
                     Text(
-                        text = routineEntity?.description ?: "NULL",
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.fillMaxWidth()
+                        "Edit routine", style = MaterialTheme.typography.headlineSmall,
+                        textAlign = TextAlign.Center
                     )
-                }
-                LazyColumn(
-                    modifier = Modifier.fillMaxWidth().weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(routineSteps.size) { index ->
-                        val step = routineSteps[index]
-                        Card(
-                            elevation = CardDefaults.cardElevation(8.dp),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                        ) {
-                            Row(
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.fillMaxWidth().padding(16.dp)
-                            ) {
-                                Text(
-                                    step.name,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    modifier = Modifier.weight(1f)
-                                )
-                                Text(
-                                    step.icon,
-                                    modifier = Modifier.width(50.dp)
-                                )
-                                Text(
-                                    step.length.toString(),
-                                    style = MaterialTheme.typography.titleMedium,
-                                    modifier = Modifier.width(50.dp)
-                                )
-                            }
+                    RoutineEntityDetails(routineEntity)
+                    LazyColumn(
+                        modifier = Modifier.fillMaxWidth().weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(routineSteps.size) { index ->
+                            val step = routineSteps[index]
+                            StepRowCard(step)
                         }
                     }
+                    Button(
+                        onClick = { viewModel.openRoutineEditorWithSelectedRoutine() },
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text("EDIT")
+                    }
                 }
-                Button(
-                    onClick = { viewModel.openRoutineEditorWithSelectedRoutine() },
-                    modifier = Modifier.padding(16.dp)
-                ) {
-                    Text("EDIT")
-                } /*
-            FloatingActionButton(
-                onClick = { viewModel.saveRoutine()
-                    viewModel.closeRoutineEditor()
-                    viewModel.clearRoutineEditor() },
-                modifier = Modifier.padding(16.dp),
-                containerColor = MaterialTheme.colorScheme.primary
-            ) {
-                Text("Save")
             }
-            */
-            }
+        }
+    }
+}
+
+@Composable
+fun RoutineEntityDetails(
+    routineEntity: RoutineEntity?,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(16.dp),
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(
+                text = routineEntity?.name ?: "NULL",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.weight(1f)
+            )
+            Text(
+                text = routineEntity?.icon ?: "N",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.width(50.dp)
+            )
+        }
+        Spacer(modifier = Modifier.size(8.dp))
+        Text(
+            text = routineEntity?.description ?: "NULL",
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
+}
+
+
+@Composable
+fun StepRowCard(
+    step: StepWithDefinition
+) {
+    Card(
+        elevation = CardDefaults.cardElevation(8.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth().padding(16.dp)
+        ) {
+            Text(
+                step.name,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.weight(1f)
+            )
+            Text(
+                step.icon,
+                modifier = Modifier.width(50.dp)
+            )
+            Text(
+                step.length.toString(),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.width(50.dp)
+            )
         }
     }
 }
