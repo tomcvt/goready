@@ -65,36 +65,42 @@ fun RoutineFlowView(
     val currentStep by viewModel.currentStep.collectAsState()
     val currentFinishTime by viewModel.currentStepFinishTime.collectAsState()
 
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+    Box(
+        modifier = Modifier.fillMaxSize().padding(16.dp)
+            .background(MaterialTheme.colorScheme.background),
+        contentAlignment = Alignment.Center
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth().weight(1f),
+            modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            RoutineEntityDetails(currentRoutine)
-            Card(
-                elevation = CardDefaults.cardElevation(8.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
+            Column(
+                modifier = Modifier.fillMaxWidth().weight(1f),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text("Step ${(sessionState?.stepNumber) ?: 0} of ${currentRoutineSteps.size}")
+                RoutineEntityDetails(currentRoutine)
+                Card(
+                    elevation = CardDefaults.cardElevation(8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                ) {
+                    Text("Step ${(sessionState?.stepNumber) ?: 0} of ${currentRoutineSteps.size}")
+                }
+                StepDetailsBox(
+                    step = currentStep ?: emptyStep
+                )
+                Text(text = "Started: ${formatEpochMillisToHours(sessionState?.stepStartTime ?: 0)}")
+                Text(text = "Step finish time: ${formatEpochMillisToHours(currentFinishTime ?: 0)}")
+                StepTimer(viewModel, textStyle = MaterialTheme.typography.displayMedium)
             }
-            StepDetailsBox(
-                step = currentStep ?: emptyStep
-            )
-            Text(text = "Started: ${formatEpochMillisToHours(sessionState?.stepStartTime ?: 0)}")
-            Text(text = "Step finish time: ${formatEpochMillisToHours(currentFinishTime ?: 0)}")
-            StepTimer(viewModel, textStyle = MaterialTheme.typography.displayMedium)
-        }
-        Button(
-            onClick = { viewModel.nextStep() },
-            modifier = Modifier.padding(16.dp)
-        ) {
-            Text("Next Step")
+            Button(
+                onClick = { viewModel.nextStep() },
+                modifier = Modifier.padding(16.dp)
+            ) {
+                Text("Next Step")
+            }
         }
     }
 
