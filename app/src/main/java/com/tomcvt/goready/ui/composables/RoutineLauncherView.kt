@@ -34,7 +34,8 @@ fun RoutineLauncherView(
             Text("Selected session: $sessionId")
             Text("RoutineLauncherView: ${uiState.launcherRoutineId}")
             Button(
-                onClick = { viewModel.launchRoutine(uiState.launcherRoutineId) }
+                onClick = { viewModel.launchRoutine(uiState.launcherRoutineId?: 0) }
+                //TODO add better 0 0 handling
             ) {
                 Text("Launch Routine")
             }

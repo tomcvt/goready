@@ -302,9 +302,28 @@ fun RoutineEditor(
                         modifier = Modifier
                             .fillMaxWidth()
                     ) {
-                        Text(step.first.name)
-                        Text(step.first.icon)
-                        Text(step.second.toString())
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth().padding(16.dp)
+                        ) {
+                            Text(
+                                text = step.first.name,
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Text(
+                                text = step.first.icon,
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.width(50.dp)
+                            )
+                            Text(
+                                text = step.second.toString(),
+                                style = MaterialTheme.typography.titleMedium,
+                                modifier = Modifier.width(50.dp)
+                                    .clickable { viewModel.setStepModalNumber(index) }
+                            )
+                        }
                     }
                 }
             }
@@ -324,6 +343,14 @@ fun RoutineEditor(
                 Text("Save")
             }
         }
+        if (uiState.stepModalNumber != null) {
+            StepTimeModal(
+                initialTime = rEditorState.steps[uiState.stepModalNumber!!].second,
+                onDismiss = { viewModel.clearStepModalNumber() },
+                onProvidedValue = { viewModel.updateTimeForStepInEditor(it, uiState.stepModalNumber!!) },
+                list = STEP_TIMES_LIST
+            )
+        }
         if (uiState.isStepEditorOpen) {
             StepEditor(
                 viewModel = viewModel,
@@ -333,6 +360,8 @@ fun RoutineEditor(
         }
     }
 }
+
+val STEP_TIMES_LIST = (5..90 step 5).toList()
 
 @Composable
 fun StepEditor(

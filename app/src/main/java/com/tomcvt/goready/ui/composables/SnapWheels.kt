@@ -91,9 +91,11 @@ fun <T> WheelPicker(
     itemHeight: Dp = 48.dp,
     width: Dp = 240.dp,
     onItemSelected: (T) -> Unit,
+    highlightColor: Color = Color.LightGray.copy(alpha = 0.2f),
     itemContent: @Composable (item: T, selected: Boolean) -> Unit
 ) {
     require(visibleItems % 2 == 1) { "visibleItems must be odd" }
+    //TODO require
 
     val padding = visibleItems / 2
     val listState = rememberLazyListState()
@@ -143,7 +145,7 @@ fun <T> WheelPicker(
             Modifier
                 .height(itemHeight)
                 .width(width)
-                .background(Color.LightGray.copy(alpha = 0.2f))
+                .background(highlightColor)
         )
     }
 

@@ -46,11 +46,11 @@ import androidx.compose.ui.unit.dp
 import androidx.core.text.isDigitsOnly
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import com.tomcvt.goready.RootTab
 import com.tomcvt.goready.constants.TaskType
 import com.tomcvt.goready.constants.TaskTypeContext
 import com.tomcvt.goready.domain.AlarmDraft
 import com.tomcvt.goready.domain.SimpleAlarmDraft
-import com.tomcvt.goready.ui.navigation.RootTab
 import com.tomcvt.goready.viewmodel.AlarmViewModel
 import com.tomcvt.goready.viewmodel.UiState
 import org.checkerframework.framework.qual.Unused
@@ -83,16 +83,6 @@ fun AddAlarmView(viewModel: AlarmViewModel,
     var showExit by remember {mutableStateOf(false)}
     var snoozeModal by remember {mutableStateOf(false)}
     var showInputError by remember {mutableStateOf(false)}
- /*
-    var selectedDays by remember {
-        mutableStateOf(setOf<DayOfWeek>())
-    }
-
-    var selectedHour by remember {mutableIntStateOf(8)}
-    var selectedMinute by remember {mutableIntStateOf(30)}
-    var selectedType by remember {mutableStateOf(TaskType.NONE)}
-    var taskInputData by remember {mutableStateOf("")}
-*/
 
     val picker = TimePickerDialog(
         context,

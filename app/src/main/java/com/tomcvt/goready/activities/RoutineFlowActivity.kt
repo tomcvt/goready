@@ -11,6 +11,7 @@ import com.tomcvt.goready.application.AlarmApp
 import com.tomcvt.goready.constants.ACTION_RF_UI_LAUNCHER
 import com.tomcvt.goready.constants.ACTION_RF_UI_STEP_COMPLETE
 import com.tomcvt.goready.constants.ACTION_RF_UI_SHOW
+import com.tomcvt.goready.constants.ACTION_RF_UI_STEP_TIMEOUT
 import com.tomcvt.goready.constants.EXTRA_ROUTINE_ID
 import com.tomcvt.goready.constants.EXTRA_ROUTINE_INFO
 import com.tomcvt.goready.constants.EXTRA_ROUTINE_SESSION_ID
@@ -72,10 +73,11 @@ class RoutineFlowActivity : ComponentActivity() {
             GoReadyTheme {
                 val vm = viewModel<RoutineFlowViewModel>(factory = routineFlowViewModelFactory)
                 if (action == ACTION_RF_UI_LAUNCHER) {
+                    vm.setLauncherRoutine(routineId)
                     vm.setLauncherOverlay(true)
                     Log.d(TAG, "onCreate: action, routineId: $action, $routineId")
                 }
-                if (action == ACTION_RF_UI_SHOW) {
+                if (action in showFlowActions) {
                     vm.selectSession(sessionId)
                     vm.setLauncherOverlay(false)
                     Log.d(TAG, "onCreate: action, sessionId: $action, $sessionId")
@@ -98,10 +100,11 @@ class RoutineFlowActivity : ComponentActivity() {
             GoReadyTheme {
                 val vm = viewModel<RoutineFlowViewModel>(factory = routineFlowViewModelFactory)
                 if (action == ACTION_RF_UI_LAUNCHER) {
+                    vm.setLauncherRoutine(routineId)
                     vm.setLauncherOverlay(true)
                     Log.d(TAG, "onCreate: action, routineId: $action, $routineId")
                 }
-                if (action == ACTION_RF_UI_SHOW) {
+                if (action in showFlowActions) {
                     vm.selectSession(sessionId)
                     vm.setLauncherOverlay(false)
                     Log.d(TAG, "onCreate: action, sessionId: $action, $sessionId")
@@ -115,7 +118,7 @@ class RoutineFlowActivity : ComponentActivity() {
 private val showFlowActions = listOf(
     ACTION_RF_UI_SHOW,
     ACTION_RF_UI_STEP_COMPLETE,
-    ACTION_ROUTINE_STEP_TIMEOUT
+    ACTION_RF_UI_STEP_TIMEOUT
     //TODO add intents and in
 )
 

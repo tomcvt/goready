@@ -178,6 +178,15 @@ class RoutinesViewModel(
         _stepEditorState.update { it.copy(icon = icon) }
     }
 
+    fun setStepModalNumber(number: Int) {
+        _uiState.update { it.copy(stepModalNumber = number) }
+    }
+
+    fun clearStepModalNumber() {
+        _uiState.update { it.copy(stepModalNumber = null) }
+    }
+
+
     fun saveStepDefinition() {
         viewModelScope.launch {
             val s = stepEditorState.value
@@ -293,6 +302,7 @@ data class RoutineEditorState(
 )
 
 data class RoutineUiState(
+    val stepModalNumber: Int? = null,
     val isRoutineEditorOpen: Boolean = false,
     val isStepEditorOpen: Boolean = false,
     val isRoutineDetailsOpen: Boolean = false,

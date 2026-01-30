@@ -9,12 +9,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -217,6 +219,72 @@ fun SnoozeInputModal(
                             }
                         )
                     }
+                }
+            }
+        }
+    }
+}
+
+/*
+StepTimeModal(
+                initialTime = rEditorState.steps[uiState.stepModalNumber!!].second,
+                onDismiss = { viewModel.clearStepModalNumber() },
+                onProvidedValue = { viewModel.updateTimeForStepInEditor(it, uiState.stepModalNumber)
+                                    viewModel.clearStepModalNumber()},
+                list = STEP_TIMES_LIST
+            )
+ */
+
+@Composable
+fun StepTimeModal(
+    initialTime: Int,
+    onDismiss: () -> Unit,
+    onProvidedValue: (Int) -> Unit,
+    list: List<Int>,
+) {
+    BackHandler(
+        enabled = true,
+        onBack = onDismiss
+    )
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.5f))
+            .clickable { onDismiss() },
+        contentAlignment = Alignment.Center
+    ) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth().padding(16.dp)
+                .clickable(enabled = false) {},
+            elevation = CardDefaults.cardElevation(8.dp)
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier.padding(24.dp)
+            ) {
+                Text(
+                    "Choose step duration",
+                    style = MaterialTheme.typography.headlineSmall
+                )
+                WheelPicker(
+                    items = list,
+                    startingItem = initialTime,
+                    visibleItems = 3,
+                    itemHeight = 50.dp,
+                    onItemSelected = onProvidedValue,
+                    modifier = Modifier.width(60.dp)
+                ) { item, selected ->
+                    Text(
+                        text = item.toString(),
+                        style = MaterialTheme.typography.headlineSmall,
+                        modifier = Modifier.graphicsLayer {
+                            scaleX = if (selected) 1.25f else 1f
+                            scaleY = if (selected) 1.25f else 1f
+                        }
+                    )
                 }
             }
         }
