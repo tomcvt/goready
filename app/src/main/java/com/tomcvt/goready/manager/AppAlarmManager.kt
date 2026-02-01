@@ -5,6 +5,8 @@ import com.tomcvt.goready.data.AlarmEntity
 import com.tomcvt.goready.domain.AlarmDraft
 import com.tomcvt.goready.domain.SimpleAlarmDraft
 import com.tomcvt.goready.repository.AlarmRepository
+import java.time.DayOfWeek
+import java.util.Calendar
 
 open class AppAlarmManager(private val repository: AlarmRepository, private val systemScheduler: SystemAlarmScheduler) {
     fun getAlarmsFlow() = repository.getAlarms()
@@ -56,21 +58,21 @@ open class AppAlarmManager(private val repository: AlarmRepository, private val 
             task = draft.task,
             taskData = draft.taskData)
         //if (oldAlarm.hour != updatedAlarm.hour || oldAlarm.minute != updatedAlarm.minute) {
-        if (true) {
-            try {
-                if (updatedAlarm.isEnabled) {
-                    val remainingSnooze = if (updatedAlarm.snoozeEnabled) updatedAlarm.snoozeMaxCount!! else 0
-                    systemScheduler.cancelAlarm(oldAlarm)
-                    systemScheduler.scheduleAlarm(updatedAlarm, alarmId, remainingSnooze)
-                } else {
-                    systemScheduler.cancelAlarm(oldAlarm)
-                }
-            } catch (e: SecurityException) {
-                // Handle the exception, e.g., show an error message to the user
-                Log.e("AppAlarmManager", "Security exception while scheduling alarm", e)
-                //TODO add popup and ask user to grant permission
+
+        try {
+            if (updatedAlarm.isEnabled) {
+                val remainingSnooze = if (updatedAlarm.snoozeEnabled) updatedAlarm.snoozeMaxCount!! else 0
+                systemScheduler.cancelAlarm(oldAlarm)
+                systemScheduler.scheduleAlarm(updatedAlarm, alarmId, remainingSnooze)
+            } else {
+                systemScheduler.cancelAlarm(oldAlarm)
             }
+        } catch (e: SecurityException) {
+            // Handle the exception, e.g., show an error message to the user
+            Log.e("AppAlarmManager", "Security exception while scheduling alarm", e)
+            //TODO add popup and ask user to grant permission
         }
+
         repository.updateAlarm(updatedAlarm)
     }
 
@@ -116,5 +118,75 @@ open class AppAlarmManager(private val repository: AlarmRepository, private val 
 
     suspend fun getAlarm(alarmId: Long): AlarmEntity? {
         return repository.getAlarmById(alarmId)
+    }
+
+    suspend fun scheduleNextAlarm(alarmId: Long) {
+        val alarm = repository.getAlarmById(alarmId) ?: return
+        scheduleNextAlarm(alarm)
+    }
+
+    fun scheduleNextAlarm(alarm: AlarmEntity) {
+        val nextAlarmTime = calculateNextAlarmTime(alarm)
+        val remainingSnooze = if (alarm.snoozeEnabled) alarm.snoozeMaxCount!! else 0
+        if (nextAlarmTime != -1L) {
+            systemScheduler.scheduleNextAlarm(alarm, alarm.id, remainingSnooze, nextAlarmTime)
+        } else {
+            Log.d(TAG, "No next alarm time: $alarm")
+        }
+    }
+
+    fun calculateNextAlarmTime(alarm: AlarmEntity): Long {
+        val hour = alarm.hour
+        val minute = alarm.minute
+        val now = System.currentTimeMillis()
+        val calendar = Calendar.getInstance()
+        if (alarm.repeatDays.isEmpty()) {
+            return -1
+        }
+        if (alarm.repeatDays.size == 7) {
+            calendar.apply {
+                add(Calendar.DAY_OF_MONTH, 1)
+                set(Calendar.HOUR_OF_DAY, hour)
+                set(Calendar.MINUTE, minute)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
+            }
+            return calendar.timeInMillis
+        }
+        if (alarm.repeatDays.size == 1) {
+            calendar.apply {
+                add(Calendar.DAY_OF_MONTH, 7)
+                set(Calendar.HOUR_OF_DAY, hour)
+                set(Calendar.MINUTE, minute)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
+            }
+            return calendar.timeInMillis
+        }
+        val dayOfWeek = Calendar.getInstance().get(Calendar.DAY_OF_WEEK)
+        var index = helperDays.indexOf(DayOfWeek.of(dayOfWeek)) + 1
+        var nextDay = helperDays[index - 1]
+        while (index in helperDays.indices) {
+            val day = helperDays[index]
+            if (alarm.repeatDays.contains(day)) {
+                nextDay = day
+                break
+            }
+            index++
+        }
+        calendar.apply {
+            set(Calendar.DAY_OF_WEEK, nextDay.value)
+            set(Calendar.HOUR_OF_DAY, hour)
+            set(Calendar.MINUTE, minute)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+            return calendar.timeInMillis
+        }
+    }
+
+    companion object {
+        private const val TAG = "AppAlarmManager"
+        private val days = DayOfWeek.values().toList()
+        private val helperDays = days + days
     }
 }

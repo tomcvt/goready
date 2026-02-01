@@ -10,6 +10,7 @@ import android.provider.Settings
 import android.util.Log
 import androidx.annotation.RequiresPermission
 import com.tomcvt.goready.MainActivity
+import com.tomcvt.goready.constants.ACTION_ALARM_SNOOZE_TRIGGERED
 import com.tomcvt.goready.constants.ACTION_ALARM_TRIGGERED
 import com.tomcvt.goready.constants.EXTRA_ALARM_ID
 import com.tomcvt.goready.constants.EXTRA_REMAINING_SNOOZE
@@ -36,7 +37,7 @@ class SystemAlarmScheduler(private val context: Context) {
 
         val pendingIntent = PendingIntent.getBroadcast(
             appContext,
-            alarm.id.toInt(),
+            alarmId.toInt(),
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
@@ -87,12 +88,42 @@ class SystemAlarmScheduler(private val context: Context) {
         }
     }
 
-    fun scheduleSnooze(alarmId: Long, remainingSnooze: Int, snoozeTimeMinutes: Int) {
+    fun scheduleNextAlarm(alarm: AlarmEntity, alarmId: Long, remainingSnooze: Int = 0, triggerTime: Long) {
         val intent = Intent(appContext
             , AlarmReceiver::class.java).apply {
             putExtra(EXTRA_ALARM_ID, alarmId)
             putExtra(EXTRA_REMAINING_SNOOZE, remainingSnooze)
             setAction(ACTION_ALARM_TRIGGERED)
+        }
+
+        val pendingIntent = PendingIntent.getBroadcast(
+            appContext,
+            alarm.id.toInt(),
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        Log.d(TAG, "ALARM DEBUG: now=${Date(System.currentTimeMillis())}," +
+                " alarm.hour=${alarm.hour}, alarm.minute=${alarm.minute}, " +
+                "calendar=${Date(triggerTime)}")
+
+        try {
+            scheduleAlarmClock(
+                alarmId,
+                triggerTime,
+                pendingIntent
+            )
+        } catch (e: SecurityException ) {
+            Log.e("AlarmScheduler", "Security exception while scheduling alarm", e)
+        }
+    }
+
+    fun scheduleSnooze(alarmId: Long, remainingSnooze: Int, snoozeTimeMinutes: Int) {
+        val intent = Intent(appContext
+            , AlarmReceiver::class.java).apply {
+            putExtra(EXTRA_ALARM_ID, alarmId)
+            putExtra(EXTRA_REMAINING_SNOOZE, remainingSnooze)
+            setAction(ACTION_ALARM_SNOOZE_TRIGGERED)
         }
 
         val pendingIntent = PendingIntent.getBroadcast(
@@ -225,5 +256,9 @@ class SystemAlarmScheduler(private val context: Context) {
         Log.d("AlarmScheduler", "Intent extras: ${intent.extras.toString()}")
         Log.d("AlarmScheduler", "Scheduling alarm with ID: $alarmId and PendingIntent: $pendingIntent")
         Log.d("AlarmScheduler", "Scheduling alarm with ID: $alarmId and intent: $intent")
+    }
+
+    companion object {
+        private const val TAG = "SystemAlarmScheduler"
     }
 }
