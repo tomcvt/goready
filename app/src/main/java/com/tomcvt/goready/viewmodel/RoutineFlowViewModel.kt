@@ -137,6 +137,20 @@ class RoutineFlowViewModel(
         _flowUiState.update { it.copy(launcherOverlay = show) }
     }
 
+    fun startStep() {
+        viewModelScope.launch {
+            if (selectedSessionId.value == null) return@launch
+            routineFlowManager.startStep(selectedSessionId.value?: 0)
+        }
+    }
+
+    fun finishStep() {
+        viewModelScope.launch {
+            if (selectedSessionId.value == null) return@launch
+            routineFlowManager.finishStep(selectedSessionId.value?: 0)
+        }
+    }
+
     fun nextStep() {
         viewModelScope.launch {
             if (selectedSessionId.value == null) return@launch

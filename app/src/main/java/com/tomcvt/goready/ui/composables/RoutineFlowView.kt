@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -16,6 +17,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -31,6 +33,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.tomcvt.goready.data.RoutineStatus
+import com.tomcvt.goready.data.StepStatus
 import com.tomcvt.goready.data.StepWithDefinition
 import com.tomcvt.goready.viewmodel.RoutineFlowViewModel
 import com.tomcvt.goready.viewmodel.RoutinesViewModel
@@ -44,13 +48,17 @@ fun RoutineFlowContent(
     val uiState by viewModel.flowUiState.collectAsState()
     val sessionState by viewModel.sessionState.collectAsState()
 
-    Box(
+    Scaffold(
         modifier = Modifier.fillMaxSize()
-    ) {
-        if (uiState.launcherOverlay) {
-            RoutineLauncherView(viewModel)
-        } else {
-            RoutineFlowView(viewModel)
+    ) { innerPadding ->
+        Box(
+            modifier = Modifier.fillMaxSize().padding(innerPadding)
+        ) {
+            if (uiState.launcherOverlay) {
+                RoutineLauncherView(viewModel)
+            } else {
+                RoutineFlowView(viewModel)
+            }
         }
     }
 }
@@ -59,6 +67,62 @@ fun RoutineFlowContent(
 fun RoutineFlowView(
     viewModel: RoutineFlowViewModel
 ) {
+    val sessionState by viewModel.sessionState.collectAsState()
+    val currentRoutine by viewModel.currentRoutine.collectAsState()
+    Box(
+        modifier = Modifier.fillMaxSize()
+    ) {
+        if (sessionState == null) {
+            Text("No routine running")
+        }
+        if (sessionState?.status == RoutineStatus.RUNNING) {
+            if (sessionState?.stepStatus == StepStatus.AWAITING) {
+                WaitingStepBox(viewModel)
+            }
+            if (sessionState?.stepStatus == StepStatus.RUNNING) {
+                RunningStepBox(viewModel)
+            }
+            if (sessionState?.stepStatus == StepStatus.COMPLETED) {
+                CompletedStepBox(viewModel)
+            }
+        }
+        if (sessionState?.status == RoutineStatus.COMPLETED) {
+            Text("Routine completed")
+        }
+    }
+
+}
+
+@Composable
+fun WaitingStepBox(viewModel: RoutineFlowViewModel) {
+    val currentStep by viewModel.currentStep.collectAsState()
+
+    Text("Waiting for step: ${currentStep?.name}")
+
+    Button(
+        onClick = { viewModel.startStep() },
+        modifier = Modifier.padding(16.dp)
+    ) {
+        Text("Start Step")
+    }
+}
+
+@Composable
+fun CompletedStepBox(viewModel: RoutineFlowViewModel) {
+    val currentStep by viewModel.currentStep.collectAsState()
+
+    Text("Completed step: ${currentStep?.name}")
+    Button(
+        onClick = { viewModel.nextStep() },
+        modifier = Modifier.padding(16.dp)
+    ) {
+        Text("Next Step")
+    }
+}
+
+
+@Composable
+fun RunningStepBox(viewModel: RoutineFlowViewModel) {
     val sessionState by viewModel.sessionState.collectAsState()
     val currentRoutine by viewModel.currentRoutine.collectAsState()
     val currentRoutineSteps by viewModel.currentRoutineSteps.collectAsState()
@@ -80,30 +144,39 @@ fun RoutineFlowView(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                RoutineEntityDetails(currentRoutine)
                 Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    ),
                     elevation = CardDefaults.cardElevation(8.dp),
                     modifier = Modifier
                         .fillMaxWidth()
                 ) {
-                    Text("Step ${(sessionState?.stepNumber) ?: 0} of ${currentRoutineSteps.size}")
+                    RoutineEntityDetails(currentRoutine)
+                    Text(
+                        "Step ${((sessionState?.stepNumber) ?: -1) + 1} of ${currentRoutineSteps.size}",
+                        style = MaterialTheme.typography.headlineSmall,
+                        modifier = Modifier.align(Alignment.CenterHorizontally)
+                    )
                 }
                 StepDetailsBox(
                     step = currentStep ?: emptyStep
                 )
-                Text(text = "Started: ${formatEpochMillisToHours(sessionState?.stepStartTime ?: 0)}")
-                Text(text = "Step finish time: ${formatEpochMillisToHours(currentFinishTime ?: 0)}")
-                StepTimer(viewModel, textStyle = MaterialTheme.typography.displayMedium)
+                Text(text = "Started: ${formatEpochMillisToHours(sessionState?.stepStartTime ?: 0)}",
+                    style = MaterialTheme.typography.headlineSmall)
+                Text(text = "Finish time: ${formatEpochMillisToHours(currentFinishTime ?: 0)}",
+                    style = MaterialTheme.typography.headlineSmall)
+                StepTimer(viewModel, textStyle = MaterialTheme.typography.displayLarge)
             }
             Button(
-                onClick = { viewModel.nextStep() },
+                onClick = { viewModel.finishStep() },
                 modifier = Modifier.padding(16.dp)
             ) {
                 Text("Next Step")
             }
         }
     }
-
 }
 
 @Composable
@@ -114,6 +187,8 @@ fun StepTimer(
 ) {
     val currentFinishTime by viewModel.currentStepFinishTime.collectAsState()
     var timeText by remember { mutableStateOf("") }
+    var finished by remember { mutableStateOf(false) }
+
 
     if (currentFinishTime != null) {
         LaunchedEffect(currentFinishTime) {
@@ -123,6 +198,7 @@ fun StepTimer(
 
                 if (remainingMs <= 0) {
                     timeText = "0:00"
+                    finished = true
                     break
                 }
 
@@ -131,47 +207,76 @@ fun StepTimer(
             }
         }
     }
-
-    Text(text = timeText,
-        style = textStyle
-    )
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = timeText,
+            style = textStyle
+        )
+        if (finished) {
+            Text(
+                text = "Time's up!",
+                style = MaterialTheme.typography.headlineSmall,
+                textAlign = TextAlign.Center)
+        }
+    }
 }
 
 @Composable
 fun StepDetailsBox(
     step: StepWithDefinition
 ) {
-    Column(
-        modifier = Modifier.fillMaxWidth().padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+            contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+        ),
+        elevation = CardDefaults.cardElevation(8.dp),
+        modifier = Modifier
+            .fillMaxWidth()
     ) {
-        Row(
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth()
+        Box (
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            contentAlignment = Alignment.Center
         ) {
-            Text(
-                step.name,
-                style = MaterialTheme.typography.bodyLarge,
-                modifier = Modifier.weight(1f)
-            )
-            Text(
-                step.icon,
-                modifier = Modifier.width(50.dp)
-            )
-            Text(
-                step.length.toString() + "min",
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.width(50.dp)
-            )
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            step.name,
+                            style = MaterialTheme.typography.headlineSmall,
+                        )
+                        Text(
+                            step.icon,
+                            style = MaterialTheme.typography.headlineSmall,
+                        )
+                    }
+                    Spacer(modifier = Modifier.weight(1f))
+                    Text(
+                        step.length.toString() + "min",
+                        style = MaterialTheme.typography.headlineLarge
+                    )
+                }
+                Text(
+                    step.description,
+                    style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
         }
-        Text(
-            step.description,
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.fillMaxWidth()
-        )
-
     }
 }
 

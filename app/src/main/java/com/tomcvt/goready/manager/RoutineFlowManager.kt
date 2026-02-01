@@ -164,14 +164,33 @@ class RoutineFlowManager(
         notificationManager.notify(NOTIF_ID, notification)
     }
 
+    suspend fun finishStep(sessionId: Long) {
+        val session = routineSessionRepository.getRoutineSessionByIdFlow(sessionId).first()
+        if (session == null) {
+            Log.e(TAG, "Session not found")
+            return
+        }
+        if (session.stepNumber == session.maxSteps - 1) {
+            Log.d(TAG, "Routine finished")
+            val stepStatus = StepStatus.COMPLETED
+            val routineStatus = RoutineStatus.COMPLETED
+            val endTime = System.currentTimeMillis()
+            routineSessionRepository.updateRoutineSession(session.copy(stepStatus = stepStatus, status = routineStatus, endTime = endTime))
+        } else {
+            val stepStatus = StepStatus.COMPLETED
+            routineSessionRepository.updateRoutineSession(session.copy(stepStatus = stepStatus))
+        }
+        routineScheduler.cancelStepTimeout(sessionId)
+        //notification
+        Log.d(TAG, "Step ${session.stepNumber} finished")
+    }
+
     suspend fun advanceToNextStep(sessionId: Long) {
         val session = routineSessionRepository.getRoutineSessionByIdFlow(sessionId).first()
         if (session == null) {
             Log.e(TAG, "Session not found")
             return
         }
-
-        //TODO FINISH TIMEOUT ADDING AND CANCELING PREVIOUS
         if (session.stepNumber == session.maxSteps - 1) {
             Log.d(TAG, "Routine finished")
             routineSessionRepository.updateRoutineSession(session.copy(status = RoutineStatus.COMPLETED))
@@ -182,18 +201,40 @@ class RoutineFlowManager(
                 return
             }
             val nextNumber = session.stepNumber + 1
-            val nextStartTime = System.currentTimeMillis()
+            val stepStatus = StepStatus.AWAITING
+            //val nextStartTime = System.currentTimeMillis()
             routineSessionRepository.updateRoutineSession(
-                session.copy(stepNumber = nextNumber, stepStartTime = nextStartTime))
-            routineScheduler.cancelStepTimeout(sessionId)
-            routineScheduler.scheduleStepTimeout(sessionId, session.routineId, nextNumber, nextStep.length.toInt())
+                session.copy(stepNumber = nextNumber, stepStatus = stepStatus))
+
+            //routineScheduler.scheduleStepTimeout(sessionId, session.routineId, nextNumber, nextStep.length.toInt())
         }
         stepStartedPersistentNotify(sessionId, session.routineId, session.stepNumber)
+    }
+
+    suspend fun startStep(sessionId: Long) {
+        val session = routineSessionRepository.getRoutineSessionByIdFlow(sessionId).first()
+        if (session == null) {
+            Log.e(TAG, "Session not found")
+            return
+        }
+        val step = routineStepRepository.getRoutineStepByNumberFlow(session.routineId, session.stepNumber).first()
+        if (step == null) {
+            Log.e(TAG, "Step not found")
+            return
+        }
+        val stepStatus = StepStatus.RUNNING
+        val startTime = System.currentTimeMillis()
+        routineSessionRepository.updateRoutineSession(session.copy(stepStatus = stepStatus, stepStartTime = startTime))
+        routineScheduler.scheduleStepTimeout(sessionId, session.routineId, session.stepNumber, step.length.toInt())
     }
 
     suspend fun startRoutine(routineId: Long) : Long {
         clearRunningRoutines()
         val routine = routineRepository.getRoutineById(routineId)
+        if (routine == null) {
+            Log.e(TAG, "Routine not found")
+            return -1
+        }
         val steps = routineStepRepository.getRoutineStepsWithDefinitionFlow(routineId).first()
         val firstEndTimeMinutes = steps.firstOrNull()?.length ?: 0L
         //TODO later change, for now test
@@ -205,7 +246,7 @@ class RoutineFlowManager(
         val session = RoutineSession(
             routineId = routineId,
             stepNumber = 0,
-            stepStatus = StepStatus.RUNNING,
+            stepStatus = StepStatus.AWAITING,
             stepStartTime = System.currentTimeMillis(),
             maxSteps = steps.size,
             status = RoutineStatus.RUNNING,

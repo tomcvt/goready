@@ -24,6 +24,7 @@ import com.tomcvt.goready.repository.RoutineStepRepository
 import com.tomcvt.goready.repository.StepDefinitionRepository
 import com.tomcvt.goready.ui.composables.RoutineFlowContent
 import com.tomcvt.goready.ui.theme.GoReadyTheme
+import com.tomcvt.goready.ui.theme.VibrantTheme
 import com.tomcvt.goready.viewmodel.RoutineFlowViewModel
 import com.tomcvt.goready.viewmodel.RoutineFlowViewModelFactory
 
@@ -70,7 +71,7 @@ class RoutineFlowActivity : ComponentActivity() {
         val action = intent.action
 
         setContent {
-            GoReadyTheme {
+            VibrantTheme {
                 val vm = viewModel<RoutineFlowViewModel>(factory = routineFlowViewModelFactory)
                 if (action == ACTION_RF_UI_LAUNCHER) {
                     vm.setLauncherRoutine(routineId)
@@ -97,7 +98,7 @@ class RoutineFlowActivity : ComponentActivity() {
         Log.d(TAG, "onNewIntent: action, rId: $action, $sessionId, $routineId, $stepNumber, $info")
 
         setContent {
-            GoReadyTheme {
+            VibrantTheme {
                 val vm = viewModel<RoutineFlowViewModel>(factory = routineFlowViewModelFactory)
                 if (action == ACTION_RF_UI_LAUNCHER) {
                     vm.setLauncherRoutine(routineId)

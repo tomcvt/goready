@@ -13,18 +13,16 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Modifier
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
-import com.tomcvt.goready.BuildConfig
 import com.tomcvt.goready.application.AlarmApp
 import com.tomcvt.goready.constants.EXTRA_ALARM_ID
 import com.tomcvt.goready.constants.EXTRA_REMAINING_SNOOZE
-import com.tomcvt.goready.constants.SNOOZE_COUNTS
 import com.tomcvt.goready.constants.SNOOZE_MINUTES
 import com.tomcvt.goready.constants.TaskType
 import com.tomcvt.goready.manager.AppAlarmManager
 import com.tomcvt.goready.manager.SystemAlarmScheduler
 import com.tomcvt.goready.service.AlarmForegroundService
 import com.tomcvt.goready.ui.composables.*
-import com.tomcvt.goready.ui.theme.VibrantUniTheme
+import com.tomcvt.goready.ui.theme.VibrantLightTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -127,7 +125,7 @@ class AlarmActivity : ComponentActivity() {
             //TODO differentiate composables based on alarm type
             enableEdgeToEdge()
             setContent {
-                VibrantUniTheme {
+                VibrantLightTheme {
                     AlarmScreen(
                         alarmId = alarmId,
                         alarmName = alarmEntity.label ?: "Alarm",

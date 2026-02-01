@@ -516,18 +516,18 @@ fun RoutineEntityDetails(
         ) {
             Text(
                 text = routineEntity?.name ?: "NULL",
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.headlineLarge,
             )
             Text(
                 text = routineEntity?.icon ?: "N",
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.headlineLarge,
                 modifier = Modifier.width(50.dp)
             )
         }
         Spacer(modifier = Modifier.size(8.dp))
         Text(
             text = routineEntity?.description ?: "NULL",
-            style = MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.headlineSmall,
             modifier = Modifier.fillMaxWidth()
         )
     }
@@ -539,6 +539,10 @@ fun StepRowCard(
     step: StepWithDefinition
 ) {
     Card(
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+            contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+        ),
         elevation = CardDefaults.cardElevation(8.dp),
         modifier = Modifier
             .fillMaxWidth()
@@ -550,17 +554,18 @@ fun StepRowCard(
         ) {
             Text(
                 step.name,
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.headlineSmall,
                 modifier = Modifier.weight(1f)
             )
             Text(
                 step.icon,
-                modifier = Modifier.width(50.dp)
+                style = MaterialTheme.typography.headlineSmall,
+                modifier = Modifier
             )
             Text(
                 step.length.toString(),
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.width(50.dp)
+                style = MaterialTheme.typography.headlineLarge,
+                modifier = Modifier
             )
         }
     }
