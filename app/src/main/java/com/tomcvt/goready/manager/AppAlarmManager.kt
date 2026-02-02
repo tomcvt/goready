@@ -122,16 +122,23 @@ open class AppAlarmManager(private val repository: AlarmRepository, private val 
 
     suspend fun scheduleNextAlarm(alarmId: Long) {
         val alarm = repository.getAlarmById(alarmId) ?: return
-        scheduleNextAlarm(alarm)
+        if (scheduleNextAlarm(alarm)) {
+            Log.d(TAG, "Alarm scheduled: $alarm")
+        } else {
+            repository.updateAlarm(alarm.copy(isEnabled = false))
+            Log.d(TAG, "No next alarm time: $alarm")
+        }
     }
 
-    fun scheduleNextAlarm(alarm: AlarmEntity) {
+    fun scheduleNextAlarm(alarm: AlarmEntity) : Boolean {
         val nextAlarmTime = calculateNextAlarmTime(alarm)
         val remainingSnooze = if (alarm.snoozeEnabled) alarm.snoozeMaxCount!! else 0
         if (nextAlarmTime != -1L) {
             systemScheduler.scheduleNextAlarm(alarm, alarm.id, remainingSnooze, nextAlarmTime)
+            return true
         } else {
             Log.d(TAG, "No next alarm time: $alarm")
+            return false
         }
     }
 
