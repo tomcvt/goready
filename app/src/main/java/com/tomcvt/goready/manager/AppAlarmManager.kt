@@ -164,6 +164,7 @@ open class AppAlarmManager(private val repository: AlarmRepository, private val 
             return calendar.timeInMillis
         }
         val dayOfWeek = Calendar.getInstance().get(Calendar.DAY_OF_WEEK)
+        //TODO Call requires API level 26 (current min is 24): java.time.DayOfWeek#of
         var index = helperDays.indexOf(DayOfWeek.of(dayOfWeek)) + 1
         var nextDay = helperDays[index - 1]
         while (index in helperDays.indices) {
@@ -181,6 +182,17 @@ open class AppAlarmManager(private val repository: AlarmRepository, private val 
             set(Calendar.SECOND, 0)
             set(Calendar.MILLISECOND, 0)
             return calendar.timeInMillis
+        }
+    }
+
+    suspend fun scheduleAllEnabledAlarms() {
+        repository.getAlarms().collect { alarms ->
+            alarms.forEach { alarm ->
+                if (alarm.isEnabled) {
+                    val remainingSnooze = if (alarm.snoozeEnabled) alarm.snoozeMaxCount!! else 0
+                    systemScheduler.scheduleAlarm(alarm, alarm.id, remainingSnooze)
+                }
+            }
         }
     }
 
