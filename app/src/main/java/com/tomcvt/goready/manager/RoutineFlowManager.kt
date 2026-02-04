@@ -13,8 +13,10 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.tomcvt.goready.R
 import com.tomcvt.goready.activities.RoutineFlowActivity
+import com.tomcvt.goready.constants.ACTION_FF_TO_NEXT_STEP
 import com.tomcvt.goready.constants.ACTION_RF_UI_STEP_TIMEOUT
 import com.tomcvt.goready.constants.ACTION_RF_UI_SHOW
+import com.tomcvt.goready.constants.ACTION_ROUTINE_COMPLETE
 import com.tomcvt.goready.constants.EXTRA_ROUTINE_INFO
 import com.tomcvt.goready.constants.EXTRA_ROUTINE_SESSION_ID
 import com.tomcvt.goready.constants.EXTRA_ROUTINE_STEP
@@ -31,6 +33,9 @@ private const val TAG = "RoutineFlowManager"
 private const val MINUTE = 60000L
 private const val NOTIF_ID = 1119
 private const val SHOW_UI_REQUEST_CODE = 13
+private const val FAST_TO_NEXT_REQUEST_CODE = 14
+private const val ROUTINE_COMPLETE_REQUEST_CODE = 15
+
 private const val STATUS_CHANNEL = "routine_status_channel"
 //TODO refactor to routine alarm channel
 private const val FLOW_CHANNEL = "routine_flow_channel"
@@ -53,7 +58,6 @@ class RoutineFlowManager(
 
     fun getRoutineStepByNumberFlow(routineId: Long, stepNumber: Int) = routineStepRepository.getRoutineStepByNumberFlow(routineId, stepNumber)
 
-
     suspend fun stepStartedPersistentNotify(sessionId: Long, routineId: Long, stepNumber: Int) {
         val session = routineSessionRepository.getRoutineSessionByIdFlow(sessionId).first()
         if (session == null) {
@@ -68,13 +72,13 @@ class RoutineFlowManager(
         val steps = routineStepRepository.getRoutineStepsWithDefinitionFlow(routineId).first()
         val isLastStep = stepNumber == steps.size - 1
         Log.d(TAG, "isLastStep: $isLastStep")
-
         val currentStep = steps[stepNumber]
         Log.d(TAG, "currentStep: $currentStep")
 
 
         val timeoutMinutes = currentStep.length
 
+        //TODO is last step = skip routine step -> finish routine
         getRoutineStatusChannel()
         //TODO how this notif channel things work, initialize somewhere else
 
@@ -86,6 +90,40 @@ class RoutineFlowManager(
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        var secondAction: NotificationCompat.Action
+
+        //TODO later pause logic (if pause timestamp, if play difference + timeout)
+
+        if (!isLastStep) {
+            val fastToNextIntent = routineReceiverIntentFastToNext(sessionId, stepNumber)
+            val pendingIntentFastToNext = PendingIntent.getBroadcast(
+                context,
+                FAST_TO_NEXT_REQUEST_CODE,
+                fastToNextIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            //TODO drawable
+            val notifActionSkip = NotificationCompat.Action.Builder(
+                R.drawable.ic_gicon,
+                "Skip",
+                pendingIntentFastToNext
+            ).build()
+            secondAction = notifActionSkip
+        } else {
+            val finishIntent = routineReceiverFinishRoutineFlow(sessionId)
+            val pendingIntentFinish = PendingIntent.getBroadcast(
+                context,
+                ROUTINE_COMPLETE_REQUEST_CODE,
+                finishIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            val notifActionFinish = NotificationCompat.Action.Builder(
+                R.drawable.ic_gicon,
+                "Finish",
+                pendingIntentFinish
+            ).build()
+            secondAction = notifActionFinish
+        }
         val notifActionUi = NotificationCompat.Action.Builder(
             R.drawable.ic_gicon,
             "Show Ui",
@@ -94,23 +132,59 @@ class RoutineFlowManager(
         //val chronometerTime = SystemClock.elapsedRealtime() + timeoutMinutes * MINUTE
         val chronometerTime = System.currentTimeMillis() + timeoutMinutes * MINUTE
 
-
         val notification = NotificationCompat.Builder(context, STATUS_CHANNEL)
             .setSmallIcon(R.drawable.ic_gicon)
-            .setContentTitle("Routine ${routine.name} running")
-            .setContentText("Step ${stepNumber + 1} of ${steps.size} running")
+            .setContentTitle(routine.name)
+            .setContentText("(${stepNumber + 1} of ${steps.size}) ${currentStep.name}")
             .setCategory(NotificationCompat.CATEGORY_SERVICE)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setOngoing(true)
             .setAutoCancel(false)
+            .setOnlyAlertOnce(true)
             .setContentIntent(pendingIntentUi)
             .setWhen(chronometerTime)
             .setUsesChronometer(true)
             .setChronometerCountDown(true)
-            //.addAction(notifActionUi)
+            .addAction(notifActionUi)
+            .addAction(secondAction)
             .build()
+
         Log.d(TAG, "Notification built $notification")
         //launch
+        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.notify(NOTIF_ID, notification)
+    }
+
+    suspend fun postEndNotification(sessionId: Long, routineStatus: RoutineStatus) {
+        val session = routineSessionRepository.getRoutineSessionByIdFlow(sessionId).first()
+        if (session == null) {
+            Log.e(TAG, "Session not found")
+            return
+        }
+        val routine = routineRepository.getRoutineById(session.routineId)
+        if (routine == null) {
+            Log.e(TAG, "Routine not found")
+            return
+        }
+
+        val uiIntent = routineActivityIntentShowUiPersistent(sessionId, session.stepNumber)
+        val pendingIntentUi = PendingIntent.getActivity(
+            context,
+            SHOW_UI_REQUEST_CODE,
+            uiIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val notification = NotificationCompat.Builder(context, STATUS_CHANNEL)
+            .setSmallIcon(R.drawable.ic_gicon)
+            .setContentTitle(routine.name)
+            .setContentText("Routine completed")
+            .setCategory(NotificationCompat.CATEGORY_SERVICE)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setOngoing(false)
+            .setAutoCancel(true)
+            .setContentIntent(pendingIntentUi)
+            .build()
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.notify(NOTIF_ID, notification)
     }
@@ -127,13 +201,6 @@ class RoutineFlowManager(
             return
         }
 
-        val steps = routineStepRepository.getRoutineStepsWithDefinitionFlow(routineId).first()
-        val isLastStep = stepNumber == steps.size - 1
-
-        //TODO is last step = skip routine step -> finish routine
-        getRoutineFlowChannel()
-        //TODO how this notif channel things work
-
         val uiIntent = routineActivityIntentShowUiStepTimeout(sessionId, stepNumber)
         val pendingIntentUi = PendingIntent.getActivity(
             context,
@@ -142,19 +209,15 @@ class RoutineFlowManager(
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val notifAction = NotificationCompat.Action.Builder(
-            R.drawable.ic_gicon,
-            "Show Ui",
-            pendingIntentUi
-        ).build()
+        //TODO i need size here only, optimize
+        val steps = routineStepRepository.getRoutineStepsWithDefinitionFlow(routineId).first()
 
         val notification = NotificationCompat.Builder(context, FLOW_CHANNEL)
             .setSmallIcon(R.drawable.ic_gicon)
-            .setContentTitle("Routine ${routine.name}")
-            .setContentText("Step ${stepNumber + 1} of ${steps.size} time is up")
+            .setContentTitle(routine.name)
+            .setContentText("(${stepNumber + 1} of ${steps.size}) Time is up!")
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setOngoing(true)
             .setAutoCancel(false)
             .setFullScreenIntent(pendingIntentUi, true)
             .build()
@@ -163,6 +226,12 @@ class RoutineFlowManager(
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.notify(NOTIF_ID, notification)
     }
+
+    suspend fun finishRoutine(sessionId: Long) {
+        //TODO for now only from last step, not ababndod so
+        finishStep(sessionId)
+    }
+
 
     suspend fun finishStep(sessionId: Long) {
         val session = routineSessionRepository.getRoutineSessionByIdFlow(sessionId).first()
@@ -176,6 +245,7 @@ class RoutineFlowManager(
             val routineStatus = RoutineStatus.COMPLETED
             val endTime = System.currentTimeMillis()
             routineSessionRepository.updateRoutineSession(session.copy(stepStatus = stepStatus, status = routineStatus, endTime = endTime))
+            postEndNotification(sessionId, routineStatus)
         } else {
             val stepStatus = StepStatus.COMPLETED
             routineSessionRepository.updateRoutineSession(session.copy(stepStatus = stepStatus))
@@ -208,7 +278,7 @@ class RoutineFlowManager(
 
             //routineScheduler.scheduleStepTimeout(sessionId, session.routineId, nextNumber, nextStep.length.toInt())
         }
-        stepStartedPersistentNotify(sessionId, session.routineId, session.stepNumber)
+
     }
 
     suspend fun startStep(sessionId: Long) {
@@ -226,6 +296,7 @@ class RoutineFlowManager(
         val startTime = System.currentTimeMillis()
         routineSessionRepository.updateRoutineSession(session.copy(stepStatus = stepStatus, stepStartTime = startTime))
         routineScheduler.scheduleStepTimeout(sessionId, session.routineId, session.stepNumber, step.length.toInt())
+        stepStartedPersistentNotify(sessionId, session.routineId, session.stepNumber)
     }
 
     suspend fun startRoutine(routineId: Long) : Long {
@@ -330,6 +401,23 @@ class RoutineFlowManager(
             putExtra(EXTRA_ROUTINE_STEP, stepNumber)
             putExtra(EXTRA_ROUTINE_INFO, info)
             setAction(ACTION_RF_UI_STEP_TIMEOUT)
+        }
+        return intent
+    }
+
+    private fun routineReceiverIntentFastToNext(sessionId: Long, stepNumber: Int) : Intent {
+        val intent = Intent(context, RoutineReceiver::class.java).apply {
+            action = ACTION_FF_TO_NEXT_STEP
+            putExtra(EXTRA_ROUTINE_SESSION_ID, sessionId)
+            putExtra(EXTRA_ROUTINE_STEP, stepNumber)
+        }
+        return intent
+    }
+
+    private fun routineReceiverFinishRoutineFlow(sessionId: Long) : Intent {
+        val intent = Intent(context, RoutineReceiver::class.java).apply {
+            action = ACTION_ROUTINE_COMPLETE
+            putExtra(EXTRA_ROUTINE_SESSION_ID, sessionId)
         }
         return intent
     }

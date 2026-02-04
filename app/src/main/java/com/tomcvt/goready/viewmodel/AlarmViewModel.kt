@@ -148,11 +148,12 @@ class AlarmViewModel(
 
     fun save() {
         viewModelScope.launch {
-            val s = editorState.value
+            var s = editorState.value
             if (!validateData(s.taskType, s.taskData)) {
                 _uiState.value = UiState.InputError("Input data for a task!")
                 return@launch
             }
+            s = s.copy(taskData = trimTaskData(s.taskType, s.taskData))
             if (s.mode == AlarmEditorState.Mode.CREATE) {
                 val draft = AlarmDraft(
                     hour = s.hour,
@@ -258,6 +259,15 @@ data class AlarmEditorState(
     enum class Mode { CREATE, EDIT }
 }
 
+fun trimTaskData(taskType: TaskType, taskData: String) : String {
+    when (taskType) {
+        TaskType.TEXT -> {
+            return taskData.trim()
+        }
+        else -> {}
+    }
+    return taskData
+}
 
 fun parseData(taskType: TaskType, taskData: String) : String?  {
 

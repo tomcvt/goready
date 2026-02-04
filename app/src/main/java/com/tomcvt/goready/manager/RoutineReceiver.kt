@@ -4,6 +4,8 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import com.tomcvt.goready.application.AlarmApp
+import com.tomcvt.goready.constants.ACTION_FF_TO_NEXT_STEP
+import com.tomcvt.goready.constants.ACTION_ROUTINE_COMPLETE
 import com.tomcvt.goready.constants.ACTION_STEP_TIMEOUT
 import com.tomcvt.goready.constants.EXTRA_ROUTINE_ID
 import com.tomcvt.goready.constants.EXTRA_ROUTINE_INFO
@@ -43,6 +45,19 @@ class RoutineReceiver : BroadcastReceiver() {
         if (action == ACTION_STEP_TIMEOUT) {
             CoroutineScope(Dispatchers.IO).launch {
                 routineFlowManager.stepFinishedTimeout(sessionId, routineId, routineStep)
+            }
+        }
+
+        if (action == ACTION_FF_TO_NEXT_STEP) {
+            CoroutineScope(Dispatchers.IO).launch {
+                routineFlowManager.advanceToNextStep(sessionId)
+                routineFlowManager.startStep(sessionId)
+            }
+        }
+
+        if (action == ACTION_ROUTINE_COMPLETE) {
+            CoroutineScope(Dispatchers.IO).launch {
+                routineFlowManager.finishRoutine(sessionId)
             }
         }
 
