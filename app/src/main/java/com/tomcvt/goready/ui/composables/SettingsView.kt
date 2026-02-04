@@ -20,11 +20,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -37,19 +40,33 @@ import androidx.core.content.ContextCompat.startActivity
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.tomcvt.goready.BuildConfig
 import com.tomcvt.goready.MainActivity
 import com.tomcvt.goready.domain.PermissionSpec
 import com.tomcvt.goready.registries.getPermissionRegistryForSdk
 import com.tomcvt.goready.viewmodel.AlarmViewModel
+import com.tomcvt.goready.viewmodel.SettingsViewModel
 
 @Composable
-fun SettingsView(modifier: Modifier = Modifier) {
-    PermissionSettingsScreen()
+fun SettingsView(
+    viewModel: SettingsViewModel,
+    modifier: Modifier = Modifier
+) {
+    PermissionSettingsScreen(
+        viewModel = viewModel,
+        modifier = modifier
+    )
 }
 
 @Composable
-fun PermissionSettingsScreen() {
+fun PermissionSettingsScreen(
+    viewModel: SettingsViewModel,
+    modifier: Modifier = Modifier
+) {
     val mainContext = LocalContext.current
+
+    val premiumState by viewModel.premiumState.collectAsState()
+
 
     val permissionStateMap = remember {
         mutableStateMapOf<String, Boolean>()
@@ -82,17 +99,31 @@ fun PermissionSettingsScreen() {
     LaunchedEffect(Unit) {
         refreshPermissionState(mainContext, permissionRegistry, permissionStateMap)
     }
-
-    PermissionList(
-        registry = permissionRegistry,
-        stateMap = permissionStateMap,
-        onOptionClick = { id ->
-            val spec = permissionRegistry.find { it.id == id }
-            if (spec != null) {
-                requestPermission(mainContext, spec, launcher)
+    Column(
+        modifier = Modifier.padding(16.dp)
+    ) {
+        PermissionList(
+            registry = permissionRegistry,
+            stateMap = permissionStateMap,
+            onOptionClick = { id ->
+                val spec = permissionRegistry.find { it.id == id }
+                if (spec != null) {
+                    requestPermission(mainContext, spec, launcher)
+                }
+            }
+        )
+        if (permissionStateMap["battery_optimization"] == false) {
+            Text(text = "Battery optimization is not granted")
+        }
+        if (BuildConfig.DEBUG) {
+            Button(onClick = {
+                viewModel.devTogglePremium()
+            }) {
+                Text(text = "Premium: ${premiumState.isPremium}")
             }
         }
-    )
+
+    }
 }
 
 fun refreshPermissionState(

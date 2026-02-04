@@ -4,6 +4,7 @@ import android.app.TimePickerDialog
 import android.util.Log
 import android.widget.ToggleButton
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -24,6 +25,7 @@ import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuItemColors
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -38,6 +40,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -46,6 +49,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.text.isDigitsOnly
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import com.tomcvt.goready.LocalPremiumState
 import com.tomcvt.goready.RootTab
 import com.tomcvt.goready.constants.TaskType
 import com.tomcvt.goready.constants.TaskTypeContext
@@ -135,6 +139,7 @@ fun AddAlarmView(viewModel: AlarmViewModel,
             TaskDataInput(
                 value = rememberedData[state.taskType.name]?: "",
                 taskType = state.taskType,
+                onPremiumRequest = { TODO("implement premium request") },
                 onTaskDataProvided = {
                     Log.d("AddAlarmView", "Task data provided: ${it}")
                     //if (!it.isBlank()){
@@ -239,6 +244,8 @@ fun AlarmTypeSelector(
 ) {
     var expanded by remember { mutableStateOf(false) }
     //var selectedOption by remember { mutableStateOf(selectedType.label) }
+    val premiumState = LocalPremiumState.current
+
     ExposedDropdownMenuBox(
         expanded = expanded,
         onExpandedChange = { expanded = !expanded }
@@ -259,12 +266,14 @@ fun AlarmTypeSelector(
             onDismissRequest = { expanded = false }
         ) {
             options.forEach { option ->
+                val shouldDim = !premiumState.isPremium && option.premium
                 DropdownMenuItem(
                     text = { Text(option.name) },
                     onClick = {
                         onTypeSelected(option)  // call lambda
                         expanded = false
-                    }
+                    },
+                    modifier = if (shouldDim) Modifier.alpha(0.5f) else Modifier
                 )
             }
         }
@@ -275,60 +284,73 @@ fun AlarmTypeSelector(
 fun TaskDataInput(
     value: String,
     taskType: TaskType,
+    onPremiumRequest: () -> Unit,
     onTaskDataProvided: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val premiumState = LocalPremiumState.current
+
     Box(
         modifier = modifier,
         contentAlignment = Alignment.Center
     ) {
-        when (taskType) {
-            TaskType.TIMER -> {}
-            TaskType.COUNTDOWN -> {
-                NumbersInput(
-                    value = value,
-                    onValueChange = {
-                        onTaskDataProvided(it)
-                    },
-                    onFocusLost = { onTaskDataProvided(it) },
-                    placeholder = "   ",
-                    modifier = Modifier.widthIn(min = 100.dp, max = 250.dp)
-                )
-            }
+        if(!premiumState.isPremium && taskType.premium) {
+            PremiumContentLabelBox(
+                onClickListener = onPremiumRequest,
+                modifier = Modifier.align(Alignment.TopEnd)
+            )
+        } else {
 
-            TaskType.TEXT -> {
-                TextInputCard(
-                    value = value,
-                    onTextChange = {
-                        onTaskDataProvided(it)
-                    },
-                    onFocusLost = { onTaskDataProvided(it) },
-                    placeholder = "Type here..."
-                )
-            }
+            when (taskType) {
+                TaskType.TIMER -> {}
+                TaskType.COUNTDOWN -> {
+                    NumbersInput(
+                        value = value,
+                        onValueChange = {
+                            onTaskDataProvided(it)
+                        },
+                        onFocusLost = { onTaskDataProvided(it) },
+                        placeholder = "   ",
+                        modifier = Modifier.widthIn(min = 100.dp, max = 250.dp)
+                    )
+                }
 
-            TaskType.MATH -> {
-                MathTaskInput(
-                    value = value,
-                    onInputChange = {
-                        onTaskDataProvided(it)
-                    },
-                    onFocusLost = { onTaskDataProvided(it) }
-                )
+                TaskType.TEXT -> {
+                    TextInputCard(
+                        value = value,
+                        onTextChange = {
+                            onTaskDataProvided(it)
+                        },
+                        onFocusLost = { onTaskDataProvided(it) },
+                        placeholder = "Type here..."
+                    )
+                }
+
+                TaskType.MATH -> {
+                    MathTaskInput(
+                        value = value,
+                        onInputChange = {
+                            onTaskDataProvided(it)
+                        },
+                        onFocusLost = { onTaskDataProvided(it) }
+                    )
+                }
+
+                TaskType.TARGET -> {
+                    //TODO implement inputs sizing by text size
+                    NumbersInput(
+                        value = value,
+                        onValueChange = {
+                            onTaskDataProvided(it)
+                        },
+                        onFocusLost = { onTaskDataProvided(it) },
+                        placeholder = "   ",
+                        modifier = Modifier.widthIn(min = 100.dp, max = 250.dp)
+                    )
+                }
+
+                else -> {}
             }
-            TaskType.TARGET -> {
-                //TODO implement inputs sizing by text size
-                NumbersInput(
-                    value = value,
-                    onValueChange = {
-                        onTaskDataProvided(it)
-                    },
-                    onFocusLost = { onTaskDataProvided(it) },
-                    placeholder = "   ",
-                    modifier = Modifier.widthIn(min = 100.dp, max = 250.dp)
-                )
-            }
-            else -> {}
         }
     }
 }
@@ -387,5 +409,24 @@ fun SnoozeInfoRow(
                 modifier = Modifier.size(18.dp)
             )
         }
+    }
+}
+
+@Composable
+fun PremiumContentLabelBox(
+    onClickListener: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier.background(Color.LightGray.copy(alpha = 0.5f))
+            .clickable { onClickListener() }
+            .padding(16.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            "Premium feature",
+            style = MaterialTheme.typography.headlineMedium,
+            textAlign = TextAlign.Center
+        )
     }
 }

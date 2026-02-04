@@ -45,7 +45,7 @@ class AlarmReceiver : BroadcastReceiver() {
         }
         if (action == ACTION_ALARM_TRIGGERED) {
             CoroutineScope(Dispatchers.IO).launch {
-                appAlarmManager.scheduleNextAlarm(alarmId)
+                appAlarmManager.scheduleNextAlarmOrDisable(alarmId)
             }
             //showNotification(context, alarmId)
         }

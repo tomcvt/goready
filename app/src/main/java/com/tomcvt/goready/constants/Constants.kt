@@ -27,15 +27,16 @@ const val ACTION_ALARM_SNOOZE_TRIGGERED = "ACTION_ALARM_SNOOZE_TRIGGERED"
 
 enum class TaskType(
     val label: String,
-    val code: Long
+    val code: Long,
+    val premium: Boolean = false
 ) {
     NONE("None", 0),
     TIMER("Timer", 1),
     COUNTDOWN("Clicker", 2),
     TEXT("Text", 3),
     MATH("Math tasks", 4),
-    TARGET("Target Minigame", 5),
-    TASK_CHAIN("Task Chain", 6);
+    TARGET("Target Minigame", 5, true),
+    TASK_CHAIN("Task Chain", 6, true);
 
 
 

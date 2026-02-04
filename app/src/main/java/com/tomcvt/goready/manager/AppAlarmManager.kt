@@ -120,7 +120,7 @@ open class AppAlarmManager(private val repository: AlarmRepository, private val 
         return repository.getAlarmById(alarmId)
     }
 
-    suspend fun scheduleNextAlarm(alarmId: Long) {
+    suspend fun scheduleNextAlarmOrDisable(alarmId: Long) {
         val alarm = repository.getAlarmById(alarmId) ?: return
         if (scheduleNextAlarm(alarm)) {
             Log.d(TAG, "Alarm scheduled: $alarm")
@@ -137,7 +137,6 @@ open class AppAlarmManager(private val repository: AlarmRepository, private val 
             systemScheduler.scheduleNextAlarm(alarm, alarm.id, remainingSnooze, nextAlarmTime)
             return true
         } else {
-            Log.d(TAG, "No next alarm time: $alarm")
             return false
         }
     }
@@ -170,10 +169,14 @@ open class AppAlarmManager(private val repository: AlarmRepository, private val 
             }
             return calendar.timeInMillis
         }
-        val dayOfWeek = Calendar.getInstance().get(Calendar.DAY_OF_WEEK)
+        var dayOfWeek = Calendar.getInstance().get(Calendar.DAY_OF_WEEK)
+        //TODO FORCE LOCALE OR DO STH BETTER
+        dayOfWeek = (dayOfWeek + 5) % 7 + 1
+        Log.d(TAG, "DEBUG: Day of week is $dayOfWeek")
         //TODO Call requires API level 26 (current min is 24): java.time.DayOfWeek#of
-        var index = helperDays.indexOf(DayOfWeek.of(dayOfWeek)) + 1
-        var nextDay = helperDays[index - 1]
+        var startIndex = helperDays.indexOf(DayOfWeek.of(dayOfWeek))
+        var index = startIndex + 1
+        var nextDay: DayOfWeek? = null
         while (index in helperDays.indices) {
             val day = helperDays[index]
             if (alarm.repeatDays.contains(day)) {
@@ -182,14 +185,21 @@ open class AppAlarmManager(private val repository: AlarmRepository, private val 
             }
             index++
         }
+        if (nextDay == null) {
+            return -1
+        }
+        Log.d(TAG, "DEBUG: Next day is $nextDay" +
+                "\nDEBUG: Index is $index" +
+                "\nDEBUG: Start index is $startIndex"
+        )
         calendar.apply {
-            set(Calendar.DAY_OF_WEEK, nextDay.value)
+            add(Calendar.DAY_OF_MONTH, index - startIndex)
             set(Calendar.HOUR_OF_DAY, hour)
             set(Calendar.MINUTE, minute)
             set(Calendar.SECOND, 0)
             set(Calendar.MILLISECOND, 0)
-            return calendar.timeInMillis
         }
+        return calendar.timeInMillis
     }
 
     suspend fun scheduleAllEnabledAlarms() {

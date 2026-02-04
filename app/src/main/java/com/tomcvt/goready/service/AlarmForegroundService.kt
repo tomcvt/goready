@@ -96,11 +96,14 @@ class AlarmForegroundService : Service() {
                 return@launch
             }
             Log.d("AlarmForegroundService", "Alarm found: $alarm")
+            //If receiver let it run, it should, there is disabling if not recurrent alarm
+            /*
             if (!alarm.isEnabled) {
                 Log.d("AlarmForegroundService", "Alarm is disabled")
                 stopSelf()
                 return@launch
             }
+            */
             isActive = true
 
             val audioManager = alarmContext.getSystemService(Context.AUDIO_SERVICE) as AudioManager

@@ -26,8 +26,10 @@ import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffo
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
@@ -45,6 +47,10 @@ import com.tomcvt.goready.constants.EXTRA_ALARM_ID
 import com.tomcvt.goready.manager.AppAlarmManager
 import com.tomcvt.goready.manager.AppRoutinesManager
 import com.tomcvt.goready.manager.SystemAlarmScheduler
+import com.tomcvt.goready.premium.DevPremiumRepository
+import com.tomcvt.goready.premium.PremiumRepositoryI
+import com.tomcvt.goready.premium.PremiumState
+import com.tomcvt.goready.premium.ProdPremiumRepository
 import com.tomcvt.goready.preview.PreviewAlarms2
 import com.tomcvt.goready.repository.AlarmRepository
 import com.tomcvt.goready.repository.RoutineRepository
@@ -61,6 +67,8 @@ import com.tomcvt.goready.viewmodel.AlarmViewModel
 import com.tomcvt.goready.viewmodel.AlarmViewModelFactory
 import com.tomcvt.goready.viewmodel.RoutinesViewModel
 import com.tomcvt.goready.viewmodel.RoutinesViewModelFactory
+import com.tomcvt.goready.viewmodel.SettingsViewModel
+import com.tomcvt.goready.viewmodel.SettingsViewModelFactory
 
 class MainActivity : ComponentActivity() {
 
@@ -76,6 +84,9 @@ class MainActivity : ComponentActivity() {
         private set
     lateinit var routinesViewModelFactory: RoutinesViewModelFactory
         private set
+    lateinit var settingsViewModelFactory: SettingsViewModelFactory
+        private set
+
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -95,6 +106,7 @@ class MainActivity : ComponentActivity() {
 
         alarmViewModelFactory = AlarmViewModelFactory(appAlarmManager)
         routinesViewModelFactory = RoutinesViewModelFactory(appRoutinesManager)
+        settingsViewModelFactory = SettingsViewModelFactory(appObject.premiumRepository)
 
         /*
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -167,25 +179,68 @@ class MainActivity : ComponentActivity() {
         if (alarmId != -1L) {
             Log.d("MainActivity", "Alarm ID to edit: $alarmId")
         }
+
+        //TODO for now simple
+
+        val premiumRepository = appObject.premiumRepository
+
         enableEdgeToEdge()
         setContent {
             GoReadyTheme {
                 if (alarmId != -1L) {
                     GoReadyApp(
-                        alarmViewModelFactory, routinesViewModelFactory, alarmId)
+                        alarmViewModelFactory,
+                        routinesViewModelFactory,
+                        settingsViewModelFactory,
+                        premiumRepository,
+                        alarmId
+                    )
                 } else {
-                    GoReadyApp(alarmViewModelFactory, routinesViewModelFactory)
+                    GoReadyApp(
+                        alarmViewModelFactory,
+                        routinesViewModelFactory,
+                        settingsViewModelFactory,
+                        premiumRepository
+                    )
                 }
             }
         }
     }
 }
 
+val LocalPremiumState = staticCompositionLocalOf<PremiumState> {
+    error("No PremiumState provided")
+}
+
+@Composable
+fun GoReadyApp(
+    alarmViewModelFactory: AlarmViewModelFactory,
+    routinesViewModelFactory: RoutinesViewModelFactory,
+    settingsViewModelFactory: SettingsViewModelFactory,
+    premiumRepository: PremiumRepositoryI,
+    alarmId: Long? = null
+) {
+    val premiumState by premiumRepository.premiumState.collectAsState()
+    CompositionLocalProvider(LocalPremiumState provides premiumState) {
+        GoReadyAppMain(
+            alarmViewModelFactory,
+            routinesViewModelFactory,
+            settingsViewModelFactory,
+            premiumRepository,
+            alarmId
+        )
+    }
+}
+
 //@PreviewScreenSizes
 @Composable
-fun GoReadyApp(alarmViewModelFactory: AlarmViewModelFactory,
-               routinesViewModelFactory: RoutinesViewModelFactory,
-               alarmId: Long? = null) {
+fun GoReadyAppMain(
+    alarmViewModelFactory: AlarmViewModelFactory,
+    routinesViewModelFactory: RoutinesViewModelFactory,
+    settingsViewModelFactory: SettingsViewModelFactory,
+    premiumRepository: PremiumRepositoryI,
+    alarmId: Long? = null
+) {
     val rootNavController = rememberNavController()
     val navbackStackEntry by rootNavController.currentBackStackEntryAsState()
     val currentRootTab = try {
@@ -237,8 +292,8 @@ fun GoReadyApp(alarmViewModelFactory: AlarmViewModelFactory,
                     //AddAlarmRoute(vm, rootNavController) for now redundant
                 }
                 composable(RootTab.SETTINGS.name) {
-                    //val vm = viewModel<AlarmViewModel>(factory = alarmViewModelFactory)
-                    SettingsView()
+                    val vm = viewModel<SettingsViewModel>(factory = settingsViewModelFactory)
+                    SettingsView(vm)
                 }
                 composable(
                     route = "edit_alarm/{alarmId}",

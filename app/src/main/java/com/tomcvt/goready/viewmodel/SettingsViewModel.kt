@@ -1,11 +1,19 @@
 package com.tomcvt.goready.viewmodel
 
-class SettingsViewModel {
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.tomcvt.goready.premium.PremiumRepositoryI
+import kotlinx.coroutines.launch
 
+class SettingsViewModel(
+    private val premiumRepository: PremiumRepositoryI
+) : ViewModel() {
+    val premiumState = premiumRepository.premiumState
+
+    fun devTogglePremium() {
+        val isPremium = premiumState.value.isPremium
+        viewModelScope.launch {
+            premiumRepository.setIsPremium(!isPremium)
+        }
+    }
 }
-/*
-sealed class SettingsState {
-    object Loading : SettingsState()
-    data class Loaded(val settings: Settings) : SettingsState()
-    data class Error(val message: String) : SettingsState()
-}*/
