@@ -3,8 +3,12 @@ package com.tomcvt.goready.ui.composables
 import android.content.Intent
 import android.util.Log
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,11 +23,14 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
@@ -33,10 +40,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.layoutId
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -46,6 +59,7 @@ import com.tomcvt.goready.constants.ACTION_RF_UI_LAUNCHER
 import com.tomcvt.goready.constants.EXTRA_ROUTINE_ID
 import com.tomcvt.goready.data.AlarmEntity
 import com.tomcvt.goready.data.RoutineEntity
+import com.tomcvt.goready.data.StepDefinitionEntity
 import com.tomcvt.goready.data.StepWithDefinition
 import com.tomcvt.goready.test.launchAlarmNow
 import com.tomcvt.goready.ui.imagevectors.IconBell
@@ -248,6 +262,9 @@ fun RoutineEditor(
     val uiState by viewModel.uiState.collectAsState()
     val rEditorState by viewModel.routineEditorState.collectAsState()
 
+    var activeItemId by remember { mutableStateOf<Long?>(null) }
+    var activeBounds by remember { mutableStateOf<Rect?>(null) }
+
     Box (
         modifier = Modifier
         .fillMaxSize()
@@ -264,69 +281,23 @@ fun RoutineEditor(
         ) {
             Text("Edit routine", style = MaterialTheme.typography.headlineSmall,
                 textAlign = TextAlign.Center)
-            Card(
-                elevation = CardDefaults.cardElevation(8.dp),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Row (horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth().padding(16.dp)
-                ) {
-                    TextField(
-                        value = rEditorState.name,
-                        onValueChange = { viewModel.setRoutineName(it) },
-                        modifier = Modifier.weight(1f)
-                    )
-                    //Spacer(modifier = Modifier.size(8.dp))
-                    TextField(
-                        value = rEditorState.icon,
-                        onValueChange = {
-                            if (isExactlyOneEmoji(it) || it.isEmpty()) viewModel.setRoutineIcon(it) },
-                        placeholder = { Text("\uD83D\uDC4D") },
-                        modifier = Modifier.width(50.dp)
-                    )
-                }
-                Spacer(modifier = Modifier.size(8.dp))
-                TextField(
-                    value = rEditorState.description,
-                    onValueChange = { viewModel.setRoutineDescription(it) },
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
+            RoutineEditorDetailsCard(viewModel)
             LazyColumn(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(rEditorState.steps.size) { index ->
                     val step = rEditorState.steps[index]
-                    Card(
-                        elevation = CardDefaults.cardElevation(8.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                    ) {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxWidth().padding(16.dp)
-                        ) {
-                            Text(
-                                text = step.first.name,
-                                style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier.weight(1f)
-                            )
-                            Text(
-                                text = step.first.icon,
-                                style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier.width(50.dp)
-                            )
-                            Text(
-                                text = step.second.toString(),
-                                style = MaterialTheme.typography.titleMedium,
-                                modifier = Modifier.width(50.dp)
-                                    .clickable { viewModel.setStepModalNumber(index) }
-                            )
+                    RoutineEditorStepCard(
+                        viewModel, index, step,
+                        modifier = Modifier.fillMaxWidth(),
+                        onEdit = {
+                            Log.d("RoutineEditor", "Editing step $index")
+                        },
+                        onDelete = {
+                            Log.d("RoutineEditor", "Deleting step $index")
                         }
-                    }
+                    )
                 }
             }
             Button(
@@ -359,6 +330,129 @@ fun RoutineEditor(
                 //navController = navController,
                 modifier = modifier
             )
+        }
+    }
+}
+
+@Composable
+fun RoutineEditorDetailsCard(
+    viewModel: RoutinesViewModel,
+    modifier: Modifier = Modifier
+) {
+    val rEditorState by viewModel.routineEditorState.collectAsState()
+
+    Card(
+        elevation = CardDefaults.cardElevation(8.dp),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row (horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth().padding(16.dp)
+        ) {
+            TextField(
+                value = rEditorState.name,
+                onValueChange = { viewModel.setRoutineName(it) },
+                modifier = Modifier.weight(1f)
+            )
+            //Spacer(modifier = Modifier.size(8.dp))
+            TextField(
+                value = rEditorState.icon,
+                onValueChange = {
+                    if (isExactlyOneEmoji(it) || it.isEmpty()) viewModel.setRoutineIcon(it) },
+                placeholder = { Text("\uD83D\uDC4D") },
+                modifier = Modifier.width(50.dp)
+            )
+        }
+        Spacer(modifier = Modifier.size(8.dp))
+        TextField(
+            value = rEditorState.description,
+            onValueChange = { viewModel.setRoutineDescription(it) },
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
+}
+
+@Composable
+fun RoutineEditorStepCard(
+    viewModel: RoutinesViewModel,
+    index: Int,
+    step: Pair<StepDefinitionEntity, Int>,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var expanded by remember { mutableStateOf(false) }
+    Card(
+        elevation = CardDefaults.cardElevation(8.dp),
+        modifier = modifier
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .combinedClickable(
+                    onClick = {expanded = false},
+                    onLongClick = { expanded = true }
+                )
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth().padding(16.dp)
+            ) {
+                Text(
+                    text = step.first.name,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.weight(1f)
+                )
+                Text(
+                    text = step.first.icon,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.width(50.dp)
+                )
+                Text(
+                    text = step.second.toString(),
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.width(50.dp)
+                        .clickable { viewModel.setStepModalNumber(index) }
+                )
+            }
+            StepCardOverlay(
+                expanded = expanded,
+                onDismiss = { expanded = false },
+                onDelete = onDelete,
+                onEdit = onEdit
+            )
+
+        }
+    }
+}
+
+@Composable
+fun StepCardOverlay(
+    expanded: Boolean,
+    onDismiss: () -> Unit,
+    onDelete: () -> Unit,
+    onEdit: () -> Unit
+) {
+    AnimatedVisibility(
+        visible = expanded,
+        enter = slideInHorizontally(initialOffsetX = { it }),
+        exit = slideOutHorizontally(targetOffsetX = { it })
+    ) {
+        Row(
+            Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.12f))
+                .padding(end = 8.dp),
+            horizontalArrangement = Arrangement.End,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onEdit) {
+                Icon(Icons.Default.Edit, contentDescription = "Edit")
+            }
+            IconButton(onClick = onDelete) {
+                Icon(Icons.Default.Delete, contentDescription = "Delete")
+            }
         }
     }
 }
