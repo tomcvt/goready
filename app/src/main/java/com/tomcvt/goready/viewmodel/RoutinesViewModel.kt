@@ -128,6 +128,11 @@ class RoutinesViewModel(
         _uiState.update { it.copy(successMessage = null) }
     }
 
+    fun clearErrorMessage() {
+        _uiState.update { it.copy(errorMessage = null) }
+    }
+
+
     //routineId not used here
     fun addRoutineInEditor(routineId: Long) {
         _routineEditorState.value = RoutineEditorState()
@@ -309,8 +314,9 @@ class RoutinesViewModel(
     fun saveRoutine() {
         viewModelScope.launch {
             val s = routineEditorState.value
-            if (!validateRoutineData(s)) {
-                _uiState.update { it.copy(errorMessage = "Provide all data") }
+            val errorMsg = validateRoutineData(s)
+            if (errorMsg != null) {
+                _uiState.update { it.copy(errorMessage = errorMsg) }
                 return@launch
             }
             val draft = RoutineDraft(
@@ -321,8 +327,11 @@ class RoutinesViewModel(
                 steps = s.steps
             )
             routinesManager.addRoutine(draft)
+            closeRoutineEditor()
+            clearRoutineEditor()
             _uiState.update { it.copy(successMessage = "Routine added") }
         }
+
     }
 
     fun deleteRoutine(routine: RoutineEntity) {
@@ -369,12 +378,12 @@ private fun validateStepData(state: StepDefinitionState) : Boolean {
     return true
 }
 
-private fun validateRoutineData(state: RoutineEditorState) : Boolean {
-    if (state.name.isBlank()) return false
-    if (state.steps.isEmpty()) return false
+private fun validateRoutineData(state: RoutineEditorState) : String? {
+    if (state.name.isBlank()) return "Name is empty"
+    if (state.steps.isEmpty()) return "No steps are added"
     for (step in state.steps) {
-        if (step.first == null) return false
-        if (step.second <= 0) return false
+        if (step.first == null) return "Error, reload editor"
+        if (step.second <= 0) return "Time cant be less or equal to zero"
     }
-    return true
+    return null
 }

@@ -134,6 +134,16 @@ fun RoutineListRoute(
             Log.d("RoutineListRoute", "Success message: ${uiState.successMessage}")
 
         }
+
+        if (uiState.errorMessage != null) {
+            StandardModal(
+                onDismiss = { viewModel.clearErrorMessage() },
+                onConfirm = { viewModel.clearErrorMessage() }
+            ) {
+                Text(text = uiState.errorMessage?: "ERROR")
+            }
+        }
+
     }
 
 }
@@ -292,9 +302,7 @@ fun RoutineEditor(
                 Text("Add step")
             }
             FloatingActionButton(
-                onClick = { viewModel.saveRoutine()
-                           viewModel.closeRoutineEditor()
-                            viewModel.clearRoutineEditor() },
+                onClick = { viewModel.saveRoutine() },
                 modifier = Modifier.padding(16.dp),
                 containerColor = MaterialTheme.colorScheme.primary
             ) {
@@ -432,7 +440,7 @@ fun StepCardOverlay(
         Row(
             Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.12f)),
+                .background(Color.Black.copy(alpha = 0.5f)),
             horizontalArrangement = Arrangement.End,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -451,7 +459,7 @@ fun StaticEditButton(
 ) {
     IconButton(
         onClick = onClick,
-        modifier = Modifier.padding(8.dp)
+        modifier = Modifier.padding(16.dp)
             .background(
                 color = MaterialTheme.colorScheme.primaryContainer,
                 shape = RoundedCornerShape(8.dp)
@@ -472,7 +480,7 @@ fun StaticDeleteButton(
 ) {
     IconButton(
         onClick = onClick,
-        modifier = Modifier.padding(8.dp)
+        modifier = Modifier.padding(16.dp)
             .background(
                 color = MaterialTheme.colorScheme.errorContainer,
                 shape = RoundedCornerShape(8.dp)
