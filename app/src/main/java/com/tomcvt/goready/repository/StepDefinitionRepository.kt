@@ -18,4 +18,8 @@ class StepDefinitionRepository(
     suspend fun insertStepDefinition(stepDefinitionEntity: StepDefinitionEntity) : Long {
         return stepDefinitionDao.insertStepDefinition(stepDefinitionEntity)
     }
+
+    suspend fun updateStepDefinition(stepDefinitionEntity: StepDefinitionEntity) {
+        stepDefinitionDao.updateStepDefinition(stepDefinitionEntity)
+    }
 }

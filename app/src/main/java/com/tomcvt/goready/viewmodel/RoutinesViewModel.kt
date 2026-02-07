@@ -164,6 +164,20 @@ class RoutinesViewModel(
         _uiState.update { it.copy(isStepEditorOpen = true) }
     }
 
+    fun openStepEditorWithStep(step: StepDefinitionEntity, index: Int) {
+        _stepEditorState.update {
+            it.copy(
+                index = index,
+                id = step.id,
+                stepType = step.stepType,
+                name = step.name,
+                description = step.description,
+                icon = step.icon
+            )
+        }
+        _uiState.update { it.copy(isStepEditorOpen = true) }
+    }
+
     fun closeStepEditor() {
         _uiState.update { it.copy(isStepEditorOpen = false) }
     }
@@ -197,16 +211,18 @@ class RoutinesViewModel(
                 return@launch
             }
             val draft = StepDefinitionDraft(
+                id = s.id,
                 stepType = s.stepType,
                 name = s.name,
                 description = s.description,
                 icon = s.icon
             )
             val addedId = routinesManager.addStepDefinition(draft)
-            _stepEditorState.value = StepDefinitionState(lastAddedId = addedId)
             _uiState.update { it.copy(successMessage = "Step definition added") }
         }
     }
+
+    //TODO keep editing step id, init step editor with selected step, save on edit
 
     fun saveStepDefinitionAndAdd() {
         viewModelScope.launch {
@@ -217,6 +233,7 @@ class RoutinesViewModel(
                 return@launch
             }
             val draft = StepDefinitionDraft(
+                id = s.id,
                 stepType = s.stepType,
                 name = s.name,
                 description = s.description,
@@ -229,10 +246,42 @@ class RoutinesViewModel(
                 addStepDefToRoutineEditor(stepDefinition, index)
             }
             cleanStepEditor()
-            _stepEditorState.value = StepDefinitionState(lastAddedId = addedId)
             _uiState.update { it.copy(successMessage = "Step definition added") }
             Log.d("RoutinesViewModel", "Step definition added")
         }
+    }
+
+    //TODO if about update or save for step editor
+
+    fun updateStepDefinitionAndSet() {
+        viewModelScope.launch {
+            val s = stepEditorState.value
+            val index = s.index?: return@launch
+            if(!validateStepData(s)) {
+                _uiState.update { it.copy(errorMessage = "Provide all data") }
+                return@launch
+            }
+            val draft = StepDefinitionDraft(
+                id = s.id,
+                stepType = s.stepType,
+                name = s.name,
+                description = s.description,
+                icon = s.icon
+            )
+            routinesManager.updateStepDefinition(draft)
+            val stepDefinition = routinesManager.getStepDefinition(s.id)
+            if (stepDefinition != null) {
+                replaceStepDefInRoutineEditor(stepDefinition, index)
+            }
+            cleanStepEditor()
+            _uiState.update { it.copy(successMessage = "Step definition updated") }
+        }
+    }
+
+    private fun replaceStepDefInRoutineEditor(step: StepDefinitionEntity, position: Int) {
+        val currentSteps = _routineEditorState.value.steps.toMutableList()
+        currentSteps[position] = Pair(step, 15)
+        _routineEditorState.value = _routineEditorState.value.copy(steps = currentSteps)
     }
 
     private fun addStepDefToRoutineEditor(step: StepDefinitionEntity, position: Int) {
@@ -288,7 +337,8 @@ class RoutinesViewModel(
 }
 
 data class StepDefinitionState (
-    val lastAddedId: Long = 0,
+    val index: Int? = null,
+    val id: Long = 0,
     val stepType: String = "",
     val name: String = "",
     val description: String = "",

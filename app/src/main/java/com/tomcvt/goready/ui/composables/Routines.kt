@@ -262,9 +262,6 @@ fun RoutineEditor(
     val uiState by viewModel.uiState.collectAsState()
     val rEditorState by viewModel.routineEditorState.collectAsState()
 
-    var activeItemId by remember { mutableStateOf<Long?>(null) }
-    var activeBounds by remember { mutableStateOf<Rect?>(null) }
-
     Box (
         modifier = Modifier
         .fillMaxSize()
@@ -292,7 +289,7 @@ fun RoutineEditor(
                         viewModel, index, step,
                         modifier = Modifier.fillMaxWidth(),
                         onEdit = {
-                            Log.d("RoutineEditor", "Editing step $index")
+                            viewModel.openStepEditorWithStep(step.first, index)
                         },
                         onDelete = {
                             Log.d("RoutineEditor", "Deleting step $index")

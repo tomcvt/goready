@@ -36,6 +36,11 @@ class AppRoutinesManager(
         return stepDefinitionRepository.insertStepDefinition(stepDefinitionEntity)
     }
 
+    suspend fun updateStepDefinition(stepDefinitionDraft: StepDefinitionDraft) {
+        val stepDefinitionEntity = stepDefinitionDraft.toEntityUpdate()
+        stepDefinitionRepository.updateStepDefinition(stepDefinitionEntity)
+    }
+
     //Add/edit routine by id
 
     suspend fun addRoutine(routineDraft: RoutineDraft) {
@@ -92,6 +97,16 @@ private fun StepDefinitionDraft.toEntity() : StepDefinitionEntity {
 private fun RoutineDraft.toEntity() : RoutineEntity {
     return RoutineEntity(
         id = this.id?: 0,
+        name = this.name,
+        description = this.description,
+        icon = this.icon
+    )
+}
+
+private fun StepDefinitionDraft.toEntityUpdate() : StepDefinitionEntity {
+    return StepDefinitionEntity(
+        id = this.id,
+        stepType = this.stepType,
         name = this.name,
         description = this.description,
         icon = this.icon
