@@ -90,7 +90,19 @@ private fun StepDefinitionDraft.toEntity() : StepDefinitionEntity {
         stepType = this.stepType,
         name = this.name,
         description = this.description,
-        icon = this.icon
+        icon = this.icon,
+        updatable = true
+    )
+}
+
+private fun StepDefinitionDraft.toEntityUpdate() : StepDefinitionEntity {
+    return StepDefinitionEntity(
+        id = this.id,
+        stepType = this.stepType,
+        name = this.name,
+        description = this.description,
+        icon = this.icon,
+        updatable = true
     )
 }
 
@@ -103,12 +115,3 @@ private fun RoutineDraft.toEntity() : RoutineEntity {
     )
 }
 
-private fun StepDefinitionDraft.toEntityUpdate() : StepDefinitionEntity {
-    return StepDefinitionEntity(
-        id = this.id,
-        stepType = this.stepType,
-        name = this.name,
-        description = this.description,
-        icon = this.icon
-    )
-}

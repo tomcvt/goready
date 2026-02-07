@@ -101,5 +101,5 @@ fun SimpleStartButton(
             modifier = Modifier.size(iconSize)
         )
     }
-
 }
+

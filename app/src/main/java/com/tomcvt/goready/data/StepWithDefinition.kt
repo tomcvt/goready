@@ -9,5 +9,6 @@ data class StepWithDefinition(
     val stepType: String,
     val name: String,
     val description: String,
-    val icon: String
+    val icon: String,
+    val updatable: Boolean
 )

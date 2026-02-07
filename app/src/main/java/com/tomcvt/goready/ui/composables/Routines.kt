@@ -16,11 +16,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
@@ -28,12 +28,11 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
@@ -45,11 +44,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.boundsInWindow
-import androidx.compose.ui.layout.layoutId
-import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -57,19 +52,12 @@ import androidx.navigation.NavHostController
 import com.tomcvt.goready.activities.RoutineFlowActivity
 import com.tomcvt.goready.constants.ACTION_RF_UI_LAUNCHER
 import com.tomcvt.goready.constants.EXTRA_ROUTINE_ID
-import com.tomcvt.goready.data.AlarmEntity
 import com.tomcvt.goready.data.RoutineEntity
 import com.tomcvt.goready.data.StepDefinitionEntity
 import com.tomcvt.goready.data.StepWithDefinition
-import com.tomcvt.goready.test.launchAlarmNow
-import com.tomcvt.goready.ui.imagevectors.IconBell
-import com.tomcvt.goready.util.hasExactlyOneGrapheme
 import com.tomcvt.goready.util.isExactlyOneEmoji
-import com.tomcvt.goready.viewmodel.AlarmViewModel
 import com.tomcvt.goready.viewmodel.RoutinesViewModel
 import com.tomcvt.goready.viewmodel.UiEvent
-import java.time.DayOfWeek
-import java.util.Locale
 
 
 @Composable
@@ -292,7 +280,7 @@ fun RoutineEditor(
                             viewModel.openStepEditorWithStep(step.first, index)
                         },
                         onDelete = {
-                            Log.d("RoutineEditor", "Deleting step $index")
+                            viewModel.removeStepFromRoutineEditor(index)
                         }
                     )
                 }
@@ -379,17 +367,18 @@ fun RoutineEditorStepCard(
     modifier: Modifier = Modifier
 ) {
     var expanded by remember { mutableStateOf(false) }
-    Card(
-        elevation = CardDefaults.cardElevation(8.dp),
-        modifier = modifier
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .combinedClickable(
+                onClick = {expanded = false},
+                onLongClick = { expanded = true }
+            )
     ) {
-        Box(
+        Card(
+            elevation = CardDefaults.cardElevation(8.dp),
             modifier = Modifier
                 .fillMaxWidth()
-                .combinedClickable(
-                    onClick = {expanded = false},
-                    onLongClick = { expanded = true }
-                )
         ) {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -413,44 +402,87 @@ fun RoutineEditorStepCard(
                         .clickable { viewModel.setStepModalNumber(index) }
                 )
             }
-            StepCardOverlay(
-                expanded = expanded,
-                onDismiss = { expanded = false },
-                onDelete = onDelete,
-                onEdit = onEdit
-            )
-
         }
+        StepCardOverlay(
+            expanded = expanded,
+            updatable = step.first.updatable,
+            onDismiss = { expanded = false },
+            onDelete = { onDelete(); expanded = false },
+            onEdit = { onEdit(); expanded = false },
+            modifier = Modifier.matchParentSize()
+        )
     }
 }
 
 @Composable
 fun StepCardOverlay(
     expanded: Boolean,
+    updatable: Boolean,
     onDismiss: () -> Unit,
     onDelete: () -> Unit,
-    onEdit: () -> Unit
+    onEdit: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     AnimatedVisibility(
         visible = expanded,
         enter = slideInHorizontally(initialOffsetX = { it }),
-        exit = slideOutHorizontally(targetOffsetX = { it })
+        exit = slideOutHorizontally(targetOffsetX = { it }),
+        modifier = modifier
     ) {
         Row(
             Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.12f))
-                .padding(end = 8.dp),
+                .background(Color.Black.copy(alpha = 0.12f)),
             horizontalArrangement = Arrangement.End,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = onEdit) {
-                Icon(Icons.Default.Edit, contentDescription = "Edit")
+            if (updatable) {
+                StaticEditButton(onEdit)
             }
-            IconButton(onClick = onDelete) {
-                Icon(Icons.Default.Delete, contentDescription = "Delete")
-            }
+            StaticDeleteButton(onDelete)
         }
+    }
+}
+
+@Composable
+fun StaticEditButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    IconButton(
+        onClick = onClick,
+        modifier = Modifier.padding(8.dp)
+            .background(
+                color = MaterialTheme.colorScheme.primaryContainer,
+                shape = RoundedCornerShape(8.dp)
+            )
+    ) {
+        Icon(
+            Icons.Default.Edit,
+            contentDescription = "Edit",
+            tint = MaterialTheme.colorScheme.onPrimaryContainer
+        )
+    }
+}
+
+@Composable
+fun StaticDeleteButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    IconButton(
+        onClick = onClick,
+        modifier = Modifier.padding(8.dp)
+            .background(
+                color = MaterialTheme.colorScheme.errorContainer,
+                shape = RoundedCornerShape(8.dp)
+            )
+    ) {
+        Icon(
+            Icons.Default.Delete,
+            contentDescription = "Delete",
+            tint = MaterialTheme.colorScheme.onErrorContainer
+        )
     }
 }
 
@@ -517,7 +549,7 @@ fun StepEditor(
             }
             Text("step type")
             FloatingActionButton(
-                onClick = { viewModel.saveStepDefinitionAndAdd()
+                onClick = { viewModel.saveStepDefinition()
                           viewModel.closeStepEditor() },
                 modifier = Modifier.padding(16.dp),
                 containerColor = MaterialTheme.colorScheme.primary

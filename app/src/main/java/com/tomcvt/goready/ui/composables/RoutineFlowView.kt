@@ -289,7 +289,8 @@ private val emptyStep = StepWithDefinition(
     stepType = "",
     stepNumber = 0,
     stepId = 0,
-    description = ""
+    description = "",
+    updatable = false
 )
 
 

@@ -97,7 +97,8 @@ class RoutinesViewModel(
                     it.stepType,
                     it.name,
                     it.description,
-                    it.icon
+                    it.icon,
+                    it.updatable
                 ), it.length.toInt()) }
             )
             _routineEditorState.update {
@@ -161,6 +162,7 @@ class RoutinesViewModel(
     }
 
     fun openStepEditor() {
+        _stepEditorState.value = StepDefinitionState()
         _uiState.update { it.copy(isStepEditorOpen = true) }
     }
 
@@ -202,23 +204,11 @@ class RoutinesViewModel(
         _uiState.update { it.copy(stepModalNumber = null) }
     }
 
-
     fun saveStepDefinition() {
-        viewModelScope.launch {
-            val s = stepEditorState.value
-            if(!validateStepData(s)) {
-                _uiState.update { it.copy(errorMessage = "Provide all data") }
-                return@launch
-            }
-            val draft = StepDefinitionDraft(
-                id = s.id,
-                stepType = s.stepType,
-                name = s.name,
-                description = s.description,
-                icon = s.icon
-            )
-            val addedId = routinesManager.addStepDefinition(draft)
-            _uiState.update { it.copy(successMessage = "Step definition added") }
+        if (_stepEditorState.value.id == 0L) {
+            saveStepDefinitionAndAdd()
+        } else {
+            updateStepDefinitionAndSet()
         }
     }
 
@@ -287,6 +277,12 @@ class RoutinesViewModel(
     private fun addStepDefToRoutineEditor(step: StepDefinitionEntity, position: Int) {
         val currentSteps = _routineEditorState.value.steps.toMutableList()
         currentSteps.add(position, Pair(step, 15))
+        _routineEditorState.value = _routineEditorState.value.copy(steps = currentSteps)
+    }
+
+    fun removeStepFromRoutineEditor(position: Int) {
+        val currentSteps = _routineEditorState.value.steps.toMutableList()
+        currentSteps.removeAt(position)
         _routineEditorState.value = _routineEditorState.value.copy(steps = currentSteps)
     }
 

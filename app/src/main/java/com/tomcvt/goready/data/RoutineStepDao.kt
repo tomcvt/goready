@@ -24,7 +24,8 @@ interface RoutineStepDao {
             sd.stepType,
             sd.name,
             sd.description,
-            sd.icon
+            sd.icon,
+            sd.updatable
         FROM routine_steps rs
         JOIN step_definitions sd ON rs.stepId = sd.id
         WHERE rs.routineId = :routineId
@@ -42,7 +43,8 @@ interface RoutineStepDao {
             sd.stepType,
             sd.name,
             sd.description,
-            sd.icon
+            sd.icon,
+            sd.updatable
         FROM routine_steps rs
         JOIN step_definitions sd ON rs.stepId = sd.id
         WHERE rs.routineId = :routineId AND rs.stepNumber = :stepNumber
