@@ -258,6 +258,7 @@ class RoutinesViewModel(
         viewModelScope.launch {
             val s = stepEditorState.value
             val index = s.index?: return@launch
+            //TODO val errormsg = validate Step (if type chosen)
             if(!validateStepData(s)) {
                 _uiState.update { it.copy(errorMessage = "Provide all data") }
                 return@launch

@@ -597,6 +597,7 @@ fun StepEditor(
             }
             FloatingActionButton(
                 onClick = { viewModel.saveStepDefinition()
+                    //TODO not close, just show error, close in viewmodel
                           viewModel.closeStepEditor() },
                 modifier = Modifier.padding(16.dp),
                 containerColor = MaterialTheme.colorScheme.primary

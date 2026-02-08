@@ -1,5 +1,6 @@
 package com.tomcvt.goready.manager
 
+import android.util.Log
 import androidx.room.Transaction
 import com.tomcvt.goready.data.RoutineEntity
 import com.tomcvt.goready.data.RoutineStepEntity
@@ -9,6 +10,8 @@ import com.tomcvt.goready.domain.StepDefinitionDraft
 import com.tomcvt.goready.repository.RoutineRepository
 import com.tomcvt.goready.repository.RoutineStepRepository
 import com.tomcvt.goready.repository.StepDefinitionRepository
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
 class AppRoutinesManager(
     private val routineRepository: RoutineRepository,
@@ -33,11 +36,15 @@ class AppRoutinesManager(
 
     suspend fun addStepDefinition(stepDefinitionDraft: StepDefinitionDraft) : Long {
         val stepDefinitionEntity = stepDefinitionDraft.toEntity()
+        val jsonString = Json.encodeToString<StepDefinitionEntity>(value = stepDefinitionEntity)
+        Log.d("JSON_DEV", jsonString)
         return stepDefinitionRepository.insertStepDefinition(stepDefinitionEntity)
     }
 
     suspend fun updateStepDefinition(stepDefinitionDraft: StepDefinitionDraft) {
         val stepDefinitionEntity = stepDefinitionDraft.toEntityUpdate()
+        val jsonString = Json.encodeToString<StepDefinitionEntity>(stepDefinitionEntity)
+        Log.d("JSON_DEV", jsonString)
         stepDefinitionRepository.updateStepDefinition(stepDefinitionEntity)
     }
 

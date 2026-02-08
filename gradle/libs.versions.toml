@@ -45,6 +45,8 @@ androidx-compose-foundation-layout = { group = "androidx.compose.foundation", na
 androidx-compose-ui-unit = { group = "androidx.compose.ui", name = "ui-unit", version.ref = "uiUnit" }
 androidx-emoji2 = { group = "androidx.emoji2", name = "emoji2", version.ref = "emoji2" }
 
+kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version = "1.7.3" }
+
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

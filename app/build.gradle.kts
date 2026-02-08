@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.kapt)
+    id("org.jetbrains.kotlin.plugin.serialization") version "2.1.0"
     id("com.google.protobuf") version "0.9.6"
 }
 
@@ -123,6 +124,7 @@ dependencies {
     implementation("androidx.datastore:datastore:1.1.1")
     implementation("com.google.protobuf:protobuf-javalite:3.25.1")
     implementation("androidx.datastore:datastore-preferences:1.1.1")
+    implementation(libs.kotlinx.serialization.json)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

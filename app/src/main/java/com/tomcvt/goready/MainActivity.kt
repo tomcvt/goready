@@ -87,8 +87,6 @@ class MainActivity : ComponentActivity() {
     lateinit var settingsViewModelFactory: SettingsViewModelFactory
         private set
 
-
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -108,6 +106,13 @@ class MainActivity : ComponentActivity() {
         routinesViewModelFactory = RoutinesViewModelFactory(appRoutinesManager)
         settingsViewModelFactory = SettingsViewModelFactory(appObject.premiumRepository)
 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val permissionCheck = ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+            if (permissionCheck != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.POST_NOTIFICATIONS), 101)
+            }
+        }
+
         /*
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             Log.d("MainActivity", "SystemAlarmManager: $systemAlarmManager")
@@ -116,12 +121,6 @@ class MainActivity : ComponentActivity() {
             Log.d("MainActivity", "Can schedule: $canSchedule")
         }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            val permissionCheck = ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
-            if (permissionCheck != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.POST_NOTIFICATIONS), 101)
-            }
-        }
         //USE FULL SCREEN INTENT
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val permissionCheck = ContextCompat.checkSelfPermission(this, Manifest.permission.FOREGROUND_SERVICE)
