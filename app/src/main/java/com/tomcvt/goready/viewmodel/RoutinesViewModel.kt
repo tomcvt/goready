@@ -47,7 +47,7 @@ class RoutinesViewModel(
     private val _stepTypeSelector = MutableStateFlow(StepType.NONE)
     val stepTypeSelector: StateFlow<StepType> = _stepTypeSelector
 
-    val selectedSteps: StateFlow<List<StepDefinitionEntity>> =
+    val selectedStepsByType: StateFlow<List<StepDefinitionEntity>> =
         stepTypeSelector
             .filter { it != StepType.NONE }
             .flatMapLatest { type ->
@@ -206,6 +206,7 @@ class RoutinesViewModel(
 
     fun closeStepEditor() {
         _uiState.update { it.copy(isStepEditorOpen = false) }
+        _stepTypeSelector.value = StepType.NONE
     }
 
     fun setStepName(name: String) {
@@ -247,6 +248,7 @@ class RoutinesViewModel(
         addStepDefToRoutineEditor(step, index)
         cleanStepEditor()
         closeStepEditor()
+        closeStepAdder()
         _uiState.update { it.copy(successMessage = "Step definition added") }
     }
 
@@ -260,7 +262,7 @@ class RoutinesViewModel(
             }
             val draft = StepDefinitionDraft(
                 id = s.id,
-                stepType = s.stepType,
+                stepType = s.stepType?: StepType.OTHER, //checked in validation,
                 name = s.name,
                 description = s.description,
                 icon = s.icon
@@ -272,7 +274,8 @@ class RoutinesViewModel(
                 addStepDefToRoutineEditor(stepDefinition, index)
             }
             cleanStepEditor()
-            closeStepEditor()
+            //closeStepEditor()
+            closeStepAdder()
             _uiState.update { it.copy(successMessage = "Step definition added") }
             Log.d("RoutinesViewModel", "Step definition added")
         }
@@ -292,7 +295,7 @@ class RoutinesViewModel(
             }
             val draft = StepDefinitionDraft(
                 id = s.id,
-                stepType = s.stepType,
+                stepType = s.stepType?: StepType.OTHER, //checked in validation
                 name = s.name,
                 description = s.description,
                 icon = s.icon
@@ -328,6 +331,14 @@ class RoutinesViewModel(
 
     fun cleanStepEditor() {
         _stepEditorState.value = StepDefinitionState()
+    }
+
+    fun openStepAdder() {
+        _uiState.update { it.copy(isStepAdderOpen = true) }
+    }
+
+    fun closeStepAdder() {
+        _uiState.update { it.copy(isStepAdderOpen = false) }
     }
 
     fun updateTimeForStepInEditor(time: Int, position: Int) {
@@ -379,7 +390,7 @@ class RoutinesViewModel(
 data class StepDefinitionState (
     val index: Int? = null,
     val id: Long = 0,
-    val stepType: StepType = StepType.NONE,
+    val stepType: StepType? = null,
     val name: String = "",
     val description: String = "",
     val icon: String = ""
@@ -397,6 +408,7 @@ data class RoutineUiState(
     val stepModalNumber: Int? = null,
     val isRoutineEditorOpen: Boolean = false,
     val isStepEditorOpen: Boolean = false,
+    val isStepAdderOpen: Boolean = false,
     val isRoutineDetailsOpen: Boolean = false,
     val successMessage: String? = null,
     val errorMessage: String? = null
@@ -408,7 +420,7 @@ sealed class UiEvent {
 
 private fun validateStepData(state: StepDefinitionState) : String? {
     //TODO for now we dont care about the type
-    if (state.stepType == StepType.NONE) return "Select step type"
+    if (state.stepType == StepType.NONE || state.stepType == null) return "Select step type"
     if (state.name.isBlank()) return "Name is empty"
     return null
 }

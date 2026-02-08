@@ -6,6 +6,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -13,11 +14,11 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -29,9 +30,9 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -305,7 +306,7 @@ fun RoutineEditor(
                 }
             }
             Button(
-                onClick = { viewModel.openStepEditor() },
+                onClick = { viewModel.openStepAdder() },
                 modifier = Modifier.padding(16.dp)
             ) {
                 Text("Add step")
@@ -326,8 +327,15 @@ fun RoutineEditor(
                 list = STEP_TIMES_LIST
             )
         }
+        if (uiState.isStepAdderOpen) {
+            StepSelector(
+                viewModel = viewModel,
+                //navController = navController,
+                modifier = modifier
+            )
+        }
         if (uiState.isStepEditorOpen) {
-            StepEditor(
+            StepEditorWrapper(
                 viewModel = viewModel,
                 //navController = navController,
                 modifier = modifier
@@ -337,32 +345,44 @@ fun RoutineEditor(
 }
 
 @Composable
+fun StepEditorWrapper(
+    viewModel: RoutinesViewModel,
+    //navController: NavHostController,
+    modifier: Modifier = Modifier
+) {
+    StepEditorBox(
+        viewModel = viewModel,
+        //navController = navController,
+        onDismiss = { viewModel.closeStepEditor() },
+        modifier = modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.5f))
+            .clickable { viewModel.closeStepEditor() }
+    )
+}
+
+@Composable
 fun CategoryPill(
     category: StepType,
     selected: Boolean,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    pillContent: @Composable (label: String) -> Unit
 ) {
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(50))
-            .background(
-                color = category.color,
-                shape = RoundedCornerShape(50)
-            )
-            .border(
-                width = if (selected) 2.dp else 0.dp,
-                color = Color.Black.copy(alpha = 0.5f),
-                shape = RoundedCornerShape(50)
-            )
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 8.dp)
+    Button(
+        onClick = onClick,
+        modifier = modifier,
+        shape = RoundedCornerShape(50),
+        border = if (selected) {
+            BorderStroke(2.dp, Color.Black.copy(alpha = 0.5f))
+        } else null,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = category.color,
+            contentColor = category.textColor
+        ),
+        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
     ) {
-        Text(
-            text = category.label,
-            color = category.textColor,
-            style = MaterialTheme.typography.headlineSmall
-        )
+        pillContent(category.label)
     }
 }
 
@@ -536,29 +556,32 @@ fun StaticDeleteButton(
 val STEP_TIMES_LIST = (5..90 step 5).toList()
 
 @Composable
-fun StepEditor(
+fun StepSelector(
     viewModel: RoutinesViewModel,
     //navController: NavHostController,
     modifier: Modifier = Modifier
 ) {
     val categories = StepType.getCategories()
     val selectedCategory by viewModel.stepTypeSelector.collectAsState()
-    val selectedSteps by viewModel.selectedSteps.collectAsState()
+    val selectedSteps by viewModel.selectedStepsByType.collectAsState()
 
     BackHandler(
         enabled = true,
-        onBack = { viewModel.closeStepEditor() }
+        onBack = { viewModel.closeStepAdder() }
     )
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black.copy(alpha = 0.5f))
-            .clickable { viewModel.closeStepEditor() },
+            .clickable { viewModel.closeStepAdder() },
         contentAlignment = Alignment.Center
     ) {
         Column (
-
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             LazyRow(
                 modifier = Modifier.fillMaxWidth(),
@@ -576,28 +599,38 @@ fun StepEditor(
                         category = categories[it],
                         selected = selectedCategory == categories[it],
                         onClick = { viewModel.setStepTypeSelector(categories[it]) }
-                    )
+                    ) { label ->
+                        Text(label)
+                    }
                 }
             }
             if (selectedCategory == StepType.NONE) {
-                RoutineStepEditorNewContent(viewModel)
+                StepEditorBox(
+                    viewModel,
+                    onDismiss = { viewModel.closeStepAdder() },
+                    modifier = Modifier.weight(0.5f)
+                )
             } else {
-                RoutineStepEditorSelectorByType(viewModel, selectedSteps)
+                StepSelectorByType(
+                    viewModel,
+                    selectedSteps,
+                    modifier = Modifier.weight(0.5f)
+                )
             }
         }
     }
 }
 
 @Composable
-fun RoutineStepEditorSelectorByType(
+fun StepSelectorByType(
     viewModel: RoutinesViewModel,
     selectedSteps: List<StepDefinitionEntity>,
     modifier: Modifier = Modifier
 ) {
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.5f))
+        modifier = modifier
+            //.fillMaxSize()
+            //.background(Color.Black.copy(alpha = 0.5f))
             .clickable(onClick = { viewModel.closeStepEditor() }),
         contentAlignment = Alignment.Center
     ) {
@@ -618,18 +651,19 @@ fun RoutineStepEditorSelectorByType(
 
 
 @Composable
-fun RoutineStepEditorNewContent(
+fun StepEditorBox(
     viewModel: RoutinesViewModel,
+    onDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val stepEditorState by viewModel.stepEditorState.collectAsState()
     var showStepTypeModal by remember { mutableStateOf(false) }
 
     Box (
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.5f))
-            .clickable { viewModel.closeStepEditor() },
+        modifier = modifier
+            //.fillMaxSize()
+            //.background(Color.Black.copy(alpha = 0.5f))
+            .clickable { onDismiss() },
         contentAlignment = Alignment.Center
     ) {
         Card(
@@ -693,13 +727,16 @@ fun RoutineStepEditorNewContent(
                 onDismiss = { showStepTypeModal = false },
                 onItemSelected = { viewModel.setStepType(it) },
                 onConfirm = { showStepTypeModal = false },
-                list = StepType.getCategories()
+                list = StepType.getCategories(),
+                startingItem = stepEditorState.stepType
             ) { item, selected, onClick ->
                 CategoryPill(
                     category = item,
                     selected = selected,
                     onClick = onClick
-                )
+                ) { label ->
+                    Text(label)
+                }
             }
         }
     }
