@@ -1,6 +1,7 @@
 package com.tomcvt.goready.data
 
 import androidx.room.TypeConverter
+import com.tomcvt.goready.constants.StepType
 import java.time.DayOfWeek
 
 class Converters {
@@ -23,5 +24,11 @@ class Converters {
 
     @TypeConverter
     fun toRoutineStatus(status: String): RoutineStatus = RoutineStatus.valueOf(status)
+
+    @TypeConverter
+    fun fromStepType(type: StepType): String = type.name
+
+    @TypeConverter
+    fun toStepType(type: String): StepType = StepType.valueOf(type)
 
 }

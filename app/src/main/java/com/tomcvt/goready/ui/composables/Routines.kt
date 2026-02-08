@@ -7,6 +7,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -44,6 +45,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
@@ -52,6 +54,7 @@ import androidx.navigation.NavHostController
 import com.tomcvt.goready.activities.RoutineFlowActivity
 import com.tomcvt.goready.constants.ACTION_RF_UI_LAUNCHER
 import com.tomcvt.goready.constants.EXTRA_ROUTINE_ID
+import com.tomcvt.goready.constants.StepType
 import com.tomcvt.goready.data.RoutineEntity
 import com.tomcvt.goready.data.StepDefinitionEntity
 import com.tomcvt.goready.data.StepWithDefinition
@@ -145,7 +148,6 @@ fun RoutineListRoute(
         }
 
     }
-
 }
 
 @Composable
@@ -328,6 +330,36 @@ fun RoutineEditor(
 }
 
 @Composable
+fun CategoryPill(
+    category: StepType,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(50))
+            .background(
+                color = category.color,
+                shape = RoundedCornerShape(50)
+            )
+            .border(
+                width = if (selected) 2.dp else 0.dp,
+                color = Color.Black.copy(alpha = 0.5f),
+                shape = RoundedCornerShape(50)
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 8.dp)
+    ) {
+        Text(
+            text = category.label,
+            color = category.textColor,
+            style = MaterialTheme.typography.headlineSmall
+        )
+    }
+}
+
+@Composable
 fun RoutineEditorDetailsCard(
     viewModel: RoutinesViewModel,
     modifier: Modifier = Modifier
@@ -505,6 +537,8 @@ fun StepEditor(
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
     val stepEditorState by viewModel.stepEditorState.collectAsState()
+    var showStepTypeModal by remember { mutableStateOf(false) }
+
 
     Box (
         modifier = Modifier
@@ -555,7 +589,12 @@ fun StepEditor(
                     modifier = Modifier.fillMaxWidth()
                 )
             }
-            Text("step type")
+            Button(
+                onClick = { showStepTypeModal = true },
+                modifier = Modifier.padding(16.dp)
+            ) {
+                Text("Select step type")
+            }
             FloatingActionButton(
                 onClick = { viewModel.saveStepDefinition()
                           viewModel.closeStepEditor() },
@@ -563,6 +602,21 @@ fun StepEditor(
                 containerColor = MaterialTheme.colorScheme.primary
             ) {
                 Text("Save")
+            }
+        }
+        if (showStepTypeModal) {
+            SelectItemFlowRowModal(
+                text = "Select step type",
+                onDismiss = { showStepTypeModal = false },
+                onItemSelected = { viewModel.setStepType(it) },
+                onConfirm = { showStepTypeModal = false },
+                list = StepType.getCategories()
+            ) { item, selected, onClick ->
+                CategoryPill(
+                    category = item,
+                    selected = selected,
+                    onClick = onClick
+                )
             }
         }
     }

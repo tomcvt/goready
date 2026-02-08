@@ -33,6 +33,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.tomcvt.goready.constants.StepType
 import com.tomcvt.goready.data.RoutineStatus
 import com.tomcvt.goready.data.StepStatus
 import com.tomcvt.goready.data.StepWithDefinition
@@ -286,7 +287,7 @@ private val emptyStep = StepWithDefinition(
     icon = "",
     length = 0,
     routineId = 0,
-    stepType = "",
+    stepType = StepType.NONE,
     stepNumber = 0,
     stepId = 0,
     description = "",

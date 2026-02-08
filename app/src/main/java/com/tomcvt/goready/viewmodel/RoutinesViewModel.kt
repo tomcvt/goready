@@ -5,6 +5,7 @@ package com.tomcvt.goready.viewmodel
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.tomcvt.goready.constants.StepType
 import com.tomcvt.goready.data.RoutineEntity
 import com.tomcvt.goready.data.StepDefinitionEntity
 import com.tomcvt.goready.data.StepWithDefinition
@@ -94,6 +95,7 @@ class RoutinesViewModel(
             val stepsList = steps.map(
                 transform = { Pair(StepDefinitionEntity(
                     it.stepId,
+                    null,
                     it.stepType,
                     it.name,
                     it.description,
@@ -199,6 +201,10 @@ class RoutinesViewModel(
 
     fun setStepIcon(icon: String) {
         _stepEditorState.update { it.copy(icon = icon) }
+    }
+
+    fun setStepType(type: StepType) {
+        _stepEditorState.update { it.copy(stepType = type) }
     }
 
     fun setStepModalNumber(number: Int) {
@@ -344,7 +350,7 @@ class RoutinesViewModel(
 data class StepDefinitionState (
     val index: Int? = null,
     val id: Long = 0,
-    val stepType: String = "",
+    val stepType: StepType = StepType.NONE,
     val name: String = "",
     val description: String = "",
     val icon: String = ""
@@ -373,7 +379,7 @@ sealed class UiEvent {
 
 private fun validateStepData(state: StepDefinitionState) : Boolean {
     //TODO for now we dont care about the type
-    if (state.stepType.isBlank()) return true
+    if (state.stepType == StepType.NONE) return false
     if (state.name.isBlank()) return false
     return true
 }

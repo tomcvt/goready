@@ -1,5 +1,8 @@
 package com.tomcvt.goready.constants
 
+import androidx.compose.ui.graphics.Color
+import com.tomcvt.goready.util.contrastText
+
 const val EXTRA_ALARM_ID = "extra_alarm_id"
 const val EXTRA_REMAINING_SNOOZE = "extra_remaining_snooze"
 
@@ -119,6 +122,39 @@ enum class MathType(
                 list.add(generateRandomTask(mathType))
             }
             return list
+        }
+    }
+}
+// StepTypePallete
+val CLEANING_C = Color(0xFFc97500)
+val HEALTH_C = Color(0xFFff3a47)
+val HYGIENE_C = Color(0xFFbedefe)
+val WELLNESS_C = Color(0xFF45f689)
+val PRODUCTIVITY_C = Color(0xFFfeff65)
+val OTHER_C = Color(0xFF9b64aa)
+
+
+
+enum class StepType(
+    val label: String, //#45f689
+    val color: Color,
+    val textColor: Color,
+) {
+    NONE("None", Color.Transparent, Color.Transparent),
+    //WORK("Work", Color(0xFF45f689), Color.Black),
+    CLEANING("Cleaning", CLEANING_C, CLEANING_C.contrastText()),  //#c97500
+    HEALTH("Health", HEALTH_C, HEALTH_C.contrastText()),    //#ff3a47
+    HYGIENE("Hygiene", HYGIENE_C, HYGIENE_C.contrastText()), //#bedefe
+    WELLNESS("Wellness", WELLNESS_C, WELLNESS_C.contrastText()),
+    PRODUCTIVITY("Productivity", PRODUCTIVITY_C, PRODUCTIVITY_C.contrastText()),
+    OTHER("Other", OTHER_C, OTHER_C.contrastText());
+
+    companion object {
+        fun fromLabel(label: String): StepType? =
+            values().find { it.label == label }
+
+        fun getCategories() : List<StepType> {
+            return values().filter { it != NONE }
         }
     }
 }

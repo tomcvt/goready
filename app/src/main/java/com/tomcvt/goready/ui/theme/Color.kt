@@ -24,7 +24,7 @@ val Orange40 = Color(0xFF8A4B00)
 
 val RPink90 = Color(0xFFFFE6EE)
 val RPink80 = Color(0xFFF2AFC6)
-val RPink60 = Color(0xFFD85C8A) // TERTIARY
+val RPink60 = Color(0xFFD85C8A) // TERTIARY #eb147c
 val RPink40 = Color(0xFF8A2E50)
 
 val Background90 = Color(0xFFFFFBF7)

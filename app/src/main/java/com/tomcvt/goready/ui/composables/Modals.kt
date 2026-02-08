@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -164,8 +165,10 @@ fun SnoozeInputModal(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black.copy(alpha = 0.5f))
-            .clickable { onInputChange(snoozeCount, snoozeTime)
-                onDismiss() },
+            .clickable {
+                onInputChange(snoozeCount, snoozeTime)
+                onDismiss()
+            },
         contentAlignment = Alignment.Center
     ) {
         Card(
@@ -256,7 +259,8 @@ fun StepTimeModal(
     ) {
         Card(
             modifier = Modifier
-                .fillMaxWidth().padding(16.dp)
+                .fillMaxWidth()
+                .padding(16.dp)
                 .clickable(enabled = false) {},
             elevation = CardDefaults.cardElevation(8.dp)
         ) {
@@ -285,6 +289,76 @@ fun StepTimeModal(
                             scaleY = if (selected) 1.25f else 1f
                         }
                     )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun <T> SelectItemFlowRowModal(
+    text: String,
+    list: List<T>,
+    onDismiss: () -> Unit,
+    onItemSelected: (T) -> Unit,
+    onConfirm: (T?) -> Unit,
+    modifier: Modifier = Modifier,
+    startingItem: T? = null,
+    itemContent: @Composable (T, Boolean, () -> Unit) -> Unit,
+) {
+    require(startingItem in list || startingItem == null)
+    var selectedItem by remember { mutableStateOf(startingItem) }
+
+    val onSelected = { item: T ->
+        selectedItem = item
+        onItemSelected(item)
+    }
+
+    BackHandler(
+        enabled = true,
+        onBack = onDismiss
+    )
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.5f))
+            .clickable { onDismiss() },
+        contentAlignment = Alignment.Center
+    ) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+                .clickable(enabled = false) {},
+            elevation = CardDefaults.cardElevation(8.dp)
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier.padding(24.dp)
+            ) {
+                Text(
+                    text,
+                    style = MaterialTheme.typography.headlineSmall
+                )
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    maxItemsInEachRow = 3
+                ) {
+                    if (list.isNotEmpty()) {
+                        list.forEach { item ->
+                            itemContent(
+                                item,
+                                selectedItem == item
+                            ) {
+                                onSelected(item)
+                            }
+                        }
+                    }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Button(onClick = onDismiss) { Text("Cancel") }
+                    Button(onClick = { onConfirm(selectedItem) }) { Text("OK") }
                 }
             }
         }
