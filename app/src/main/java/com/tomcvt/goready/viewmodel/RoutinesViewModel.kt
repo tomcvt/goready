@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
@@ -42,8 +43,20 @@ class RoutinesViewModel(
             _uiEvents.emit(UiEvent.OpenRoutineLauncher(routineId))
         }
     }
-    //TODO opening routines flow
-    //fun openRoutinesFlow()
+
+    private val _stepTypeSelector = MutableStateFlow(StepType.NONE)
+    val stepTypeSelector: StateFlow<StepType> = _stepTypeSelector
+
+    val selectedSteps: StateFlow<List<StepDefinitionEntity>> =
+        stepTypeSelector
+            .filter { it != StepType.NONE }
+            .flatMapLatest { type ->
+                routinesManager.getStepDefinitionsByTypeFlow(type)
+            }.stateIn(
+                viewModelScope,
+                started = kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(1000),
+                initialValue = emptyList()
+            )
 
     private val _stepEditorState =
         MutableStateFlow(StepDefinitionState())
@@ -173,6 +186,10 @@ class RoutinesViewModel(
         _uiState.update { it.copy(isStepEditorOpen = true) }
     }
 
+    fun setStepTypeSelector(type: StepType) {
+        _stepTypeSelector.value = type
+    }
+
     fun openStepEditorWithStep(step: StepDefinitionEntity, index: Int) {
         _stepEditorState.update {
             it.copy(
@@ -225,12 +242,20 @@ class RoutinesViewModel(
 
     //TODO keep editing step id, init step editor with selected step, save on edit
 
+    fun addStepDefToRoutineEditor(step: StepDefinitionEntity) {
+        val index = _routineEditorState.value.steps.size
+        addStepDefToRoutineEditor(step, index)
+        cleanStepEditor()
+        closeStepEditor()
+        _uiState.update { it.copy(successMessage = "Step definition added") }
+    }
+
     fun saveStepDefinitionAndAdd() {
         viewModelScope.launch {
             val s = stepEditorState.value
-            if(!validateStepData(s)) {
-                Log.d(TAG, "Invalid data: $s")
-                _uiState.update { it.copy(errorMessage = "Provide all data") }
+            val errorMsg = validateStepData(s)
+            if (errorMsg != null) {
+                _uiState.update { it.copy(errorMessage = errorMsg) }
                 return@launch
             }
             val draft = StepDefinitionDraft(
@@ -247,6 +272,7 @@ class RoutinesViewModel(
                 addStepDefToRoutineEditor(stepDefinition, index)
             }
             cleanStepEditor()
+            closeStepEditor()
             _uiState.update { it.copy(successMessage = "Step definition added") }
             Log.d("RoutinesViewModel", "Step definition added")
         }
@@ -259,8 +285,9 @@ class RoutinesViewModel(
             val s = stepEditorState.value
             val index = s.index?: return@launch
             //TODO val errormsg = validate Step (if type chosen)
-            if(!validateStepData(s)) {
-                _uiState.update { it.copy(errorMessage = "Provide all data") }
+            val errorMsg = validateStepData(s)
+            if (errorMsg != null) {
+                _uiState.update { it.copy(errorMessage = errorMsg) }
                 return@launch
             }
             val draft = StepDefinitionDraft(
@@ -276,6 +303,7 @@ class RoutinesViewModel(
                 replaceStepDefInRoutineEditor(stepDefinition, index)
             }
             cleanStepEditor()
+            closeStepEditor()
             _uiState.update { it.copy(successMessage = "Step definition updated") }
         }
     }
@@ -378,11 +406,11 @@ sealed class UiEvent {
     data class OpenRoutineLauncher(val routineId: Long) : UiEvent()
 }
 
-private fun validateStepData(state: StepDefinitionState) : Boolean {
+private fun validateStepData(state: StepDefinitionState) : String? {
     //TODO for now we dont care about the type
-    if (state.stepType == StepType.NONE) return false
-    if (state.name.isBlank()) return false
-    return true
+    if (state.stepType == StepType.NONE) return "Select step type"
+    if (state.name.isBlank()) return "Name is empty"
+    return null
 }
 
 private fun validateRoutineData(state: RoutineEditorState) : String? {

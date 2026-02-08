@@ -17,10 +17,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -261,6 +263,11 @@ fun RoutineEditor(
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
     val rEditorState by viewModel.routineEditorState.collectAsState()
+
+    BackHandler(
+        enabled = true,
+        onBack = { viewModel.closeRoutineEditor() }
+    )
 
     Box (
         modifier = Modifier
@@ -534,11 +541,89 @@ fun StepEditor(
     //navController: NavHostController,
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
-    val uiState by viewModel.uiState.collectAsState()
+    val categories = StepType.getCategories()
+    val selectedCategory by viewModel.stepTypeSelector.collectAsState()
+    val selectedSteps by viewModel.selectedSteps.collectAsState()
+
+    BackHandler(
+        enabled = true,
+        onBack = { viewModel.closeStepEditor() }
+    )
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.5f))
+            .clickable { viewModel.closeStepEditor() },
+        contentAlignment = Alignment.Center
+    ) {
+        Column (
+
+        ) {
+            LazyRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                item {
+                    Button(
+                        onClick = { viewModel.setStepTypeSelector(StepType.NONE) }
+                    ) {
+                        Text("Add")
+                    }
+                }
+                items(categories.size)  {
+                    CategoryPill(
+                        category = categories[it],
+                        selected = selectedCategory == categories[it],
+                        onClick = { viewModel.setStepTypeSelector(categories[it]) }
+                    )
+                }
+            }
+            if (selectedCategory == StepType.NONE) {
+                RoutineStepEditorNewContent(viewModel)
+            } else {
+                RoutineStepEditorSelectorByType(viewModel, selectedSteps)
+            }
+        }
+    }
+}
+
+@Composable
+fun RoutineStepEditorSelectorByType(
+    viewModel: RoutinesViewModel,
+    selectedSteps: List<StepDefinitionEntity>,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.5f))
+            .clickable(onClick = { viewModel.closeStepEditor() }),
+        contentAlignment = Alignment.Center
+    ) {
+        LazyColumn(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items(selectedSteps.size) { index ->
+                val step = selectedSteps[index]
+                StepDefRowCardClickable(
+                    step,
+                    onClick = { viewModel.addStepDefToRoutineEditor(step) }
+                )
+            }
+        }
+    }
+}
+
+
+@Composable
+fun RoutineStepEditorNewContent(
+    viewModel: RoutinesViewModel,
+    modifier: Modifier = Modifier
+) {
     val stepEditorState by viewModel.stepEditorState.collectAsState()
     var showStepTypeModal by remember { mutableStateOf(false) }
-
 
     Box (
         modifier = Modifier
@@ -547,21 +632,21 @@ fun StepEditor(
             .clickable { viewModel.closeStepEditor() },
         contentAlignment = Alignment.Center
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+        Card(
+            elevation = CardDefaults.cardElevation(8.dp),
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
         ) {
-            Text(
-                "Add step", style = MaterialTheme.typography.headlineSmall,
-                textAlign = TextAlign.Center
-            )
-            Card(
-                elevation = CardDefaults.cardElevation(8.dp),
-                modifier = Modifier.fillMaxWidth(),
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                Text(
+                    "Add step", style = MaterialTheme.typography.headlineSmall,
+                    textAlign = TextAlign.Center
+                )
                 Row(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
@@ -588,21 +673,18 @@ fun StepEditor(
                     onValueChange = { viewModel.setStepDescription(it) },
                     modifier = Modifier.fillMaxWidth()
                 )
-            }
-            Button(
-                onClick = { showStepTypeModal = true },
-                modifier = Modifier.padding(16.dp)
-            ) {
-                Text("Select step type")
-            }
-            FloatingActionButton(
-                onClick = { viewModel.saveStepDefinition()
-                    //TODO not close, just show error, close in viewmodel
-                          viewModel.closeStepEditor() },
-                modifier = Modifier.padding(16.dp),
-                containerColor = MaterialTheme.colorScheme.primary
-            ) {
-                Text("Save")
+                Button(
+                    onClick = { showStepTypeModal = true },
+                    modifier = Modifier.padding(16.dp)
+                ) {
+                    Text("Select step type")
+                }
+                Button(
+                    onClick = { viewModel.saveStepDefinition() },
+                    modifier = Modifier.padding(16.dp)
+                ) {
+                    Text("Save")
+                }
             }
         }
         if (showStepTypeModal) {
@@ -681,6 +763,11 @@ fun RoutineDetailsScreen(
                         Text("EDIT")
                     }
                 }
+                FlexCloseButton(
+                    onClose = { viewModel.closeRoutineDetails() },
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                )
             }
         }
     }
@@ -716,6 +803,41 @@ fun RoutineEntityDetails(
             style = MaterialTheme.typography.headlineSmall,
             modifier = Modifier.fillMaxWidth()
         )
+    }
+}
+
+@Composable
+fun StepDefRowCardClickable(
+    step: StepDefinitionEntity,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+            contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+        ),
+        elevation = CardDefaults.cardElevation(8.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth().padding(16.dp)
+        ) {
+            Text(
+                step.name,
+                style = MaterialTheme.typography.headlineSmall,
+                modifier = Modifier.weight(1f)
+            )
+            Text(
+                step.icon,
+                style = MaterialTheme.typography.headlineSmall,
+                modifier = Modifier
+            )
+        }
     }
 }
 

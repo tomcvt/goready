@@ -1,5 +1,6 @@
 package com.tomcvt.goready.repository
 
+import com.tomcvt.goready.constants.StepType
 import com.tomcvt.goready.data.StepDefinitionDao
 import com.tomcvt.goready.data.StepDefinitionEntity
 import kotlinx.coroutines.flow.Flow
@@ -9,6 +10,10 @@ class StepDefinitionRepository(
 ) {
     fun getAllStepDefinitionsFlow(): Flow<List<StepDefinitionEntity>> {
         return stepDefinitionDao.getAllStepDefinitionsFlow()
+    }
+
+    fun getStepDefinitionsByTypeFlow(type: StepType): Flow<List<StepDefinitionEntity>> {
+        return stepDefinitionDao.getStepDefinitionsByTypeFlow(type)
     }
 
     suspend fun getStepDefinition(id: Long) : StepDefinitionEntity? {

@@ -2,6 +2,7 @@ package com.tomcvt.goready.manager
 
 import android.util.Log
 import androidx.room.Transaction
+import com.tomcvt.goready.constants.StepType
 import com.tomcvt.goready.data.RoutineEntity
 import com.tomcvt.goready.data.RoutineStepEntity
 import com.tomcvt.goready.data.StepDefinitionEntity
@@ -28,6 +29,8 @@ class AppRoutinesManager(
     fun getRoutineStepsFlow(routineId: Long) = routineStepRepository.getRoutineStepsFlow(routineId)
 
     fun getRoutineStepsWithDefinitionFlow(routineId: Long) = routineStepRepository.getRoutineStepsWithDefinitionFlow(routineId)
+
+    fun getStepDefinitionsByTypeFlow(type: StepType) = stepDefinitionRepository.getStepDefinitionsByTypeFlow(type)
 
     suspend fun getStepDefinition(id: Long) = stepDefinitionRepository.getStepDefinition(id)
 

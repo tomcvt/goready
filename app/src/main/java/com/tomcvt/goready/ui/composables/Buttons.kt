@@ -46,6 +46,35 @@ fun SimpleDeleteButton(
 }
 
 @Composable
+fun FlexCloseButton(
+    onClose: () -> Unit,
+    modifier: Modifier = Modifier,
+    size: Dp = 32.dp,
+    contentDescription: String = "Close"
+) {
+    val iconSize = size * 3 / 4
+    val roundedSize = size / 4
+    IconButton(
+        onClick = onClose,
+        modifier = modifier
+            .padding(4.dp)
+            .background(
+                color = MaterialTheme.colorScheme.errorContainer,
+                shape = RoundedCornerShape(roundedSize) // Square rounded
+            )
+            .layoutId("close_button")
+            .size(size)
+    ) {
+        Icon(
+            imageVector = Icons.Default.Close,
+            contentDescription = contentDescription,
+            tint = MaterialTheme.colorScheme.onErrorContainer,
+            modifier = Modifier.size(iconSize)
+        )
+    }
+}
+
+@Composable
 fun FlexDeleteButton(
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
