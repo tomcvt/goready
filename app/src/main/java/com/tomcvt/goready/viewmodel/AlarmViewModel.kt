@@ -28,7 +28,7 @@ private const val TAG = "AlarmViewModel"
 class AlarmViewModel(
     private val appAlarmManager: AppAlarmManager // inject manager
 ) : ViewModel() {
-    private val _uiState = MutableStateFlow<UiState>(UiState.Idle)
+    private val _uiState = MutableStateFlow<UiState>(UiState())
     val uiState: StateFlow<UiState> = _uiState
 
     private val _editorState =
@@ -41,6 +41,13 @@ class AlarmViewModel(
 
     val rememberedData: StateFlow<MutableMap<String, String>> =
         _rememberedData.asStateFlow()
+
+    private val _selectedRoutineId = MutableStateFlow<Long?>(null)
+    val selectedRoutineId: StateFlow<Long?> =
+        _selectedRoutineId.asStateFlow()
+    private val _previewRoutineId = MutableStateFlow<Long?>(null)
+    val previewRoutineId: StateFlow<Long?> =
+        _previewRoutineId.asStateFlow()
 
     val alarmsStateFlow: StateFlow<List<AlarmEntity>> = appAlarmManager
         .getAlarmsFlow().stateIn(
@@ -81,37 +88,13 @@ class AlarmViewModel(
         }
     }
 
-    fun saveAlarm(draft: AlarmDraft) {
-        viewModelScope.launch {
-            try {
-                appAlarmManager.createAlarm(draft)
-                Log.d("AlarmViewModel", "Alarm created: $draft")
-                _uiState.value = UiState.Success("Alarm saved")
-            } catch (e: Exception) {
-                _uiState.value = UiState.Error(e.message ?: "Unknown error")
-            }
-        }
-    }
-
-    fun saveSimpleAlarm(draft: SimpleAlarmDraft) {
-        viewModelScope.launch {
-            try {
-                appAlarmManager.createSimpleAlarm(draft)
-                Log.d("AlarmViewModel", "Simple alarm created: $draft")
-                _uiState.value = UiState.Success("Simple alarm saved")
-            } catch (e: Exception) {
-                _uiState.value = UiState.Error(e.message ?: "Unknown error")
-            }
-        }
-    }
-
     fun toggleAlarm(alarm: AlarmEntity, enabled: Boolean) {
         viewModelScope.launch {
             try {
                 appAlarmManager.toggleAlarm(alarm, enabled)
-                _uiState.value = UiState.Success("Alarm toggled")
+                _uiState.update { it.copy(successMessage = "Alarm toggled") }
             } catch (e: Exception) {
-                _uiState.value = UiState.Error(e.message ?: "Unknown error")
+                _uiState.update { it.copy(errorMessage = e.message ?: "Unknown error") }
             }
         }
     }
@@ -121,9 +104,9 @@ class AlarmViewModel(
             try {
                 appAlarmManager.deleteAlarm(alarm)
                 Log.d("AlarmViewModel", "Alarm deleted: $alarm")
-                _uiState.value = UiState.Success("Alarm deleted")
+                _uiState.update { it.copy(successMessage = "Alarm deleted") }
             } catch (e: Exception) {
-                _uiState.value = UiState.Error(e.message ?: "Unknown error")
+                _uiState.update { it.copy(errorMessage = e.message ?: "Unknown error") }
             }
         }
     }
@@ -150,7 +133,7 @@ class AlarmViewModel(
         viewModelScope.launch {
             var s = editorState.value
             if (!validateData(s.taskType, s.taskData)) {
-                _uiState.value = UiState.InputError("Input data for a task!")
+                _uiState.update { it.copy(inputErrorMessage = "Invalid input data") }
                 return@launch
             }
             s = s.copy(taskData = trimTaskData(s.taskType, s.taskData))
@@ -167,7 +150,7 @@ class AlarmViewModel(
                 )
                 Log.d(TAG, "Saving alarmDraft: $draft")
                 appAlarmManager.createAlarm(draft)
-                _uiState.value = UiState.Success("Alarm saved")
+                _uiState.update { it.copy(successMessage = "Alarm created") }
             } else {
                 appAlarmManager.updateAlarm(AlarmDraft(
                     hour = s.hour,
@@ -179,7 +162,7 @@ class AlarmViewModel(
                     snoozeMaxCount = s.snoozeCount,
                     snoozeEnabled = s.snoozeActive
                 ), currentAlarmId?: return@launch)
-                _uiState.value = UiState.Success("Alarm updated")
+                _uiState.update { it.copy(successMessage = "Alarm updated") }
             }
         }
     }
@@ -206,7 +189,7 @@ class AlarmViewModel(
     fun setTaskData(data: String) {
         val data = parseData(editorState.value.taskType, data)
         if (data == null) {
-            _uiState.value = UiState.Error("Invalid data")
+            _uiState.update { it.copy(inputErrorMessage = "Invalid input data") }
             return
         }
         _editorState.update { it.copy(taskData = data) }
@@ -233,16 +216,27 @@ class AlarmViewModel(
             it.copy(snoozeCount = count)
         }
     }
+
+    fun clearSuccessMessage() {
+        _uiState.update { it.copy(successMessage = null) }
+    }
+
+    fun clearErrorMessage() {
+        _uiState.update { it.copy(errorMessage = null) }
+    }
+
+    fun clearInputErrorMessage() {
+        _uiState.update { it.copy(inputErrorMessage = null) }
+    }
 }
 
 // UI observes `uiState` and reacts
-sealed class UiState {
-    object Idle: UiState()
-    data class Success(val message: String): UiState()
-    data class Error(val message: String): UiState()
-
-    data class InputError(val message: String): UiState()
-}
+data class UiState(
+    val successMessage: String? = null,
+    val errorMessage: String? = null,
+    val inputErrorMessage: String? = null,
+    val routineSelectorOpen: Boolean = false
+)
 
 data class AlarmEditorState(
     val mode: Mode = Mode.CREATE,
@@ -328,67 +322,6 @@ fun validateData(taskType: TaskType, taskData: String) : Boolean {
     return false
 }
 
-/*
-val permissionRegistry = listOf(
-    PermissionSpec(
-        id = "exact_alarm",
-        label = "Exact Alarm",
-        description = "Schedule exact alarms",
-        permission = Manifest.permission.SCHEDULE_EXACT_ALARM,
-        minSdk = Build.VERSION_CODES.S,
-        callbackInt = 103),
-    PermissionSpec(
-        id = "foreground_service",
-        label = "Foreground Service",
-        description = "Alarm Manager",
-        permission = Manifest.permission.FOREGROUND_SERVICE,
-        minSdk = Build.VERSION_CODES.Q,
-        callbackInt = 102),
-    PermissionSpec(
-        id = "full_screen_intent",
-        label = "Full Screen Intent",
-        description = "Allow full screen alarm",
-        permission = Manifest.permission.USE_FULL_SCREEN_INTENT,
-        minSdk = Build.VERSION_CODES.Q,
-        callbackInt = 104),
-    PermissionSpec(
-        id = "post_notifications",
-        label = "Post Notifications",
-        description = "Posting notifications",
-        permission = Manifest.permission.POST_NOTIFICATIONS,
-        minSdk = Build.VERSION_CODES.TIRAMISU,
-        callbackInt = 101),
-    PermissionSpec(
-        id = "battery_optimization",
-        label = "Battery Optimization",
-        description = "Allow app to be excluded from battery optimization",
-        permission = Manifest.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
-        minSdk = Build.VERSION_CODES.M,
-        callbackInt = 107),
-    PermissionSpec(
-        id = "foreground_service_system_exempt",
-        label = "Foreground Service System Exempt",
-        description = "Allow app to have special privilige to run reliably",
-        permission = Manifest.permission.FOREGROUND_SERVICE_SYSTEM_EXEMPTED,
-        minSdk = Build.VERSION_CODES.Q,
-        callbackInt = 105),
-    PermissionSpec(
-        id = "foreground_service_media_playback",
-        label = "Foreground Service Media Playback",
-        description = "Allow app to sound alarms",
-        permission = Manifest.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK,
-        minSdk = Build.VERSION_CODES.Q,
-        callbackInt = 106),
-    PermissionSpec(
-        id = "use_exact_alarm",
-        label = "Use Exact Alarm",
-        description = "Use exact alarm",
-        permission = Manifest.permission.USE_EXACT_ALARM,
-        minSdk = Build.VERSION_CODES.TIRAMISU,
-        callbackInt = 108)
-    )
-
-*/
 
 
 

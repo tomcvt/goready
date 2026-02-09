@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -82,11 +83,75 @@ fun AddAlarmView(viewModel: AlarmViewModel,
         viewModel.initEditor(alarmId)
     }
     val state by viewModel.editorState.collectAsState()
-    val rememberedData by viewModel.rememberedData.collectAsState()
-    var showModal by remember {mutableStateOf(false)}
     var showExit by remember {mutableStateOf(false)}
+
+    Box (modifier = modifier) {
+        AddAlarmContent(viewModel, rootNavController)
+
+        uiState.successMessage?.let {
+            AlarmAddedModal(
+                it,
+                taskData = state.taskData,
+                onDismiss = { viewModel.clearSuccessMessage()
+                    //TODO check if its logically ok
+                                rootNavController?.popBackStack()
+                                rootNavController?.navigate(RootTab.ALARMS.name) {
+                                popUpTo(rootNavController.graph.startDestinationId) {
+                                    saveState = false
+                                }
+                                launchSingleTop = true
+                                restoreState = false
+                            }
+                            },
+                hour = state.hour,
+                minute = state.minute,
+                days = state.repeatDays
+            )
+        }
+        uiState.errorMessage?.let {
+            StandardModal(
+                onDismiss = { viewModel.clearErrorMessage() },
+                onConfirm = { viewModel.clearErrorMessage() }
+            ) {
+                Text(it, textAlign = TextAlign.Center)
+            }
+        }
+        uiState.inputErrorMessage?.let {
+            StandardModal(
+                onDismiss = { viewModel.clearInputErrorMessage() },
+                onConfirm = { viewModel.clearInputErrorMessage() }
+            ) {
+                Text(it, textAlign = TextAlign.Center)
+            }
+        }
+
+    }
+    BackHandler(
+        enabled = true,
+        onBack = { showExit = true }
+    )
+
+    if (showExit) {
+        StandardModal(
+            onDismiss = { showExit = false },
+            onConfirm = { rootNavController?.popBackStack() }
+        ) {
+            Text("Do you want to exit?")
+        }
+    }
+}
+
+@Composable
+fun AddAlarmContent(
+    viewModel: AlarmViewModel,
+    rootNavController: NavHostController?,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    val uiState by viewModel.uiState.collectAsState()
+    val state by viewModel.editorState.collectAsState()
+    val rememberedData by viewModel.rememberedData.collectAsState()
     var snoozeModal by remember {mutableStateOf(false)}
-    var showInputError by remember {mutableStateOf(false)}
 
     val picker = TimePickerDialog(
         context,
@@ -97,7 +162,11 @@ fun AddAlarmView(viewModel: AlarmViewModel,
         30,
         true
     )
-    Box (modifier = modifier) {
+
+    Box(
+        modifier = modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -137,7 +206,7 @@ fun AddAlarmView(viewModel: AlarmViewModel,
                 onTypeSelected = { viewModel.setTaskType(it) }
             )
             TaskDataInput(
-                value = rememberedData[state.taskType.name]?: "",
+                value = rememberedData[state.taskType.name] ?: "",
                 taskType = state.taskType,
                 onPremiumRequest = { TODO("implement premium request") },
                 onTaskDataProvided = {
@@ -166,79 +235,22 @@ fun AddAlarmView(viewModel: AlarmViewModel,
 
 
 
-            Button(onClick = {viewModel.save()}) {
+            Button(onClick = { viewModel.save() }) {
                 Text("Save Alarm")
             }
         }
-        val message = when (uiState) {
-            is UiState.Success -> (uiState as UiState.Success).message
-            is UiState.Error -> (uiState as UiState.Error).message
-            is UiState.InputError -> (uiState as UiState.InputError).message
-            else -> null
-        }
-        if (uiState is UiState.Success) showModal = true
-        if (uiState is UiState.Error) showInputError = true
-        if (uiState is UiState.InputError) showInputError = true
-
-
-        if (showModal) {
-            message?.let {
-                AlarmAddedModal(
-                    it,
-                    taskData = state.taskData,
-                    onDismiss = { showModal = false
-                        //TODO check if its logically ok
-                                    rootNavController?.popBackStack()
-                                    rootNavController?.navigate(RootTab.ALARMS.name) {
-                                    popUpTo(rootNavController.graph.startDestinationId) {
-                                        saveState = false
-                                    }
-                                    launchSingleTop = true
-                                    restoreState = false
-                                }
-                                },
-                    hour = state.hour,
-                    minute = state.minute,
-                    days = state.repeatDays
-                )
-            }
-        }
-        if (showInputError) {
-            val msg = message?: "Input data for a task"
-            StandardModal(
-                onDismiss = { showInputError = false },
-                onConfirm = { showInputError = false }
-            ) {
-                Text(msg, textAlign = TextAlign.Center)
-            }
-        }
-    }
-    BackHandler(
-        enabled = true,
-        onBack = { showExit = true }
-    )
-    if (snoozeModal) {
-        SnoozeInputModal(
-            onDismiss = { snoozeModal = false },
-            onConfirm = { snoozeModal = false },
-            onInputChange = { snoozeCount, snoozeTime ->
-                Log.d("SnoozeInputModal", "Snooze count: $snoozeCount, snooze time: $snoozeTime")
-                viewModel.setSnoozeCount(snoozeCount)
-                viewModel.setSnoozeTime(snoozeTime)
-            },
-            startingCount = state.snoozeCount,
-            startingTime = state.snoozeTime
-        )
-    }
-
-
-
-    if (showExit) {
-        StandardModal(
-            onDismiss = { showExit = false },
-            onConfirm = { rootNavController?.popBackStack() }
-        ) {
-            Text("Do you want to exit?")
+        if (snoozeModal) {
+            SnoozeInputModal(
+                onDismiss = { snoozeModal = false },
+                onConfirm = { snoozeModal = false },
+                onInputChange = { snoozeCount, snoozeTime ->
+                    Log.d("SnoozeInputModal", "Snooze count: $snoozeCount, snooze time: $snoozeTime")
+                    viewModel.setSnoozeCount(snoozeCount)
+                    viewModel.setSnoozeTime(snoozeTime)
+                },
+                startingCount = state.snoozeCount,
+                startingTime = state.snoozeTime
+            )
         }
     }
 }
