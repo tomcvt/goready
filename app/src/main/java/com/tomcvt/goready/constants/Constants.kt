@@ -133,7 +133,11 @@ val WELLNESS_C = Color(0xFF45f689)
 val PRODUCTIVITY_C = Color(0xFFfeff65)
 val OTHER_C = Color(0xFF9b64aa)
 
-
+sealed interface StepTypeSelector {
+    data object Add : StepTypeSelector
+    data object User : StepTypeSelector
+    data class SelectedType(val type: StepType) : StepTypeSelector
+}
 
 enum class StepType(
     val label: String, //#45f689

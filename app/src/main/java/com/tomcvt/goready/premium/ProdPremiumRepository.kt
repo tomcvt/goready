@@ -11,7 +11,7 @@ class ProdPremiumRepository(
     //api
 ) : PremiumRepositoryI {
     //TODO implement
-    override val premiumState: StateFlow<PremiumState> = MutableStateFlow(PremiumState(isPremium = false, source = PremiumSource.GOOGLE_PLAY))
+    override val premiumState: StateFlow<PremiumState> = MutableStateFlow(PremiumState(isPremium = true, source = PremiumSource.GOOGLE_PLAY))
     override fun setPremiumState(state: PremiumState) {
         Log.d(TAG, "Not supposed to be called")
         TODO("Not yet implemented")

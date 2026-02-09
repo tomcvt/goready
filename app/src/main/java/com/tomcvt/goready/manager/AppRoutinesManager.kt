@@ -23,6 +23,7 @@ class AppRoutinesManager(
 
     fun getRoutineByIdFlow(id: Long) = routineRepository.getRoutineByIdFlow(id)
 
+    fun getUserStepDefinitionsFlow() = stepDefinitionRepository.getUserStepDefinitionsFlow()
 
     fun getAllStepDefinitionsFlow() = stepDefinitionRepository.getAllStepDefinitionsFlow()
 

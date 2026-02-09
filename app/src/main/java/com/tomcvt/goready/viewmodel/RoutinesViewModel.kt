@@ -6,6 +6,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tomcvt.goready.constants.StepType
+import com.tomcvt.goready.constants.StepTypeSelector
 import com.tomcvt.goready.data.RoutineEntity
 import com.tomcvt.goready.data.StepDefinitionEntity
 import com.tomcvt.goready.data.StepWithDefinition
@@ -22,6 +23,8 @@ import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -44,12 +47,31 @@ class RoutinesViewModel(
         }
     }
 
-    private val _stepTypeSelector = MutableStateFlow(StepType.NONE)
-    val stepTypeSelector: StateFlow<StepType> = _stepTypeSelector
+    private val _stepTypeSelector = MutableStateFlow<StepTypeSelector>(StepTypeSelector.Add)
+    val stepTypeSelector: StateFlow<StepTypeSelector> = _stepTypeSelector
+    val selectedStepType: StateFlow<StepType?> =
+        stepTypeSelector
+            .map {
+                if (it is StepTypeSelector.SelectedType) it.type else null
+            }
+            .stateIn(
+                viewModelScope,
+                started = kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(1000),
+                initialValue = null
+            )
+
+    val userStepDefs: StateFlow<List<StepDefinitionEntity>> =
+        routinesManager.getUserStepDefinitionsFlow().stateIn(
+            viewModelScope,
+            started = kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(1000),
+            initialValue = emptyList()
+        )
 
     val selectedStepsByType: StateFlow<List<StepDefinitionEntity>> =
         stepTypeSelector
-            .filter { it != StepType.NONE }
+            .mapNotNull {
+                if (it is StepTypeSelector.SelectedType) it.type else null
+            }
             .flatMapLatest { type ->
                 routinesManager.getStepDefinitionsByTypeFlow(type)
             }.stateIn(
@@ -186,7 +208,7 @@ class RoutinesViewModel(
         _uiState.update { it.copy(isStepEditorOpen = true) }
     }
 
-    fun setStepTypeSelector(type: StepType) {
+    fun setStepTypeSelector(type: StepTypeSelector) {
         _stepTypeSelector.value = type
     }
 
@@ -206,7 +228,7 @@ class RoutinesViewModel(
 
     fun closeStepEditor() {
         _uiState.update { it.copy(isStepEditorOpen = false) }
-        _stepTypeSelector.value = StepType.NONE
+        _stepTypeSelector.value = StepTypeSelector.Add
     }
 
     fun setStepName(name: String) {

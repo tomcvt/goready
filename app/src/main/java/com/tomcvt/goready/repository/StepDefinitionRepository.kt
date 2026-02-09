@@ -16,6 +16,10 @@ class StepDefinitionRepository(
         return stepDefinitionDao.getStepDefinitionsByTypeFlow(type)
     }
 
+    fun getUserStepDefinitionsFlow(): Flow<List<StepDefinitionEntity>> {
+        return stepDefinitionDao.getUserStepDefinitionsFlow()
+    }
+
     suspend fun getStepDefinition(id: Long) : StepDefinitionEntity? {
         return stepDefinitionDao.getStepDefinitionById(id)
     }

@@ -103,7 +103,16 @@ fun CustomSuccessModal(
             modifier = Modifier.clickable(enabled = false) {},
             elevation = CardDefaults.cardElevation(8.dp)
         ) {
-            content()
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier.padding(24.dp)
+            ) {
+                content()
+                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Button(onClick = onDismiss) { Text("OK") }
+                }
+            }
         }
     }
 }

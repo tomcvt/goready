@@ -58,6 +58,7 @@ import com.tomcvt.goready.activities.RoutineFlowActivity
 import com.tomcvt.goready.constants.ACTION_RF_UI_LAUNCHER
 import com.tomcvt.goready.constants.EXTRA_ROUTINE_ID
 import com.tomcvt.goready.constants.StepType
+import com.tomcvt.goready.constants.StepTypeSelector
 import com.tomcvt.goready.data.RoutineEntity
 import com.tomcvt.goready.data.StepDefinitionEntity
 import com.tomcvt.goready.data.StepWithDefinition
@@ -562,8 +563,11 @@ fun StepSelector(
     modifier: Modifier = Modifier
 ) {
     val categories = StepType.getCategories()
-    val selectedCategory by viewModel.stepTypeSelector.collectAsState()
+    val selectedSelector by viewModel.stepTypeSelector.collectAsState()
+    val selectedCategory by viewModel.selectedStepType.collectAsState()
     val selectedSteps by viewModel.selectedStepsByType.collectAsState()
+    val userStepDefs by viewModel.userStepDefs.collectAsState()
+
 
     BackHandler(
         enabled = true,
@@ -589,33 +593,57 @@ fun StepSelector(
             ) {
                 item {
                     Button(
-                        onClick = { viewModel.setStepTypeSelector(StepType.NONE) }
+                        onClick = { viewModel.setStepTypeSelector(StepTypeSelector.Add) }
                     ) {
                         Text("Add")
                     }
                 }
+                item {
+                    Button(
+                        onClick = { viewModel.setStepTypeSelector(StepTypeSelector.User) }
+                    ) {
+                        Text("Created")
+                    }
+                }
+            }
+            LazyRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 items(categories.size)  {
                     CategoryPill(
                         category = categories[it],
                         selected = selectedCategory == categories[it],
-                        onClick = { viewModel.setStepTypeSelector(categories[it]) }
+                        onClick = { viewModel.setStepTypeSelector(
+                            StepTypeSelector.SelectedType(categories[it])
+                        ) }
                     ) { label ->
                         Text(label)
                     }
                 }
             }
-            if (selectedCategory == StepType.NONE) {
-                StepEditorBox(
-                    viewModel,
-                    onDismiss = { viewModel.closeStepAdder() },
-                    modifier = Modifier.weight(0.5f)
-                )
-            } else {
-                StepSelectorByType(
-                    viewModel,
-                    selectedSteps,
-                    modifier = Modifier.weight(0.5f)
-                )
+            when (val selected = selectedSelector) {
+                is StepTypeSelector.SelectedType -> {
+                    StepSelectorByType(
+                        viewModel,
+                        selectedSteps,
+                        modifier = Modifier.weight(0.5f)
+                    )
+                }
+                is StepTypeSelector.Add -> {
+                    StepEditorBox(
+                        viewModel,
+                        onDismiss = { viewModel.closeStepAdder() },
+                        modifier = Modifier.weight(0.5f)
+                    )
+                }
+                is StepTypeSelector.User -> {
+                    StepSelectorByType(
+                        viewModel,
+                        userStepDefs,
+                        modifier = Modifier.weight(0.5f)
+                    )
+                }
             }
         }
     }

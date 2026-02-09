@@ -28,4 +28,7 @@ interface StepDefinitionDao {
 
     @Query("SELECT * FROM step_definitions WHERE stepType = :type")
     fun getStepDefinitionsByTypeFlow(type: StepType) : Flow<List<StepDefinitionEntity>>
+
+    @Query("SELECT * FROM step_definitions WHERE seedKey = null")
+    fun getUserStepDefinitionsFlow() : Flow<List<StepDefinitionEntity>>
 }
