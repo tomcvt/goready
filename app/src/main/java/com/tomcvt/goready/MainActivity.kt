@@ -102,7 +102,7 @@ class MainActivity : ComponentActivity() {
             StepDefinitionRepository(appObject.db.stepDefinitionDao())
         )
 
-        alarmViewModelFactory = AlarmViewModelFactory(appAlarmManager)
+        alarmViewModelFactory = AlarmViewModelFactory(appAlarmManager, appRoutinesManager)
         routinesViewModelFactory = RoutinesViewModelFactory(appRoutinesManager)
         settingsViewModelFactory = SettingsViewModelFactory(appObject.premiumRepository)
 

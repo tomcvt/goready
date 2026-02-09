@@ -13,12 +13,17 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tomcvt.goready.constants.TaskType
 import com.tomcvt.goready.data.AlarmEntity
+import com.tomcvt.goready.data.RoutineEntity
+import com.tomcvt.goready.data.StepWithDefinition
 import com.tomcvt.goready.domain.AlarmDraft
 import com.tomcvt.goready.domain.SimpleAlarmDraft
 import com.tomcvt.goready.manager.AppAlarmManager
+import com.tomcvt.goready.manager.AppRoutinesManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -26,7 +31,8 @@ import java.time.DayOfWeek
 
 private const val TAG = "AlarmViewModel"
 class AlarmViewModel(
-    private val appAlarmManager: AppAlarmManager // inject manager
+    private val appAlarmManager: AppAlarmManager,
+    private val routinesManager: AppRoutinesManager
 ) : ViewModel() {
     private val _uiState = MutableStateFlow<UiState>(UiState())
     val uiState: StateFlow<UiState> = _uiState
@@ -48,6 +54,28 @@ class AlarmViewModel(
     private val _previewRoutineId = MutableStateFlow<Long?>(null)
     val previewRoutineId: StateFlow<Long?> =
         _previewRoutineId.asStateFlow()
+
+    val selectedRoutineSteps: StateFlow<List<StepWithDefinition>> =
+        selectedRoutineId.filterNotNull()
+            .flatMapLatest { id ->
+                routinesManager.getRoutineStepsWithDefinitionFlow(id)
+            }
+            .stateIn(
+                viewModelScope,
+                started = kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(1000),
+                initialValue = emptyList()
+            )
+
+    val selectedRoutineEntity: StateFlow<RoutineEntity?> =
+        selectedRoutineId.filterNotNull()
+            .flatMapLatest { id ->
+                routinesManager.getRoutineByIdFlow(id)
+            }.filterNotNull()
+            .stateIn(
+                viewModelScope,
+                started = kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(1000),
+                initialValue = null
+            )
 
     val alarmsStateFlow: StateFlow<List<AlarmEntity>> = appAlarmManager
         .getAlarmsFlow().stateIn(
