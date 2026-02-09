@@ -17,7 +17,7 @@ object AlarmViewModelProvider {
             val repository = AlarmRepository(db.alarmDao())
             val manager = AppAlarmManager(repository, SystemAlarmScheduler(activity))
 
-            instance = AlarmViewModel(manager)
+            //instance = AlarmViewModel(manager)
         }
         return instance!!
     }

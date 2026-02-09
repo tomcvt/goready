@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalCoroutinesApi::class)
+
 package com.tomcvt.goready.viewmodel
 
 import android.Manifest
@@ -19,6 +21,7 @@ import com.tomcvt.goready.domain.AlarmDraft
 import com.tomcvt.goready.domain.SimpleAlarmDraft
 import com.tomcvt.goready.manager.AppAlarmManager
 import com.tomcvt.goready.manager.AppRoutinesManager
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -109,7 +112,11 @@ class AlarmViewModel(
                     minute = alarm.minute,
                     repeatDays = alarm.repeatDays,
                     taskType = TaskType.valueOf(alarm.task?: "NONE"),
-                    taskData = alarm.taskData?: ""
+                    taskData = alarm.taskData?: "",
+                    snoozeTime = alarm.snoozeDurationMinutes?: 0,
+                    snoozeCount = alarm.snoozeMaxCount?: 0,
+                    snoozeActive = alarm.snoozeEnabled,
+                    routineId = alarm.routineId
                 )
                 TaskType.values().forEach {
                     if (it.name == alarm.task) {
@@ -181,7 +188,8 @@ class AlarmViewModel(
                     taskData = s.taskData,
                     snoozeDurationMinutes = s.snoozeTime,
                     snoozeMaxCount = s.snoozeCount,
-                    snoozeEnabled = s.snoozeActive
+                    snoozeEnabled = s.snoozeActive,
+                    routineId = s.routineId
                 )
                 Log.d(TAG, "Saving alarmDraft: $draft")
                 appAlarmManager.createAlarm(draft)
@@ -195,7 +203,8 @@ class AlarmViewModel(
                     taskData = s.taskData,
                     snoozeDurationMinutes = s.snoozeTime,
                     snoozeMaxCount = s.snoozeCount,
-                    snoozeEnabled = s.snoozeActive
+                    snoozeEnabled = s.snoozeActive,
+                    routineId = s.routineId
                 ), currentAlarmId?: return@launch)
                 _uiState.update { it.copy(successMessage = "Alarm updated") }
             }
@@ -271,6 +280,22 @@ class AlarmViewModel(
     fun closeRoutineSelector() {
         _uiState.update { it.copy(routineSelectorOpen = false) }
     }
+
+    fun openRoutinePreview(id: Long) {
+        _previewRoutineId.update { id }
+        _uiState.update { it.copy(routinePreviewOpen = true) }
+    }
+
+    fun closeRoutinePreview() {
+        _uiState.update { it.copy(routinePreviewOpen = false) }
+    }
+
+    fun selectRoutine(id: Long?) {
+        _selectedRoutineId.update { id }
+        _editorState.update { it.copy(routineId = id) }
+        closeRoutineSelector()
+    }
+
 }
 
 // UI observes `uiState` and reacts
@@ -279,7 +304,7 @@ data class UiState(
     val errorMessage: String? = null,
     val inputErrorMessage: String? = null,
     val routineSelectorOpen: Boolean = false,
-    val previewRoutineOpen: Boolean = false,
+    val routinePreviewOpen: Boolean = false,
 )
 
 data class AlarmEditorState(

@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -86,7 +87,6 @@ fun AddAlarmView(viewModel: AlarmViewModel,
                  modifier: Modifier = Modifier,
                  alarmId: Long? = null
 ) {
-    val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
     LaunchedEffect(alarmId) {
         viewModel.initEditor(alarmId)
@@ -98,11 +98,9 @@ fun AddAlarmView(viewModel: AlarmViewModel,
         AddAlarmContent(viewModel, rootNavController)
 
         if (uiState.routineSelectorOpen) {
-            RoutineSelectorModal(
-
-            )
+            RoutineSelectorModal(viewModel)
         }
-        if (uiState.isRoutinePreviewOpen) {
+        if (uiState.routinePreviewOpen) {
             RoutinePreviewScreen(viewModel)
         }
 
@@ -249,7 +247,7 @@ fun AddAlarmContent(
                 //TODO implement viewmodel
                 Text("Select Routine")
             }
-
+            Spacer(modifier = Modifier.weight(1f))
             Button(onClick = { viewModel.save() }) {
                 Text("Save Alarm")
             }
@@ -271,7 +269,7 @@ fun AddAlarmContent(
 }
 
 @Composable
-fun RoutinesSelectorModal(
+fun RoutineSelectorModal(
     viewModel: AlarmViewModel,
     modifier: Modifier = Modifier
 ) {
@@ -279,7 +277,14 @@ fun RoutinesSelectorModal(
     //var selectedIndex by remember { mutableStateOf<Int?>(null) }
     var selectedRoutineId by remember { mutableStateOf<Long?>(null) }
 
-    Box(modifier = modifier.fillMaxSize()) {
+
+
+    Box(
+        modifier = modifier.fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.5f))
+            .clickable { viewModel.closeRoutineSelector() },
+        contentAlignment = Alignment.Center
+    ) {
         Column(
             modifier = modifier.fillMaxSize().padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -313,6 +318,10 @@ fun RoutinesSelectorModal(
                 Text("Select")
             }
         }
+        FlexCloseButton(
+            onClose = { viewModel.closeRoutineSelector() },
+            modifier = Modifier.align(Alignment.TopEnd).padding(16.dp)
+        )
     }
 }
 

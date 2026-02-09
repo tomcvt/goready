@@ -57,7 +57,7 @@ class AlarmActivity : ComponentActivity() {
         )
 
         onBackPressedDispatcher.addCallback(this) {
-            Log.d("AlarmActivity", "Back pressed")
+            Log.d(TAG, "Back pressed")
         }
 
         val alarmId = intent.getLongExtra(EXTRA_ALARM_ID, -1)
@@ -67,12 +67,12 @@ class AlarmActivity : ComponentActivity() {
 
         val testAlarm = intent.getBooleanExtra("TestAlarm", false)
         var onInteraction = {
-            Log.d("AlarmActivity", "Sending interaction intent")
+            Log.d(TAG, "Sending interaction intent")
             sendInteraction()
         }
         if (testAlarm) {
             onInteraction = {
-                Log.d("AlarmActivity", "Test Interaction")
+                Log.d(TAG, "Test Interaction")
             }
         }
         var stopAlarm = {
@@ -81,14 +81,14 @@ class AlarmActivity : ComponentActivity() {
         }
         if (testAlarm) {
             stopAlarm = {
-                Log.d("AlarmActivity", "Test stop alarm")
+                Log.d(TAG, "Test stop alarm")
                 finish()
             }
         }
 
         lifecycleScope.launch {
             val alarmEntity = withContext(Dispatchers.IO) {appAlarmManager.getAlarm(alarmId)}
-            Log.d("AlarmActivity", "Alarm entity: $alarmEntity")
+            Log.d(TAG, "Alarm entity: $alarmEntity")
 
             if (alarmEntity == null) {
                 stopAlarmService()
@@ -96,17 +96,19 @@ class AlarmActivity : ComponentActivity() {
                 return@launch
             }
             var taskType  = TaskType.valueOf(alarmEntity.task?: "NONE")
-            Log.d("AlarmActivity", "Task type: $taskType")
+            Log.d(TAG, "Task type: $taskType")
             val data = alarmEntity.taskData
-            Log.d("AlarmActivity", "Task data: $data")
+            Log.d(TAG, "Task data: $data")
             val snoozeTime = alarmEntity.snoozeDurationMinutes?: -1
-            Log.d("AlarmActivity", "Snooze time: $snoozeTime")
+            Log.d(TAG, "Snooze time: $snoozeTime")
             val routineId = alarmEntity.routineId
             if (routineId != null) {
                 val routine = withContext(Dispatchers.IO) {routineRepository.getRoutineById(routineId)}
                 if (routine == null) {
                     //TODO handle error somewhere (not existing id)
+                    Log.w(TAG, "Routine with id $routineId does not exist")
                 } else {
+                    Log.d(TAG, "Routine to launch after alarm: $routine")
                     stopAlarm = {
                         stopAlarmService()
                         launchRoutine(routineId)
@@ -124,7 +126,7 @@ class AlarmActivity : ComponentActivity() {
                 canSnooze = false
             }
             var onSnooze = {
-                Log.d("AlarmActivity", "Snoozing")
+                Log.d(TAG, "Snoozing")
                 val remainingSnooze = receivedRemainingSnooze - 1
                 appAlarmManager.scheduleSnoozeById(alarmId, remainingSnooze, snoozeTime)
                 //TODO for now stop service and check if it reliably relaunches
@@ -133,7 +135,7 @@ class AlarmActivity : ComponentActivity() {
             }
             if (testAlarm) {
                 onSnooze = {
-                    Log.d("AlarmActivity", "Test snooze")
+                    Log.d(TAG, "Test snooze")
                 }
             }
             Log.d(TAG, "Can snooze: $canSnooze")
@@ -183,6 +185,6 @@ class AlarmActivity : ComponentActivity() {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK
             putExtra(EXTRA_ROUTINE_ID, routineId)
         }
-        startActivity(intent)
+        startActivity(launchIntent)
     }
 }

@@ -23,7 +23,8 @@ open class AppAlarmManager(private val repository: AlarmRepository, private val 
             soundUri = draft.soundUri,
             snoozeEnabled = draft.snoozeEnabled,
             snoozeDurationMinutes = draft.snoozeDurationMinutes,
-            snoozeMaxCount = draft.snoozeMaxCount
+            snoozeMaxCount = draft.snoozeMaxCount,
+            routineId = draft.routineId
         )
 
         // 2. Save to DB
@@ -56,7 +57,13 @@ open class AppAlarmManager(private val repository: AlarmRepository, private val 
             label = draft.label,
             repeatDays = draft.repeatDays,
             task = draft.task,
-            taskData = draft.taskData)
+            taskData = draft.taskData,
+            soundUri = draft.soundUri,
+            snoozeEnabled = draft.snoozeEnabled,
+            snoozeDurationMinutes = draft.snoozeDurationMinutes,
+            snoozeMaxCount = draft.snoozeMaxCount,
+            routineId = draft.routineId
+        )
         //if (oldAlarm.hour != updatedAlarm.hour || oldAlarm.minute != updatedAlarm.minute) {
 
         try {

@@ -42,7 +42,8 @@ fun AlarmAddedModal(
     hour : Int,
     minute: Int,
     days: Set<DayOfWeek>,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    secondary: String? = null
 ) {
     BackHandler(
         enabled = true,
@@ -73,11 +74,40 @@ fun AlarmAddedModal(
                         if (days.isEmpty()) "no days" else days.joinToString { it.name.take(3) }
                     )
                 )
+                if (secondary != null) {
+                    Text(text = secondary)
+                }
                 Button(onClick = onDismiss) { Text("OK") }
             }
         }
     }
 }
+@Composable
+fun CustomSuccessModal(
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit
+) {
+    BackHandler(
+        enabled = true,
+        onBack = onDismiss
+    )
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.5f))
+            .clickable { onDismiss() },
+        contentAlignment = Alignment.Center
+    ) {
+        Card(
+            modifier = Modifier.clickable(enabled = false) {},
+            elevation = CardDefaults.cardElevation(8.dp)
+        ) {
+            content()
+        }
+    }
+}
+
 
 @Composable
 fun DeleteAlarmModal(onDismiss: () -> Unit, onConfirm: () -> Unit) {
