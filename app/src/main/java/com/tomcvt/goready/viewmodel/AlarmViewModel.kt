@@ -55,8 +55,8 @@ class AlarmViewModel(
     val previewRoutineId: StateFlow<Long?> =
         _previewRoutineId.asStateFlow()
 
-    val selectedRoutineSteps: StateFlow<List<StepWithDefinition>> =
-        selectedRoutineId.filterNotNull()
+    val previewRoutineSteps: StateFlow<List<StepWithDefinition>> =
+        previewRoutineId.filterNotNull()
             .flatMapLatest { id ->
                 routinesManager.getRoutineStepsWithDefinitionFlow(id)
             }
@@ -66,8 +66,8 @@ class AlarmViewModel(
                 initialValue = emptyList()
             )
 
-    val selectedRoutineEntity: StateFlow<RoutineEntity?> =
-        selectedRoutineId.filterNotNull()
+    val previewRoutineEntity: StateFlow<RoutineEntity?> =
+        previewRoutineId.filterNotNull()
             .flatMapLatest { id ->
                 routinesManager.getRoutineByIdFlow(id)
             }.filterNotNull()
@@ -76,6 +76,13 @@ class AlarmViewModel(
                 started = kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(1000),
                 initialValue = null
             )
+
+    val routinesStateFlow: StateFlow<List<RoutineEntity>> =
+        routinesManager.getAllRoutinesFlow().stateIn(
+            viewModelScope,
+            started = kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(1000),
+            initialValue = emptyList()
+        )
 
     val alarmsStateFlow: StateFlow<List<AlarmEntity>> = appAlarmManager
         .getAlarmsFlow().stateIn(
@@ -256,6 +263,14 @@ class AlarmViewModel(
     fun clearInputErrorMessage() {
         _uiState.update { it.copy(inputErrorMessage = null) }
     }
+
+    fun openRoutineSelector() {
+        _uiState.update { it.copy(routineSelectorOpen = true) }
+    }
+
+    fun closeRoutineSelector() {
+        _uiState.update { it.copy(routineSelectorOpen = false) }
+    }
 }
 
 // UI observes `uiState` and reacts
@@ -263,7 +278,8 @@ data class UiState(
     val successMessage: String? = null,
     val errorMessage: String? = null,
     val inputErrorMessage: String? = null,
-    val routineSelectorOpen: Boolean = false
+    val routineSelectorOpen: Boolean = false,
+    val previewRoutineOpen: Boolean = false,
 )
 
 data class AlarmEditorState(

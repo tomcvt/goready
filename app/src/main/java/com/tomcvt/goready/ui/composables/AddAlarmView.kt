@@ -5,7 +5,9 @@ import android.util.Log
 import android.widget.ToggleButton
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,6 +19,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -25,6 +30,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuItemColors
 import androidx.compose.material3.OutlinedTextField
@@ -54,9 +61,11 @@ import com.tomcvt.goready.LocalPremiumState
 import com.tomcvt.goready.RootTab
 import com.tomcvt.goready.constants.TaskType
 import com.tomcvt.goready.constants.TaskTypeContext
+import com.tomcvt.goready.data.RoutineEntity
 import com.tomcvt.goready.domain.AlarmDraft
 import com.tomcvt.goready.domain.SimpleAlarmDraft
 import com.tomcvt.goready.viewmodel.AlarmViewModel
+import com.tomcvt.goready.viewmodel.RoutinesViewModel
 import com.tomcvt.goready.viewmodel.UiState
 import org.checkerframework.framework.qual.Unused
 import java.time.DayOfWeek
@@ -87,6 +96,15 @@ fun AddAlarmView(viewModel: AlarmViewModel,
 
     Box (modifier = modifier) {
         AddAlarmContent(viewModel, rootNavController)
+
+        if (uiState.routineSelectorOpen) {
+            RoutineSelectorModal(
+
+            )
+        }
+        if (uiState.isRoutinePreviewOpen) {
+            RoutinePreviewScreen(viewModel)
+        }
 
         uiState.successMessage?.let {
             AlarmAddedModal(
@@ -232,9 +250,6 @@ fun AddAlarmContent(
                 Text("Select Routine")
             }
 
-
-
-
             Button(onClick = { viewModel.save() }) {
                 Text("Save Alarm")
             }
@@ -254,6 +269,112 @@ fun AddAlarmContent(
         }
     }
 }
+
+@Composable
+fun RoutinesSelectorModal(
+    viewModel: AlarmViewModel,
+    modifier: Modifier = Modifier
+) {
+    val routineList by viewModel.routinesStateFlow.collectAsState()
+    //var selectedIndex by remember { mutableStateOf<Int?>(null) }
+    var selectedRoutineId by remember { mutableStateOf<Long?>(null) }
+
+    Box(modifier = modifier.fillMaxSize()) {
+        Column(
+            modifier = modifier.fillMaxSize().padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = "Routines",
+                style = MaterialTheme.typography.headlineSmall,
+                modifier = Modifier.padding(16.dp)
+            )
+            LazyColumn(
+                modifier = Modifier.fillMaxWidth().weight(1f),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(routineList.size) { index ->
+                    val routine = routineList[index]
+                    RoutineSelectorCard(
+                        name = routine.name,
+                        description = routine.description,
+                        icon = routine.icon,
+                        selected = routine.id == selectedRoutineId,
+                        onCardClick = { selectedRoutineId = routine.id },
+                        onLongClick = { viewModel.openRoutinePreview(routine.id) },
+                        modifier = Modifier.padding(8.dp)
+                    )
+                }
+            }
+            Button(
+                onClick = { viewModel.selectRoutine(selectedRoutineId) },
+                modifier = Modifier.padding(16.dp)
+            ) {
+                Text("Select")
+            }
+        }
+    }
+}
+
+@Composable
+fun RoutineSelectorCard(
+    name: String,
+    description: String,
+    icon: String,
+    selected: Boolean,
+    onCardClick: () -> Unit,
+    onLongClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(modifier = modifier.fillMaxWidth()) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                //.padding(top = 8.dp, end = 8.dp) // TODO: ????? what this for
+                .combinedClickable(
+                    onClick = onCardClick,
+                    onLongClick = onLongClick
+                )
+                .border(
+                    width = 2.dp,
+                    color = if (selected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                    shape = MaterialTheme.shapes.medium
+                ),
+            elevation = CardDefaults.cardElevation(4.dp)
+        ) {
+            Row(modifier = Modifier.padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(text = name, style = MaterialTheme.typography.headlineSmall)
+                Text(text = icon, style = MaterialTheme.typography.bodyMedium)
+            }
+        }
+        /*
+        Row (
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(10.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            SimpleStartButton(
+                onStart = onStartClick,
+                modifier = Modifier,
+                size = 32.dp,
+                contentDescription = "Start Routine"
+            )
+            FlexDeleteButton(
+                onDelete = onDelete,
+                modifier = Modifier,
+                size = 32.dp,
+                contentDescription = "Delete Routine"
+            )
+        }
+
+         */
+    }
+}
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -449,5 +570,75 @@ fun PremiumContentLabelBox(
             style = MaterialTheme.typography.headlineMedium,
             textAlign = TextAlign.Center
         )
+    }
+}
+
+@Composable
+fun RoutinePreviewScreen(
+    viewModel: AlarmViewModel,
+    //navController: NavHostController,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    val uiState by viewModel.uiState.collectAsState()
+    val routineSteps by viewModel.previewRoutineSteps.collectAsState()
+    val routineEntity by viewModel.previewRoutineEntity.collectAsState()
+
+    BackHandler(
+        enabled = true,
+        onBack = { viewModel.closeRoutinePreview() }
+    )
+
+    Box (
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.5f))
+            .clickable { viewModel.closeRoutinePreview() },
+        contentAlignment = Alignment.Center
+    ) {
+        Card(
+            elevation = CardDefaults.cardElevation(8.dp),
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+        ) {
+            Box (
+                modifier = Modifier.fillMaxSize().padding(16.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        "Edit routine", style = MaterialTheme.typography.headlineSmall,
+                        textAlign = TextAlign.Center
+                    )
+                    RoutineEntityDetails(routineEntity)
+                    LazyColumn(
+                        modifier = Modifier.fillMaxWidth().weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(routineSteps.size) { index ->
+                            val step = routineSteps[index]
+                            StepRowCard(step)
+                        }
+                    }
+                    //TODO implement later
+                    /*
+                    Button(
+                        onClick = { viewModel.openRoutineEditorWithSelectedRoutine() },
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text("EDIT")
+                    }*/
+                }
+                FlexCloseButton(
+                    onClose = { viewModel.closeRoutinePreview() },
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                )
+            }
+        }
     }
 }
