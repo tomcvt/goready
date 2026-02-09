@@ -89,8 +89,7 @@ fun RoutineDetailsBoxLauncher(
                         }
                     }
                     Button(
-                        onClick = { viewModel.launchRoutine(uiState.launcherRoutineId?: 0)
-                                    viewModel.closeRoutineLauncher() },
+                        onClick = { viewModel.launchRoutine(uiState.launcherRoutineId?: 0) },
                         modifier = Modifier.padding(16.dp)
                     ) {
                         Text("Launch Routine")
@@ -98,6 +97,10 @@ fun RoutineDetailsBoxLauncher(
                 }
             }
         }
+        FlexCloseButton(
+            onClose = { viewModel.closeRoutineLauncher() },
+            modifier = Modifier.align(Alignment.TopEnd)
+        )
     }
 }
 

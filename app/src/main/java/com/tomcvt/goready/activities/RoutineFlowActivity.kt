@@ -70,6 +70,10 @@ class RoutineFlowActivity : ComponentActivity() {
         val info = intent.getStringExtra(EXTRA_ROUTINE_INFO)
         val action = intent.action
 
+        val onClose = {
+            finish()
+        }
+
         setContent {
             VibrantTheme {
                 val vm = viewModel<RoutineFlowViewModel>(factory = routineFlowViewModelFactory)
@@ -83,7 +87,7 @@ class RoutineFlowActivity : ComponentActivity() {
                     vm.setLauncherOverlay(false)
                     Log.d(TAG, "onCreate: action, sessionId: $action, $sessionId")
                 }
-                RoutineFlowContent(vm)
+                RoutineFlowContent(vm, onClose)
             }
         }
     }
@@ -97,6 +101,10 @@ class RoutineFlowActivity : ComponentActivity() {
         val action = intent.action
         Log.d(TAG, "onNewIntent: action, rId: $action, $sessionId, $routineId, $stepNumber, $info")
 
+        val onClose = {
+            finish()
+        }
+
         setContent {
             VibrantTheme {
                 val vm = viewModel<RoutineFlowViewModel>(factory = routineFlowViewModelFactory)
@@ -110,7 +118,7 @@ class RoutineFlowActivity : ComponentActivity() {
                     vm.setLauncherOverlay(false)
                     Log.d(TAG, "onCreate: action, sessionId: $action, $sessionId")
                 }
-                RoutineFlowContent(vm)
+                RoutineFlowContent(vm, onClose)
             }
         }
     }

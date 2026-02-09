@@ -254,7 +254,8 @@ data class AlarmEditorState(
     val isLoading: Boolean = false,
     val snoozeTime: Int = 5,
     val snoozeActive: Boolean = false,
-    val snoozeCount: Int = 1
+    val snoozeCount: Int = 1,
+    val routineId: Long? = null
 ) {
     enum class Mode { CREATE, EDIT }
 }

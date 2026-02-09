@@ -14,8 +14,10 @@ import androidx.compose.ui.Modifier
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
 import com.tomcvt.goready.application.AlarmApp
+import com.tomcvt.goready.constants.ACTION_RF_UI_LAUNCHER
 import com.tomcvt.goready.constants.EXTRA_ALARM_ID
 import com.tomcvt.goready.constants.EXTRA_REMAINING_SNOOZE
+import com.tomcvt.goready.constants.EXTRA_ROUTINE_ID
 import com.tomcvt.goready.constants.SNOOZE_MINUTES
 import com.tomcvt.goready.constants.TaskType
 import com.tomcvt.goready.manager.AppAlarmManager
@@ -36,6 +38,8 @@ class AlarmActivity : ComponentActivity() {
         val app = (application as AlarmApp)
         val repository = app.alarmRepository
         val appAlarmManager = AppAlarmManager(repository, SystemAlarmScheduler(this))
+
+        val routineRepository = app.routineRepository
 
         WindowCompat.setDecorFitsSystemWindows(window, false)
         // Show over lock screen + turn screen on
@@ -97,6 +101,19 @@ class AlarmActivity : ComponentActivity() {
             Log.d("AlarmActivity", "Task data: $data")
             val snoozeTime = alarmEntity.snoozeDurationMinutes?: -1
             Log.d("AlarmActivity", "Snooze time: $snoozeTime")
+            val routineId = alarmEntity.routineId
+            if (routineId != null) {
+                val routine = withContext(Dispatchers.IO) {routineRepository.getRoutineById(routineId)}
+                if (routine == null) {
+                    //TODO handle error somewhere (not existing id)
+                } else {
+                    stopAlarm = {
+                        stopAlarmService()
+                        launchRoutine(routineId)
+                        finish()
+                    }
+                }
+            }
 
 
             if (data.isNullOrEmpty()) {
@@ -158,5 +175,14 @@ class AlarmActivity : ComponentActivity() {
         val intent = Intent(this, AlarmForegroundService::class.java)
         intent.action = "USER_INTERACTION"
         startService(intent)
+    }
+
+    private fun launchRoutine(routineId: Long) {
+        val launchIntent = Intent(this, RoutineFlowActivity::class.java).apply {
+            action = ACTION_RF_UI_LAUNCHER
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            putExtra(EXTRA_ROUTINE_ID, routineId)
+        }
+        startActivity(intent)
     }
 }

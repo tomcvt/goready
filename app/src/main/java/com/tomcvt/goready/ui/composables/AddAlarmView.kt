@@ -154,6 +154,15 @@ fun AddAlarmView(viewModel: AlarmViewModel,
                 onClick = { snoozeModal = true },
                 onSwitchChange = { viewModel.setSnoozeActive(it) }
             )
+            state.routineId?.let {
+                Text("Routine ID: $it")
+                //SelectedRoutineRow
+            }
+            Button(onClick = { viewModel.openRoutineSelector() }) {
+                //TODO implement viewmodel
+                Text("Select Routine")
+            }
+
 
 
 

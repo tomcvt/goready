@@ -44,7 +44,8 @@ import java.util.Calendar
 
 @Composable
 fun RoutineFlowContent(
-    viewModel: RoutineFlowViewModel
+    viewModel: RoutineFlowViewModel,
+    onClose: () -> Unit = {}
 ) {
     val uiState by viewModel.flowUiState.collectAsState()
     val sessionState by viewModel.sessionState.collectAsState()
@@ -58,7 +59,7 @@ fun RoutineFlowContent(
             if (uiState.launcherOverlay) {
                 RoutineLauncherView(viewModel)
             } else {
-                RoutineFlowView(viewModel)
+                RoutineFlowView(viewModel, onClose)
             }
         }
     }
@@ -66,7 +67,8 @@ fun RoutineFlowContent(
 
 @Composable
 fun RoutineFlowView(
-    viewModel: RoutineFlowViewModel
+    viewModel: RoutineFlowViewModel,
+    onClose: () -> Unit = {}
 ) {
     val sessionState by viewModel.sessionState.collectAsState()
     val currentRoutine by viewModel.currentRoutine.collectAsState()
@@ -74,7 +76,7 @@ fun RoutineFlowView(
         modifier = Modifier.fillMaxSize()
     ) {
         if (sessionState == null) {
-            Text("No routine running")
+            NoSessionActiveBox(onClose)
         }
         if (sessionState?.status == RoutineStatus.RUNNING) {
             if (sessionState?.stepStatus == StepStatus.AWAITING) {
@@ -91,7 +93,47 @@ fun RoutineFlowView(
             Text("Routine completed")
         }
     }
+}
 
+@Composable
+fun NoSessionActiveBox(
+    onClose: () -> Unit = {}
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(24.dp)
+        ) {
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                ),
+                elevation = CardDefaults.cardElevation(8.dp),
+                modifier = Modifier.padding(16.dp)
+            ) {
+                Text(
+                    text = "No routine is currently active.",
+                    style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier
+                        .padding(32.dp)
+                        .align(Alignment.CenterHorizontally),
+                    textAlign = TextAlign.Center
+                )
+            }
+            Button(
+                onClick = onClose,
+                modifier = Modifier.padding(16.dp)
+            ) {
+                Text("Close")
+            }
+        }
+    }
 }
 
 @Composable

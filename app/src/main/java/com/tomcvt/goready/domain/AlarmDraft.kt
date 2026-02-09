@@ -13,5 +13,6 @@ data class AlarmDraft(
     var soundUri: String? = null,
     var snoozeEnabled: Boolean = false,
     var snoozeDurationMinutes: Int? = null,
-    var snoozeMaxCount: Int? = null
+    var snoozeMaxCount: Int? = null,
+    var routineId: Long? = null,
 )

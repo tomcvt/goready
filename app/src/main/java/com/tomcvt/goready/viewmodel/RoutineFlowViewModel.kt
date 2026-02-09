@@ -39,6 +39,7 @@ class RoutineFlowViewModel(
             val sessionId = routineFlowManager.startRoutine(routineId)
             selectedSessionId.value = sessionId
         }
+        closeRoutineLauncher()
     }
 
     val sessionState: StateFlow<RoutineSession?> =
