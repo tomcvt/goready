@@ -111,9 +111,13 @@ class AlarmActivity : ComponentActivity() {
                 } else {
                     Log.d(TAG, "Routine to launch after alarm: $routine")
                     stopAlarm = {
-                        stopAlarmService()
-                        launchRoutine(routineId)
-                        finish()
+                        //stopAlarmService()
+                        //launchRoutine(routineId, alarmEntity.id)
+                        //finish()
+                        //TODO launch
+                        only stop sound in stopAlarmService()
+                        wait for interaction for 5s
+                            and then kill
                     }
                 }
             }
@@ -185,11 +189,12 @@ class AlarmActivity : ComponentActivity() {
         startService(intent)
     }
 
-    private fun launchRoutine(routineId: Long) {
+    private fun launchRoutine(routineId: Long, alarmId: Long) {
         val launchIntent = Intent(this, RoutineFlowActivity::class.java).apply {
             action = ACTION_RF_UI_LAUNCHER
             flags = Intent.FLAG_ACTIVITY_NEW_TASK
             putExtra(EXTRA_ROUTINE_ID, routineId)
+            putExtra(EXTRA_ALARM_ID, alarmId)
         }
         startActivity(launchIntent)
     }
