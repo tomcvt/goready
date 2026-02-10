@@ -76,6 +76,7 @@ class RoutineFlowActivity : ComponentActivity() {
         val alarmId = intent.getLongExtra(EXTRA_ALARM_ID, -1L)
         if (alarmId != -1L) {
             startedByAlarm = alarmId
+            onStart
         }
 
         val sessionId = intent.getLongExtra(EXTRA_ROUTINE_SESSION_ID, -1L)
@@ -109,9 +110,14 @@ class RoutineFlowActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent, caller: ComponentCaller) {
         super.onNewIntent(intent, caller)
 
+        var onUserInitInteraction = {}
+
         val alarmId = intent.getLongExtra(EXTRA_ALARM_ID, -1L)
         if (alarmId != -1L) {
             startedByAlarm = alarmId
+            onUserInitInteraction = {
+                finalizeAlarmOnInteraction()
+            }
         }
 
         val sessionId = intent.getLongExtra(EXTRA_ROUTINE_SESSION_ID, -1L)
@@ -143,7 +149,7 @@ class RoutineFlowActivity : ComponentActivity() {
         }
     }
 
-    private fun onUserInitInteraction() {
+    private fun finalizeAlarmOnInteraction() {
         if (!userAnchored && startedByAlarm != -1L) {
             userAnchored = true
             finalizeAlarm(startedByAlarm)

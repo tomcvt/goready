@@ -19,6 +19,8 @@ import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import com.tomcvt.goready.R
 import com.tomcvt.goready.activities.AlarmActivity
+import com.tomcvt.goready.constants.ACTION_FINALIZE_ALARM
+import com.tomcvt.goready.constants.ACTION_STOP_ALARM_SOUND
 import com.tomcvt.goready.constants.ACTION_UI_HIDDEN
 import com.tomcvt.goready.constants.ACTION_USER_INTERACTION
 import com.tomcvt.goready.constants.EXTRA_ALARM_ID
@@ -70,6 +72,16 @@ class AlarmForegroundService : Service() {
         val remainingSnooze = intent?.getIntExtra(EXTRA_REMAINING_SNOOZE, -1) ?: -1
         Log.d("AlarmForegroundService", "onStartCommand with alarm ID: $alarmId and snooze: $remainingSnooze")
 
+        if (intent?.action == ACTION_STOP_ALARM_SOUND) {
+            stopAlarmSound()
+            serviceScope.launch {
+                delay(15000)
+                finalizeAlarm()
+                return@launch
+            }
+            return START_NOT_STICKY
+        }
+
         if (intent?.action == ACTION_UI_HIDDEN) {
             Log.d(TAG, "UI hidden, pausing alarm")
             serviceScope.launch {
@@ -89,12 +101,8 @@ class AlarmForegroundService : Service() {
             return START_STICKY
         }
 
-        if (intent?.action == "STOP_ALARM") {
-            stopAlarmSound()
-            isActive = false
-            currentAlarm = null
-            currentSnooze = 0
-            stopSelf()
+        if (intent?.action == ACTION_FINALIZE_ALARM) {
+            finalizeAlarm()
             return START_NOT_STICKY
         }
 
@@ -143,12 +151,9 @@ class AlarmForegroundService : Service() {
         }
 
         serviceScope.launch {
-            Log.d(TAG, "---Checking active: $isActive")
             while (isActive) {
                 delay(2000)
-                Log.d(TAG, "Checking muted: $isTemporarilyMuted")
                 if (isTemporarilyMuted && System.currentTimeMillis() >= muteUntil) {
-                    Log.d(TAG, "Unmuting alarm")
                     try {
                         resumeSound()
                         isTemporarilyMuted = false
@@ -160,6 +165,14 @@ class AlarmForegroundService : Service() {
         }
 
         return START_STICKY
+    }
+
+    fun finalizeAlarm() {
+        stopAlarmSound()
+        isActive = false
+        currentAlarm = null
+        currentSnooze = 0
+        stopSelf()
     }
 
     override fun onDestroy() {

@@ -15,6 +15,7 @@ import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
 import com.tomcvt.goready.application.AlarmApp
 import com.tomcvt.goready.constants.ACTION_RF_UI_LAUNCHER
+import com.tomcvt.goready.constants.ACTION_STOP_ALARM_SOUND
 import com.tomcvt.goready.constants.ACTION_UI_HIDDEN
 import com.tomcvt.goready.constants.EXTRA_ALARM_ID
 import com.tomcvt.goready.constants.EXTRA_REMAINING_SNOOZE
@@ -115,9 +116,11 @@ class AlarmActivity : ComponentActivity() {
                         //launchRoutine(routineId, alarmEntity.id)
                         //finish()
                         //TODO launch
-                        only stop sound in stopAlarmService()
-                        wait for interaction for 5s
-                            and then kill
+                        launchRoutine(routineId, alarmId)
+                        stopAlarmSound()
+                        //only stop sound in stopAlarmService()
+                        //wait for interaction for 5s
+                        //    and then kill
                     }
                 }
             }
@@ -182,6 +185,11 @@ class AlarmActivity : ComponentActivity() {
         intent.action = "STOP_ALARM"
         startService(intent)
         //stopService(intent)
+    }
+    private fun stopAlarmSound() {
+        val intent = Intent(this, AlarmForegroundService::class.java)
+        intent.action = ACTION_STOP_ALARM_SOUND
+        startService(intent)
     }
     private fun sendInteraction() {
         val intent = Intent(this, AlarmForegroundService::class.java)
