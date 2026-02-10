@@ -55,6 +55,8 @@ class AlarmForegroundService : Service() {
     private var currentAlarm: AlarmEntity? = null
     private var currentSnooze: Int = 0
 
+    private var alarmStopped: Boolean = true
+
     override fun onCreate() {
         super.onCreate()
         val db = AlarmDatabase.getDatabase(this)
@@ -73,6 +75,7 @@ class AlarmForegroundService : Service() {
         Log.d("AlarmForegroundService", "onStartCommand with alarm ID: $alarmId and snooze: $remainingSnooze")
 
         if (intent?.action == ACTION_STOP_ALARM_SOUND) {
+            alarmStopped = true
             stopAlarmSound()
             serviceScope.launch {
                 delay(15000)
@@ -83,6 +86,9 @@ class AlarmForegroundService : Service() {
         }
 
         if (intent?.action == ACTION_UI_HIDDEN) {
+            if (alarmStopped) {
+                return START_NOT_STICKY
+            }
             Log.d(TAG, "UI hidden, pausing alarm")
             serviceScope.launch {
                 delay(3000)
@@ -112,6 +118,7 @@ class AlarmForegroundService : Service() {
         }
 
         isActive = true
+        alarmStopped = false
 
         serviceScope.launch {
             val alarm = withContext(Dispatchers.IO) {repository.getAlarmById(alarmId)}

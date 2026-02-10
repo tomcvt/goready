@@ -1,11 +1,13 @@
 package com.tomcvt.goready.ui.composables
 
 
+import android.content.Intent
 import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
@@ -44,6 +46,9 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.ui.layout.layoutId
 import androidx.compose.ui.platform.LocalContext
+import com.tomcvt.goready.constants.EXTRA_ALARM_ID
+import com.tomcvt.goready.constants.EXTRA_REMAINING_SNOOZE
+import com.tomcvt.goready.manager.AlarmReceiver
 import com.tomcvt.goready.test.launchAlarmNow
 import com.tomcvt.goready.ui.imagevectors.IconBell
 
@@ -69,6 +74,14 @@ fun AlarmListRoute(
     val onCardClick: (AlarmEntity) -> Unit = {
         alarm: AlarmEntity -> rootController.navigate("edit_alarm/${alarm.id}")
     }
+    val onBroadcastAlarmClick: (AlarmEntity) -> Unit = { alarm: AlarmEntity ->
+        val remainingSnooze = if (alarm.snoozeEnabled) alarm.snoozeMaxCount else 0
+        val intent = Intent(context, AlarmReceiver::class.java).apply {
+            putExtra(EXTRA_ALARM_ID, alarm.id)
+            putExtra(EXTRA_REMAINING_SNOOZE, remainingSnooze)
+        }
+        context.sendBroadcast(intent)
+    }
 
     AlarmList(
         alarmList = alarmList,
@@ -76,6 +89,7 @@ fun AlarmListRoute(
         onDeleteClick = onDeleteClick,
         onAlarmSwitchChange = onAlarmSwitchChange,
         onCardClick = onCardClick,
+        onDebugClick = onBroadcastAlarmClick,
         modifier = modifier
     )
 
@@ -88,6 +102,7 @@ fun AlarmList(
     onDeleteClick: (AlarmEntity) -> Unit,
     onAlarmSwitchChange: (AlarmEntity, Boolean) -> Unit,
     onCardClick: (AlarmEntity) -> Unit,
+    onDebugClick: (AlarmEntity) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Box(modifier = modifier.fillMaxSize()) {
@@ -113,6 +128,7 @@ fun AlarmList(
                         onToggleEnabled = {onAlarmSwitchChange(alarm, it)},
                         repeatDays = alarm.repeatDays,
                         onCardClick = { onCardClick(alarm) },
+                        onDebugClick = { onDebugClick(alarm) },
                         modifier = Modifier.padding(8.dp)
                     )
                 }
@@ -142,6 +158,7 @@ fun AlarmCard(alarmName: String,
               onToggleEnabled: (Boolean) -> Unit,
               repeatDays: Set<DayOfWeek>,
               onCardClick: () -> Unit,
+              onDebugClick: () -> Unit,
               modifier: Modifier = Modifier) {
     Box(modifier = modifier.fillMaxWidth()) {
         Card(
@@ -160,12 +177,32 @@ fun AlarmCard(alarmName: String,
             }
         }
 
+        Row(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+
+        ) {
+            FlexDeleteButton(
+                onDelete = onDelete,
+                modifier = Modifier
+                    .padding(4.dp)
+            )
+            SimpleStartButton(
+                onStart = onDebugClick,
+                modifier = Modifier
+                    .padding(4.dp)
+            )
+        }
+        /*
         // The Delete Button
         SimpleDeleteButton(
             onDelete = onDelete,
             modifier = Modifier
                 .align(Alignment.TopEnd)
         )
+
+         */
+
 
         Switch(
             checked = enabled,

@@ -73,10 +73,14 @@ class RoutineFlowActivity : ComponentActivity() {
 
         routineFlowViewModelFactory = RoutineFlowViewModelFactory(routineFlowManager)
 
+        var onUserInitInteraction = {}
+
         val alarmId = intent.getLongExtra(EXTRA_ALARM_ID, -1L)
         if (alarmId != -1L) {
             startedByAlarm = alarmId
-            onStart
+            onUserInitInteraction = {
+                finalizeAlarmOnInteraction()
+            }
         }
 
         val sessionId = intent.getLongExtra(EXTRA_ROUTINE_SESSION_ID, -1L)
@@ -102,7 +106,7 @@ class RoutineFlowActivity : ComponentActivity() {
                     vm.setLauncherOverlay(false)
                     Log.d(TAG, "onCreate: action, sessionId: $action, $sessionId")
                 }
-                RoutineFlowContent(vm, onClose)
+                RoutineFlowContent(vm, onClose, onUserInitInteraction)
             }
         }
     }
@@ -144,7 +148,7 @@ class RoutineFlowActivity : ComponentActivity() {
                     vm.setLauncherOverlay(false)
                     Log.d(TAG, "onCreate: action, sessionId: $action, $sessionId")
                 }
-                RoutineFlowContent(vm, onClose)
+                RoutineFlowContent(vm, onClose, onUserInitInteraction)
             }
         }
     }
@@ -160,6 +164,7 @@ class RoutineFlowActivity : ComponentActivity() {
         val intent = Intent(this, AlarmForegroundService::class.java)
         intent.action = ACTION_FINALIZE_ALARM
         intent.putExtra(EXTRA_ALARM_ID, alarmId)
+        Log.d(TAG, "finalizeAlarm: $alarmId")
         startService(intent)
     }
 

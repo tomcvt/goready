@@ -112,15 +112,9 @@ class AlarmActivity : ComponentActivity() {
                 } else {
                     Log.d(TAG, "Routine to launch after alarm: $routine")
                     stopAlarm = {
-                        //stopAlarmService()
-                        //launchRoutine(routineId, alarmEntity.id)
-                        //finish()
-                        //TODO launch
                         launchRoutine(routineId, alarmId)
                         stopAlarmSound()
-                        //only stop sound in stopAlarmService()
-                        //wait for interaction for 5s
-                        //    and then kill
+                        finish()
                     }
                 }
             }

@@ -29,6 +29,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
@@ -45,16 +47,34 @@ import java.util.Calendar
 @Composable
 fun RoutineFlowContent(
     viewModel: RoutineFlowViewModel,
-    onClose: () -> Unit = {}
+    onClose: () -> Unit = {},
+    onUserInitInteraction: () -> Unit = {}
 ) {
     val uiState by viewModel.flowUiState.collectAsState()
     val sessionState by viewModel.sessionState.collectAsState()
+    var firstClicked by remember { mutableStateOf(false) }
+    var interactionKey by remember { mutableStateOf(0L) }
+
+    LaunchedEffect(interactionKey) {
+        if (!firstClicked) {
+            onUserInitInteraction()
+            firstClicked = true
+        }
+    }
 
     Scaffold(
         modifier = Modifier.fillMaxSize()
     ) { innerPadding ->
         Box(
             modifier = Modifier.fillMaxSize().padding(innerPadding)
+                .pointerInput(Unit) {
+                    awaitPointerEventScope {
+                        while (true) {
+                            awaitPointerEvent(PointerEventPass.Initial)
+                            interactionKey++
+                        }
+                    }
+                }
         ) {
             if (uiState.launcherOverlay) {
                 RoutineLauncherView(viewModel)

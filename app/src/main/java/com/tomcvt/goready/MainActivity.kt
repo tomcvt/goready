@@ -371,6 +371,7 @@ fun AlarmListPreview() {
             onDeleteClick = {},
             onAlarmSwitchChange = { _, _ -> },
             onCardClick = {},
+            onDebugClick = {},
             modifier = Modifier)
     }
 }
