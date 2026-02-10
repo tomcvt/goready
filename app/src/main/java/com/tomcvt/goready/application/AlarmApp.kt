@@ -2,10 +2,12 @@ package com.tomcvt.goready.application
 
 import android.app.Application
 import android.content.Context
+import android.util.Log
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.emoji2.text.EmojiCompat
 import com.tomcvt.goready.BuildConfig
 import com.tomcvt.goready.data.AlarmDatabase
+import com.tomcvt.goready.data.seeding.SeedManager
 import com.tomcvt.goready.manager.AppAlarmManager
 import com.tomcvt.goready.manager.RoutineFlowManager
 import com.tomcvt.goready.manager.RoutineScheduler
@@ -14,10 +16,15 @@ import com.tomcvt.goready.premium.DevPremiumRepository
 import com.tomcvt.goready.premium.PremiumRepositoryI
 import com.tomcvt.goready.premium.ProdPremiumRepository
 import com.tomcvt.goready.repository.AlarmRepository
+import com.tomcvt.goready.repository.AppPrefsRepository
 import com.tomcvt.goready.repository.RoutineRepository
 import com.tomcvt.goready.repository.RoutineSessionRepository
 import com.tomcvt.goready.repository.RoutineStepRepository
 import com.tomcvt.goready.repository.StepDefinitionRepository
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 class AlarmApp : Application() {
     lateinit var alarmRepository: AlarmRepository
@@ -51,6 +58,18 @@ class AlarmApp : Application() {
         EmojiCompat.init(this)
 
         db = AlarmDatabase.getDatabase(this)
+
+        val appPrefsRepository = AppPrefsRepository(this)
+
+
+        CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+            SeedManager(
+                appPrefsRepository = appPrefsRepository,
+                database = db,
+                context = this@AlarmApp
+            ).applyStepsSeeds()
+            Log.d("SeedManager", "Steps seeds applied")
+        }
 
 
         alarmRepository = AlarmRepository(db.alarmDao())

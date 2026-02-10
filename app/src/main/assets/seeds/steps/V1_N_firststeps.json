@@ -1,0 +1,18 @@
+{
+  "steps": [
+    {"stepType":"HYGIENE",
+      "seedKey":"brush_teeth",
+      "name":"Brush teeth",
+      "description":"Simple to do but very important",
+      "icon":"🪥",
+      "updatable":false
+    },
+    {"stepType":"HEALTH",
+      "seedKey":"eat_breakfast",
+      "name":"Eat breakfast",
+      "description":"Simple to do but very important",
+      "icon":"\uD83E\uDD6A",
+      "updatable":false
+    }
+  ]
+}

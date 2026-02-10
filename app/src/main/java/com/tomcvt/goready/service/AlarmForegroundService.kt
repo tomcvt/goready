@@ -19,6 +19,8 @@ import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import com.tomcvt.goready.R
 import com.tomcvt.goready.activities.AlarmActivity
+import com.tomcvt.goready.constants.ACTION_UI_HIDDEN
+import com.tomcvt.goready.constants.ACTION_USER_INTERACTION
 import com.tomcvt.goready.constants.EXTRA_ALARM_ID
 import com.tomcvt.goready.constants.EXTRA_REMAINING_SNOOZE
 import com.tomcvt.goready.data.AlarmDatabase
@@ -48,6 +50,9 @@ class AlarmForegroundService : Service() {
     var muteUntil: Long = 0L
     var isActive: Boolean = false
 
+    var currentAlarm: AlarmEntity? = null
+    var currentSnooze: Int = 0
+
     override fun onCreate() {
         super.onCreate()
         val db = AlarmDatabase.getDatabase(this)
@@ -65,7 +70,23 @@ class AlarmForegroundService : Service() {
         val remainingSnooze = intent?.getIntExtra(EXTRA_REMAINING_SNOOZE, -1) ?: -1
         Log.d("AlarmForegroundService", "onStartCommand with alarm ID: $alarmId and snooze: $remainingSnooze")
 
-        if (intent?.action == "USER_INTERACTION") {
+        if (alarmId == -1L && remainingSnooze == -1) {
+            stopSelf()
+            return START_NOT_STICKY
+        }
+
+        if (intent?.action == ACTION_UI_HIDDEN) {
+            serviceScope.launch {
+                delay(5000)
+                if (!isActive) {
+                    stopSelf()
+                    return@launch
+                }
+                startAsForeground(currentAlarm!!, currentSnooze)
+            }
+        }
+
+        if (intent?.action == ACTION_USER_INTERACTION) {
             muteUntil = System.currentTimeMillis() + 5000
             isTemporarilyMuted = true
             pauseAlarm()
@@ -105,6 +126,8 @@ class AlarmForegroundService : Service() {
             }
             */
             isActive = true
+            currentAlarm = alarm
+            currentSnooze = remainingSnooze
 
             val audioManager = alarmContext.getSystemService(Context.AUDIO_SERVICE) as AudioManager
             val result = audioManager.requestAudioFocus(

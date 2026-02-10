@@ -3,6 +3,7 @@ package com.tomcvt.goready.constants
 import androidx.compose.ui.graphics.Color
 import com.tomcvt.goready.util.contrastText
 
+//intent extras
 const val EXTRA_ALARM_ID = "extra_alarm_id"
 const val EXTRA_REMAINING_SNOOZE = "extra_remaining_snooze"
 
@@ -17,8 +18,10 @@ const val ACTION_STEP_TIMEOUT = "ACTION_STEP_TIMEOUT"
 const val ACTION_STEP_COMPLETE = "ACTION_STEP_COMPLETE"
 const val ACTION_ROUTINE_COMPLETE = "ACTION_ROUTINE_COMPLETE"
 const val ACTION_FF_TO_NEXT_STEP = "ACTION_FF_TO_NEXT_STEP"
-
-
+//by alarmativity
+const val ACTION_UI_HIDDEN = "ACTION_UI_HIDDEN"
+const val ACTION_UI_SHOWN = "ACTION_UI_SHOWN"
+const val ACTION_USER_INTERACTION = "ACTION_USER_INTERACTION"
 
 // activity launching intents
 const val ACTION_RF_UI_LAUNCHER = "ACTION_RF_UI_LAUNCHER"

@@ -29,6 +29,12 @@ interface StepDefinitionDao {
     @Query("SELECT * FROM step_definitions WHERE stepType = :type")
     fun getStepDefinitionsByTypeFlow(type: StepType) : Flow<List<StepDefinitionEntity>>
 
-    @Query("SELECT * FROM step_definitions WHERE seedKey = null")
+    @Query("SELECT * FROM step_definitions WHERE seedKey IS NULL")
     fun getUserStepDefinitionsFlow() : Flow<List<StepDefinitionEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertSeedStepDefinitions(stepDefinitions: List<StepDefinitionEntity>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertSeedStepDefinitionsReplace(stepDefinitions: List<StepDefinitionEntity>)
 }

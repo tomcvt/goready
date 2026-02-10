@@ -35,6 +35,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -69,6 +70,10 @@ import com.tomcvt.goready.viewmodel.RoutinesViewModel
 import com.tomcvt.goready.viewmodel.RoutinesViewModelFactory
 import com.tomcvt.goready.viewmodel.SettingsViewModel
 import com.tomcvt.goready.viewmodel.SettingsViewModelFactory
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
@@ -112,7 +117,14 @@ class MainActivity : ComponentActivity() {
                 ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.POST_NOTIFICATIONS), 101)
             }
         }
-
+        //Debug window
+        CoroutineScope(Dispatchers.IO).launch {
+            val stepDefsAll = appRoutinesManager.getAllStepDefinitionsFlow().first()
+            val stepDefsUser = appRoutinesManager.getUserStepDefinitionsFlow().first()
+            Log.d("MainActivity", "Step definitions all: $stepDefsAll")
+            Log.d("MainActivity", "Step definitions user: $stepDefsUser")
+        }
+        //end
         /*
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             Log.d("MainActivity", "SystemAlarmManager: $systemAlarmManager")
