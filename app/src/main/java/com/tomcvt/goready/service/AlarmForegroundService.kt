@@ -50,8 +50,8 @@ class AlarmForegroundService : Service() {
     var muteUntil: Long = 0L
     var isActive: Boolean = false
 
-    var currentAlarm: AlarmEntity? = null
-    var currentSnooze: Int = 0
+    private var currentAlarm: AlarmEntity? = null
+    private var currentSnooze: Int = 0
 
     override fun onCreate() {
         super.onCreate()
@@ -70,20 +70,13 @@ class AlarmForegroundService : Service() {
         val remainingSnooze = intent?.getIntExtra(EXTRA_REMAINING_SNOOZE, -1) ?: -1
         Log.d("AlarmForegroundService", "onStartCommand with alarm ID: $alarmId and snooze: $remainingSnooze")
 
-        if (alarmId == -1L && remainingSnooze == -1) {
-            stopSelf()
-            return START_NOT_STICKY
-        }
-
         if (intent?.action == ACTION_UI_HIDDEN) {
+            Log.d(TAG, "UI hidden, pausing alarm")
             serviceScope.launch {
-                delay(5000)
-                if (!isActive) {
-                    stopSelf()
-                    return@launch
-                }
+                delay(3000)
                 startAsForeground(currentAlarm!!, currentSnooze)
             }
+            return START_STICKY
         }
 
         if (intent?.action == ACTION_USER_INTERACTION) {
@@ -99,6 +92,8 @@ class AlarmForegroundService : Service() {
         if (intent?.action == "STOP_ALARM") {
             stopAlarmSound()
             isActive = false
+            currentAlarm = null
+            currentSnooze = 0
             stopSelf()
             return START_NOT_STICKY
         }
