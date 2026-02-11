@@ -1,8 +1,6 @@
 package com.tomcvt.goready.ui.composables
 
-import android.os.SystemClock
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,8 +9,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -28,19 +24,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.tomcvt.goready.BuildConfig
 import com.tomcvt.goready.constants.StepType
 import com.tomcvt.goready.data.RoutineStatus
 import com.tomcvt.goready.data.StepStatus
 import com.tomcvt.goready.data.StepWithDefinition
 import com.tomcvt.goready.viewmodel.RoutineFlowViewModel
-import com.tomcvt.goready.viewmodel.RoutinesViewModel
 import kotlinx.coroutines.delay
 import java.util.Calendar
 
@@ -173,13 +167,59 @@ fun WaitingStepBox(viewModel: RoutineFlowViewModel) {
 @Composable
 fun CompletedStepBox(viewModel: RoutineFlowViewModel) {
     val currentStep by viewModel.currentStep.collectAsState()
+    var passedGate by remember { mutableStateOf(false) }
+    var enabled by remember { mutableStateOf(false) }
 
-    Text("Completed step: ${currentStep?.name}")
-    Button(
-        onClick = { viewModel.nextStep() },
-        modifier = Modifier.padding(16.dp)
+    LaunchedEffect(passedGate) {
+        delay(2000)
+        enabled = true
+    }
+
+    Box(
+        modifier = Modifier.fillMaxSize().padding(16.dp)
+            .background(MaterialTheme.colorScheme.background),
+        contentAlignment = Alignment.Center
     ) {
-        Text("Next Step")
+        if (!passedGate) {
+            Text("Completed step: ${currentStep?.name}")
+            Button(
+                onClick = { passedGate = true },
+                modifier = Modifier.padding(16.dp)
+            ) {
+                Text("Next Step")
+            }
+        } else {
+            Box (
+                modifier = Modifier.fillMaxSize().padding(16.dp),
+
+            ) {
+                if (BuildConfig.DEBUG) {
+                    Button (
+                        onClick = { enabled = !enabled },
+                        modifier = Modifier.padding(16.dp).align(Alignment.TopEnd)
+                    ) {
+                        Text("Toggle Enabled")
+                    }
+                }
+                StepDetailsCard(
+                    step = currentStep ?: emptyStep
+                    , modifier = Modifier.align(Alignment.TopCenter)
+                )
+                SimpleTickCircleAnimations(
+                    checked = enabled,
+                    modifier = Modifier.padding(16.dp).align(Alignment.Center)
+                )
+                Button(
+                    onClick = { viewModel.nextStep(); passedGate = false },
+                    modifier = Modifier.padding(16.dp).align(Alignment.BottomCenter)
+                ) {
+                    Text(
+                        "Next Step",
+                        style = MaterialTheme.typography.headlineSmall
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -223,7 +263,7 @@ fun RunningStepBox(viewModel: RoutineFlowViewModel) {
                         modifier = Modifier.align(Alignment.CenterHorizontally)
                     )
                 }
-                StepDetailsBox(
+                StepDetailsCard(
                     step = currentStep ?: emptyStep
                 )
                 Text(text = "Started: ${formatEpochMillisToHours(sessionState?.stepStartTime ?: 0)}",
@@ -288,8 +328,9 @@ fun StepTimer(
 }
 
 @Composable
-fun StepDetailsBox(
-    step: StepWithDefinition
+fun StepDetailsCard(
+    step: StepWithDefinition,
+    modifier: Modifier = Modifier
 ) {
     Card(
         colors = CardDefaults.cardColors(
@@ -297,7 +338,7 @@ fun StepDetailsBox(
             contentColor = MaterialTheme.colorScheme.onTertiaryContainer
         ),
         elevation = CardDefaults.cardElevation(8.dp),
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
     ) {
         Box (

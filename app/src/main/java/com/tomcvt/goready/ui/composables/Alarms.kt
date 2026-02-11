@@ -5,6 +5,7 @@ import android.content.Intent
 import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -46,6 +47,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.ui.layout.layoutId
 import androidx.compose.ui.platform.LocalContext
+import com.tomcvt.goready.BuildConfig
 import com.tomcvt.goready.constants.EXTRA_ALARM_ID
 import com.tomcvt.goready.constants.EXTRA_REMAINING_SNOOZE
 import com.tomcvt.goready.manager.AlarmReceiver
@@ -164,7 +166,7 @@ fun AlarmCard(alarmName: String,
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 8.dp, end = 8.dp) // Add padding so the button doesn't look cut off
+                //.padding(top = 8.dp, end = 8.dp) // Add padding so the button doesn't look cut off
                 .clickable { onCardClick() },
             elevation = CardDefaults.cardElevation(4.dp)
         ) {
@@ -180,15 +182,19 @@ fun AlarmCard(alarmName: String,
         Row(
             modifier = Modifier
                 .align(Alignment.TopEnd)
-
+                .padding(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
+            if (BuildConfig.DEBUG) {
+                SimpleStartButton(
+                    onStart = onDebugClick,
+                    modifier = Modifier
+                        .padding(4.dp)
+                )
+            }
             FlexDeleteButton(
                 onDelete = onDelete,
-                modifier = Modifier
-                    .padding(4.dp)
-            )
-            SimpleStartButton(
-                onStart = onDebugClick,
                 modifier = Modifier
                     .padding(4.dp)
             )
