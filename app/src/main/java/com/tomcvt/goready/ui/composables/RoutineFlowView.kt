@@ -153,8 +153,20 @@ fun NoSessionActiveBox(
 @Composable
 fun WaitingStepBox(viewModel: RoutineFlowViewModel) {
     val currentStep by viewModel.currentStep.collectAsState()
+    var launched by remember { mutableStateOf(false) }
 
-    Text("Waiting for step: ${currentStep?.name}")
+
+    LaunchedEffect(Unit) {
+        delay(1000)
+        launched = true
+    }
+    CardPopupAnimated(
+        launched = launched
+    ) {
+        StepDetailsCard(
+            step = currentStep ?: emptyStep
+        )
+    }
 
     Button(
         onClick = { viewModel.startStep() },
@@ -171,7 +183,7 @@ fun CompletedStepBox(viewModel: RoutineFlowViewModel) {
     var enabled by remember { mutableStateOf(false) }
 
     LaunchedEffect(passedGate) {
-        delay(2000)
+        delay(1000)
         enabled = true
     }
 
@@ -327,6 +339,54 @@ fun StepTimer(
     }
 }
 
+
+@Composable
+fun StepDetailsCardContent(
+    step: StepWithDefinition,
+    modifier: Modifier = Modifier
+) {
+    Box (
+        modifier = Modifier.fillMaxWidth().padding(16.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        step.name,
+                        style = MaterialTheme.typography.headlineSmall,
+                    )
+                    Text(
+                        step.icon,
+                        style = MaterialTheme.typography.headlineSmall,
+                    )
+                }
+                Spacer(modifier = Modifier.weight(1f))
+                Text(
+                    step.length.toString() + "min",
+                    style = MaterialTheme.typography.headlineLarge
+                )
+            }
+            Text(
+                step.description,
+                style = MaterialTheme.typography.headlineSmall,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+    }
+}
+
 @Composable
 fun StepDetailsCard(
     step: StepWithDefinition,
@@ -341,46 +401,7 @@ fun StepDetailsCard(
         modifier = modifier
             .fillMaxWidth()
     ) {
-        Box (
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Row(
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            step.name,
-                            style = MaterialTheme.typography.headlineSmall,
-                        )
-                        Text(
-                            step.icon,
-                            style = MaterialTheme.typography.headlineSmall,
-                        )
-                    }
-                    Spacer(modifier = Modifier.weight(1f))
-                    Text(
-                        step.length.toString() + "min",
-                        style = MaterialTheme.typography.headlineLarge
-                    )
-                }
-                Text(
-                    step.description,
-                    style = MaterialTheme.typography.headlineSmall,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-        }
+        StepDetailsCardContent(step)
     }
 }
 
