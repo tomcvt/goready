@@ -12,7 +12,9 @@ import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddCircle
@@ -43,6 +45,9 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.google.android.gms.ads.MobileAds
+import com.tomcvt.goready.ads.ADMOB_ID_TEST_BANNER
+import com.tomcvt.goready.ads.BottomBarAdView
 import com.tomcvt.goready.application.AlarmApp
 import com.tomcvt.goready.constants.EXTRA_ALARM_ID
 import com.tomcvt.goready.manager.AppAlarmManager
@@ -123,6 +128,7 @@ class MainActivity : ComponentActivity() {
             val stepDefsUser = appRoutinesManager.getUserStepDefinitionsFlow().first()
             Log.d("MainActivity", "Step definitions all: $stepDefsAll")
             Log.d("MainActivity", "Step definitions user: $stepDefsUser")
+            MobileAds.initialize(this@MainActivity)
         }
         //end
         /*
@@ -254,14 +260,8 @@ fun GoReadyAppMain(
 ) {
     val rootNavController = rememberNavController()
     val navbackStackEntry by rootNavController.currentBackStackEntryAsState()
-    val currentRootTab = try {
-            RootTab.valueOf(
-                navbackStackEntry?.destination?.route ?: RootTab.HOME.name
-            )
-        }
-        catch (e: IllegalArgumentException) {
-            RootTab.HOME
-        }
+    val currentRoute = navbackStackEntry?.destination?.route
+
 
     NavigationSuiteScaffold(
         navigationSuiteItems = {
@@ -269,7 +269,7 @@ fun GoReadyAppMain(
                 item(
                     icon = { Icon(tab.icon, contentDescription = tab.label) },
                     label = { Text(tab.label) },
-                    selected = currentRootTab == tab, // NavController decides this
+                    selected = currentRoute == tab.name, // NavController decides this
                     onClick = {
                         rootNavController.navigate(tab.name) {
                             popUpTo(rootNavController.graph.startDestinationId) {
@@ -281,13 +281,16 @@ fun GoReadyAppMain(
                     }
                 )
             }
-        }
+        },
+        modifier = Modifier.fillMaxSize()
     ) {
-        Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+        Column (
+            modifier = Modifier.fillMaxSize()
+        ) {
             NavHost(
                 navController = rootNavController,
                 startDestination = RootTab.HOME.name,
-                modifier = Modifier.padding(innerPadding)
+                modifier = Modifier.weight(1f)
             ) {
                 composable(RootTab.HOME.name) {
                     val vm = viewModel<RoutinesViewModel>(factory = routinesViewModelFactory)
@@ -315,6 +318,10 @@ fun GoReadyAppMain(
                     AddAlarmView(vm, rootNavController, alarmId = alarmId)
                 }
             }
+            BottomBarAdView(
+                adUnitId = ADMOB_ID_TEST_BANNER,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
     }
     LaunchedEffect(Unit) {

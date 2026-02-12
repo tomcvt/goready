@@ -125,6 +125,7 @@ dependencies {
     implementation("com.google.protobuf:protobuf-javalite:3.25.1")
     implementation("androidx.datastore:datastore-preferences:1.1.1")
     implementation(libs.kotlinx.serialization.json)
+    implementation(libs.play.services.ads)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

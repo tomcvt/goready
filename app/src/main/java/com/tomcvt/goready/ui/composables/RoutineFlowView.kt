@@ -30,6 +30,9 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.tomcvt.goready.BuildConfig
+import com.tomcvt.goready.ads.ADMOB_ID_STANDARD_BOTTOM_BANNER
+import com.tomcvt.goready.ads.ADMOB_ID_TEST_BANNER
+import com.tomcvt.goready.ads.BottomBarAdView
 import com.tomcvt.goready.constants.StepType
 import com.tomcvt.goready.data.RoutineStatus
 import com.tomcvt.goready.data.StepStatus
@@ -70,11 +73,20 @@ fun RoutineFlowContent(
                     }
                 }
         ) {
-            if (uiState.launcherOverlay) {
-                RoutineLauncherView(viewModel)
-            } else {
-                RoutineFlowView(viewModel, onClose)
+            Column(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                if (uiState.launcherOverlay) {
+                    RoutineLauncherView(viewModel)
+                } else {
+                    RoutineFlowView(viewModel, Modifier.weight(1f), onClose)
+                }
+                BottomBarAdView(
+                    adUnitId = ADMOB_ID_TEST_BANNER,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
+
         }
     }
 }
@@ -82,12 +94,13 @@ fun RoutineFlowContent(
 @Composable
 fun RoutineFlowView(
     viewModel: RoutineFlowViewModel,
+    modifier: Modifier = Modifier,
     onClose: () -> Unit = {}
 ) {
     val sessionState by viewModel.sessionState.collectAsState()
     val currentRoutine by viewModel.currentRoutine.collectAsState()
     Box(
-        modifier = Modifier.fillMaxSize()
+        modifier = modifier.fillMaxSize()
     ) {
         if (sessionState == null) {
             NoSessionActiveBox(onClose)

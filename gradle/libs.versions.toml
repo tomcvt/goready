@@ -9,6 +9,7 @@ lifecycleRuntimeKtx = "2.6.1"
 lifecycle_viewmodel_compose = "2.6.1"
 activityCompose = "1.8.0"
 composeBom = "2024.09.00"
+playServicesAds = "23.5.0"
 roomCommonJvm = "2.8.4"
 roomKtx = "2.8.4"
 roomCompiler = "2.8.4"
@@ -18,6 +19,7 @@ navigationCompose = "2.9.6"
 foundationLayout = "1.10.0"
 uiUnit = "1.10.0"
 emoji2 = "1.6.0"
+
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -44,8 +46,10 @@ androidx-navigation-compose = { group = "androidx.navigation", name = "navigatio
 androidx-compose-foundation-layout = { group = "androidx.compose.foundation", name = "foundation-layout", version.ref = "foundationLayout" }
 androidx-compose-ui-unit = { group = "androidx.compose.ui", name = "ui-unit", version.ref = "uiUnit" }
 androidx-emoji2 = { group = "androidx.emoji2", name = "emoji2", version.ref = "emoji2" }
-
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version = "1.7.3" }
+play-services-ads = { module = "com.google.android.gms:play-services-ads", version.ref = "playServicesAds" }
+
+
 
 
 [plugins]

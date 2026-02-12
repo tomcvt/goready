@@ -34,11 +34,12 @@ import com.tomcvt.goready.viewmodel.RoutineFlowViewModel
 
 @Composable
 fun RoutineLauncherView(
-    viewModel: RoutineFlowViewModel
+    viewModel: RoutineFlowViewModel,
+    modifier: Modifier = Modifier
 ) {
     //val uiState by viewModel.flowUiState.collectAsState()
     BackHandler(enabled = true) { viewModel.closeRoutineLauncher() }
-    RoutineDetailsBoxLauncher(viewModel)
+    RoutineDetailsBoxLauncher(viewModel, modifier)
 }
 
 
@@ -54,7 +55,7 @@ fun RoutineDetailsBoxLauncher(
     val routineEntity by viewModel.launcherRoutine.collectAsState()
 
     Box (
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .background(Color.Black.copy(alpha = 0.5f))
             .clickable {},

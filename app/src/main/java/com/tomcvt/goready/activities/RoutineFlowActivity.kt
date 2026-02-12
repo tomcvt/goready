@@ -6,7 +6,14 @@ import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Scaffold
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.google.android.gms.ads.MobileAds
 import com.tomcvt.goready.application.AlarmApp
 import com.tomcvt.goready.constants.ACTION_FINALIZE_ALARM
 import com.tomcvt.goready.constants.ACTION_RF_UI_LAUNCHER
@@ -30,6 +37,9 @@ import com.tomcvt.goready.ui.theme.GoReadyTheme
 import com.tomcvt.goready.ui.theme.VibrantTheme
 import com.tomcvt.goready.viewmodel.RoutineFlowViewModel
 import com.tomcvt.goready.viewmodel.RoutineFlowViewModelFactory
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 
 private const val TAG = "RoutineFlowActivity"
@@ -70,6 +80,11 @@ class RoutineFlowActivity : ComponentActivity() {
             routineScheduler,
             applicationContext
         )
+
+        CoroutineScope(Dispatchers.IO).launch {
+            // Initialize the Google Mobile Ads SDK on a background thread.
+            MobileAds.initialize(this@RoutineFlowActivity)
+        }
 
         routineFlowViewModelFactory = RoutineFlowViewModelFactory(routineFlowManager)
 
@@ -172,12 +187,32 @@ class RoutineFlowActivity : ComponentActivity() {
 
 }
 
+@Composable
+fun RoutineFlowHost(
+    viewModel: RoutineFlowViewModel,
+    onClose: () -> Unit,
+    onUserInitInteraction: () -> Unit
+) {
+    Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+        Column(
+            modifier = Modifier.fillMaxSize().padding(innerPadding)
+        ) {
+            RoutineFlowContent(viewModel, onClose, onUserInitInteraction)
+        }
+    }
+}
+
+
+
+
 private val showFlowActions = listOf(
     ACTION_RF_UI_SHOW,
     ACTION_RF_UI_STEP_COMPLETE,
     ACTION_RF_UI_STEP_TIMEOUT
     //TODO add intents and in
 )
+
+
 
 
 
