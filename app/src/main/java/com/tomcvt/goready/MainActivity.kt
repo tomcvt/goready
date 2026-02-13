@@ -12,6 +12,7 @@ import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -30,6 +31,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
@@ -243,7 +245,6 @@ fun GoReadyApp(
             alarmViewModelFactory,
             routinesViewModelFactory,
             settingsViewModelFactory,
-            premiumRepository,
             alarmId
         )
     }
@@ -255,7 +256,6 @@ fun GoReadyAppMain(
     alarmViewModelFactory: AlarmViewModelFactory,
     routinesViewModelFactory: RoutinesViewModelFactory,
     settingsViewModelFactory: SettingsViewModelFactory,
-    premiumRepository: PremiumRepositoryI,
     alarmId: Long? = null
 ) {
     val rootNavController = rememberNavController()
@@ -289,7 +289,7 @@ fun GoReadyAppMain(
         ) {
             NavHost(
                 navController = rootNavController,
-                startDestination = RootTab.HOME.name,
+                startDestination = RootTab.ALARMS.name,
                 modifier = Modifier.weight(1f)
             ) {
                 composable(RootTab.HOME.name) {
@@ -339,6 +339,61 @@ enum class RootTab(val label: String,
     SETTINGS("Profile", Icons.Default.Settings),
     ADD_ALARM("Add Alarm", Icons.Default.AddCircle);
 }
+
+@Composable
+fun MainNavHost(
+    alarmViewModelFactory: AlarmViewModelFactory,
+    routinesViewModelFactory: RoutinesViewModelFactory,
+    settingsViewModelFactory: SettingsViewModelFactory,
+    alarmId: Long? = null
+) {
+    val rootNavController = rememberNavController()
+    val navbackStackEntry by rootNavController.currentBackStackEntryAsState()
+    val currentRoute = navbackStackEntry?.destination?.route
+
+    Box (modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier.fillMaxSize()
+        ) {
+            NavHost(
+                navController = rootNavController,
+                startDestination = RootTab.ALARMS.name,
+                modifier = Modifier.weight(1f)
+            ) {
+                composable(RootTab.HOME.name) {
+                    val vm = viewModel<RoutinesViewModel>(factory = routinesViewModelFactory)
+                    RoutineListRoute(vm, rootNavController)
+                }
+                composable(RootTab.ALARMS.name) {
+                    //val vm = viewModel<AlarmViewModel>(factory = alarmViewModelFactory)
+                    AlarmsNavHost(alarmViewModelFactory, rootNavController)
+                }
+                composable(RootTab.ADD_ALARM.name) {
+                    val vm = viewModel<AlarmViewModel>(factory = alarmViewModelFactory)
+                    AddAlarmView(vm, rootNavController)
+                    //AddAlarmRoute(vm, rootNavController) for now redundant
+                }
+                composable(RootTab.SETTINGS.name) {
+                    val vm = viewModel<SettingsViewModel>(factory = settingsViewModelFactory)
+                    SettingsView(vm)
+                }
+                composable(
+                    route = "edit_alarm/{alarmId}",
+                    arguments = listOf(navArgument("alarmId") { type = NavType.LongType })
+                ) { backStackEntry ->
+                    val alarmId = backStackEntry.arguments?.getLong("alarmId")
+                    val vm = viewModel<AlarmViewModel>(factory = alarmViewModelFactory)
+                    AddAlarmView(vm, rootNavController, alarmId = alarmId)
+                }
+            }
+            BottomBarAdView(
+                adUnitId = ADMOB_ID_TEST_BANNER,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+    }
+}
+
 
 
 
