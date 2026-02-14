@@ -2,6 +2,7 @@ package com.tomcvt.goready.ui.composables
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -43,6 +44,7 @@ fun AlarmsNavHost(
                 onDismiss = { showExitModal = false },
                 onConfirm = { rootController.popBackStack() }
             ) {
+                //TODO square ad banner
                 Text("Do you want to exit?")
             }
         }

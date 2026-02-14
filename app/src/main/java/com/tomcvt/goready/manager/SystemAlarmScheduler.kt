@@ -20,12 +20,12 @@ import java.time.Instant
 import java.util.Calendar
 import java.util.Date
 
-class SystemAlarmScheduler(private val context: Context) {
+class SystemAlarmScheduler(private val context: Context) : AlarmScheduler {
     private val appContext = context.applicationContext
     val alarmManager = appContext.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
 
     @RequiresPermission(Manifest.permission.SCHEDULE_EXACT_ALARM)
-    fun scheduleAlarm(alarm: AlarmEntity, alarmId: Long, remainingSnooze: Int = 0) {
+    override fun scheduleAlarm(alarm: AlarmEntity, alarmId: Long, remainingSnooze: Int = 0) {
         //val appAlarmManager = appContext.getSystemService(Context.ALARM_SERVICE) as android.app.AppAlarmManager
         Log.d("AlarmScheduler", "Scheduling alarm with ID: $alarmId and snooze: $remainingSnooze")
         val intent = Intent(appContext
@@ -231,7 +231,7 @@ class SystemAlarmScheduler(private val context: Context) {
         }
     }
 
-    fun scheduleAlarmClock(alarmId: Long, triggerTime: Long, pendingIntent: PendingIntent) {
+    private fun scheduleAlarmClock(alarmId: Long, triggerTime: Long, pendingIntent: PendingIntent) {
         Log.d("AlarmScheduler", "Scheduling alarm with ID: ${alarmId} at ${triggerTime}")
         //TODO add showIntent, for now nothing
         val showIntent = Intent(appContext, MainActivity::class.java).apply {

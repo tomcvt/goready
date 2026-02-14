@@ -1,13 +1,9 @@
 package com.tomcvt.goready
 
 import android.Manifest
-import android.content.Context
-import android.content.Intent
 import android.content.pm.PackageManager
-import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.provider.Settings
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -16,14 +12,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
 import androidx.compose.runtime.Composable
@@ -31,15 +25,12 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -48,17 +39,17 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.google.android.gms.ads.MobileAds
+import com.tomcvt.goready.ads.ADMOB_ID_DYNAMIC_BANNER
 import com.tomcvt.goready.ads.ADMOB_ID_TEST_BANNER
-import com.tomcvt.goready.ads.BottomBarAdView
+import com.tomcvt.goready.ads.BottomBarBannerAdView
+import com.tomcvt.goready.ads.BottomBarDynamicAdView
 import com.tomcvt.goready.application.AlarmApp
 import com.tomcvt.goready.constants.EXTRA_ALARM_ID
 import com.tomcvt.goready.manager.AppAlarmManager
 import com.tomcvt.goready.manager.AppRoutinesManager
 import com.tomcvt.goready.manager.SystemAlarmScheduler
-import com.tomcvt.goready.premium.DevPremiumRepository
 import com.tomcvt.goready.premium.PremiumRepositoryI
 import com.tomcvt.goready.premium.PremiumState
-import com.tomcvt.goready.premium.ProdPremiumRepository
 import com.tomcvt.goready.preview.PreviewAlarms2
 import com.tomcvt.goready.repository.AlarmRepository
 import com.tomcvt.goready.repository.RoutineRepository
@@ -67,7 +58,6 @@ import com.tomcvt.goready.repository.StepDefinitionRepository
 import com.tomcvt.goready.ui.composables.AddAlarmView
 import com.tomcvt.goready.ui.composables.AlarmList
 import com.tomcvt.goready.ui.composables.AlarmsNavHost
-import com.tomcvt.goready.ui.composables.HomeScreen
 import com.tomcvt.goready.ui.composables.RoutineListRoute
 import com.tomcvt.goready.ui.composables.SettingsView
 import com.tomcvt.goready.ui.theme.GoReadyTheme
@@ -318,7 +308,7 @@ fun GoReadyAppMain(
                     AddAlarmView(vm, rootNavController, alarmId = alarmId)
                 }
             }
-            BottomBarAdView(
+            BottomBarBannerAdView(
                 adUnitId = ADMOB_ID_TEST_BANNER,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -386,8 +376,14 @@ fun MainNavHost(
                     AddAlarmView(vm, rootNavController, alarmId = alarmId)
                 }
             }
-            BottomBarAdView(
+            /*
+            BottomBarBannerAdView(
                 adUnitId = ADMOB_ID_TEST_BANNER,
+                modifier = Modifier.fillMaxWidth()
+            )
+             */
+            BottomBarDynamicAdView(
+                adUnitId = ADMOB_ID_DYNAMIC_BANNER,
                 modifier = Modifier.fillMaxWidth()
             )
         }

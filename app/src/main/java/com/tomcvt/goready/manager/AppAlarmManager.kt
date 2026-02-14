@@ -95,29 +95,6 @@ open class AppAlarmManager(private val repository: AlarmRepository, private val 
         }
     }
 
-    suspend fun createSimpleAlarm(draft: SimpleAlarmDraft) {
-        // 1. Convert draft → entity
-        val entity = AlarmEntity(
-            hour = draft.hour,
-            minute = draft.minute,
-            label = "Alarm",
-            repeatDays = draft.repeatDays,
-            isEnabled = true,
-            task = "None",
-            taskData = null,
-            soundUri = null,
-            snoozeEnabled = false,
-            snoozeDurationMinutes = null,
-            snoozeMaxCount = null
-        )
-
-        // 2. Save to DB
-        val newAlarmId = repository.insertAlarm(entity)
-
-        // 3. Schedule system alarm
-        systemScheduler.scheduleAlarm(entity, newAlarmId)
-    }
-
     suspend fun deleteAlarm(alarm: AlarmEntity) {
         repository.deleteAlarm(alarm)
         systemScheduler.cancelAlarm(alarm)

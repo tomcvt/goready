@@ -30,9 +30,8 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.tomcvt.goready.BuildConfig
-import com.tomcvt.goready.ads.ADMOB_ID_STANDARD_BOTTOM_BANNER
 import com.tomcvt.goready.ads.ADMOB_ID_TEST_BANNER
-import com.tomcvt.goready.ads.BottomBarAdView
+import com.tomcvt.goready.ads.BottomBarBannerAdView
 import com.tomcvt.goready.constants.StepType
 import com.tomcvt.goready.data.RoutineStatus
 import com.tomcvt.goready.data.StepStatus
@@ -81,7 +80,7 @@ fun RoutineFlowContent(
                 } else {
                     RoutineFlowView(viewModel, Modifier.weight(1f), onClose)
                 }
-                BottomBarAdView(
+                BottomBarBannerAdView(
                     adUnitId = ADMOB_ID_TEST_BANNER,
                     modifier = Modifier.fillMaxWidth()
                 )
