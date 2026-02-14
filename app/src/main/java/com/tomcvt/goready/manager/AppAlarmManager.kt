@@ -8,7 +8,7 @@ import com.tomcvt.goready.repository.AlarmRepository
 import java.time.DayOfWeek
 import java.util.Calendar
 
-open class AppAlarmManager(private val repository: AlarmRepository, private val systemScheduler: SystemAlarmScheduler) {
+open class AppAlarmManager(private val repository: AlarmRepository, private val systemScheduler: AlarmScheduler) {
     fun getAlarmsFlow() = repository.getAlarms()
     suspend fun createAlarm(draft: AlarmDraft) {
         // 1. Convert draft → entity

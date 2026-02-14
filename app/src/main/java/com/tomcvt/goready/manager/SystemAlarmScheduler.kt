@@ -25,7 +25,7 @@ class SystemAlarmScheduler(private val context: Context) : AlarmScheduler {
     val alarmManager = appContext.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
 
     @RequiresPermission(Manifest.permission.SCHEDULE_EXACT_ALARM)
-    override fun scheduleAlarm(alarm: AlarmEntity, alarmId: Long, remainingSnooze: Int = 0) {
+    override fun scheduleAlarm(alarm: AlarmEntity, alarmId: Long, remainingSnooze: Int) {
         //val appAlarmManager = appContext.getSystemService(Context.ALARM_SERVICE) as android.app.AppAlarmManager
         Log.d("AlarmScheduler", "Scheduling alarm with ID: $alarmId and snooze: $remainingSnooze")
         val intent = Intent(appContext
@@ -88,7 +88,7 @@ class SystemAlarmScheduler(private val context: Context) : AlarmScheduler {
         }
     }
 
-    fun scheduleNextAlarm(alarm: AlarmEntity, alarmId: Long, remainingSnooze: Int = 0, triggerTime: Long) {
+    override fun scheduleNextAlarm(alarm: AlarmEntity, alarmId: Long, remainingSnooze: Int, triggerTime: Long) {
         val intent = Intent(appContext
             , AlarmReceiver::class.java).apply {
             putExtra(EXTRA_ALARM_ID, alarmId)
@@ -118,7 +118,7 @@ class SystemAlarmScheduler(private val context: Context) : AlarmScheduler {
         }
     }
 
-    fun scheduleSnooze(alarmId: Long, remainingSnooze: Int, snoozeTimeMinutes: Int) {
+    override fun scheduleSnooze(alarmId: Long, remainingSnooze: Int, snoozeTimeMinutes: Int) {
         val intent = Intent(appContext
             , AlarmReceiver::class.java).apply {
             putExtra(EXTRA_ALARM_ID, alarmId)
@@ -159,7 +159,7 @@ class SystemAlarmScheduler(private val context: Context) : AlarmScheduler {
         }
     }
 
-    fun cancelAlarm(alarm: AlarmEntity) {
+    override fun cancelAlarm(alarm: AlarmEntity) {
         val intent = Intent(appContext, AlarmReceiver::class.java).apply {
             setAction(ACTION_ALARM_TRIGGERED)
         }
