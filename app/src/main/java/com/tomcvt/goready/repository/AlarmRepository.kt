@@ -1,25 +1,12 @@
 package com.tomcvt.goready.repository
 
-import com.tomcvt.goready.data.AlarmDao
 import com.tomcvt.goready.data.AlarmEntity
 import kotlinx.coroutines.flow.Flow
 
-class AlarmRepository(private val dao: AlarmDao) {
-    fun getAlarms(): Flow<List<AlarmEntity>> = dao.getAlarms()
-
-    suspend fun insertAlarm(alarm: AlarmEntity) : Long {
-        return dao.insertAlarm(alarm)
-    }
-
-    suspend fun deleteAlarm(alarm: AlarmEntity) {
-        dao.deleteAlarm(alarm)
-    }
-
-    suspend fun updateAlarm(alarm: AlarmEntity) {
-        dao.updateAlarm(alarm)
-    }
-
-    suspend fun getAlarmById(id: Long): AlarmEntity? {
-        return dao.getAlarmById(id)
-    }
+interface AlarmRepository {
+    fun getAlarms(): Flow<List<AlarmEntity>>
+    suspend fun insertAlarm(alarm: AlarmEntity) : Long
+    suspend fun deleteAlarm(alarm: AlarmEntity)
+    suspend fun updateAlarm(alarm: AlarmEntity)
+    suspend fun getAlarmById(id: Long): AlarmEntity?
 }

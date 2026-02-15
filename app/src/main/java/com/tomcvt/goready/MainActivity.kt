@@ -51,7 +51,7 @@ import com.tomcvt.goready.manager.SystemAlarmScheduler
 import com.tomcvt.goready.premium.PremiumRepositoryI
 import com.tomcvt.goready.premium.PremiumState
 import com.tomcvt.goready.preview.PreviewAlarms2
-import com.tomcvt.goready.repository.AlarmRepository
+import com.tomcvt.goready.repository.AlarmRepositoryImpl
 import com.tomcvt.goready.repository.RoutineRepository
 import com.tomcvt.goready.repository.RoutineStepRepository
 import com.tomcvt.goready.repository.StepDefinitionRepository
@@ -95,7 +95,7 @@ class MainActivity : ComponentActivity() {
         appObject = (application as AlarmApp)
 
         appAlarmManager = AppAlarmManager(
-            repository = AlarmRepository(appObject.db.alarmDao()),
+            repository = AlarmRepositoryImpl(appObject.db.alarmDao()),
             systemScheduler = SystemAlarmScheduler(this)
         )
         appRoutinesManager = AppRoutinesManager(

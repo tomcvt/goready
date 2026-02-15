@@ -1,9 +1,7 @@
 package com.tomcvt.goready.application
 
 import android.app.Application
-import android.content.Context
 import android.util.Log
-import androidx.datastore.preferences.preferencesDataStore
 import androidx.emoji2.text.EmojiCompat
 import com.tomcvt.goready.BuildConfig
 import com.tomcvt.goready.data.AlarmDatabase
@@ -15,7 +13,7 @@ import com.tomcvt.goready.manager.SystemAlarmScheduler
 import com.tomcvt.goready.premium.DevPremiumRepository
 import com.tomcvt.goready.premium.PremiumRepositoryI
 import com.tomcvt.goready.premium.ProdPremiumRepository
-import com.tomcvt.goready.repository.AlarmRepository
+import com.tomcvt.goready.repository.AlarmRepositoryImpl
 import com.tomcvt.goready.repository.AppPrefsRepository
 import com.tomcvt.goready.repository.RoutineRepository
 import com.tomcvt.goready.repository.RoutineSessionRepository
@@ -27,7 +25,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
 class AlarmApp : Application() {
-    lateinit var alarmRepository: AlarmRepository
+    lateinit var alarmRepository: AlarmRepositoryImpl
         private set
     lateinit var routineRepository: RoutineRepository
         private set
@@ -72,7 +70,7 @@ class AlarmApp : Application() {
         }
 
 
-        alarmRepository = AlarmRepository(db.alarmDao())
+        alarmRepository = AlarmRepositoryImpl(db.alarmDao())
 
         systemAlarmScheduler = SystemAlarmScheduler(this)
 

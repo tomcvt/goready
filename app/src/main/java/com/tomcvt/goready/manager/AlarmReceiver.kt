@@ -47,7 +47,6 @@ class AlarmReceiver : BroadcastReceiver() {
             CoroutineScope(Dispatchers.IO).launch {
                 appAlarmManager.scheduleNextAlarmOrDisable(alarmId)
             }
-            //showNotification(context, alarmId)
         }
 
         Log.d(TAG, "Alarm received with ID: $alarmId and snooze: $remainingSnooze")

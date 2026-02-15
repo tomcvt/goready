@@ -15,7 +15,6 @@ import android.net.Uri
 import android.os.Build
 import android.os.IBinder
 import android.util.Log
-import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import com.tomcvt.goready.R
 import com.tomcvt.goready.activities.AlarmActivity
@@ -27,7 +26,7 @@ import com.tomcvt.goready.constants.EXTRA_ALARM_ID
 import com.tomcvt.goready.constants.EXTRA_REMAINING_SNOOZE
 import com.tomcvt.goready.data.AlarmDatabase
 import com.tomcvt.goready.data.AlarmEntity
-import com.tomcvt.goready.repository.AlarmRepository
+import com.tomcvt.goready.repository.AlarmRepositoryImpl
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -43,7 +42,7 @@ class AlarmForegroundService : Service() {
     // Additional alarms are postponed
     // Service owns MediaPlayer check
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
-    private lateinit var repository: AlarmRepository
+    private lateinit var repository: AlarmRepositoryImpl
 
     private lateinit var alarmContext: Context
 
@@ -60,7 +59,7 @@ class AlarmForegroundService : Service() {
     override fun onCreate() {
         super.onCreate()
         val db = AlarmDatabase.getDatabase(this)
-        repository = AlarmRepository(db.alarmDao())
+        repository = AlarmRepositoryImpl(db.alarmDao())
         alarmContext =
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 createAttributionContext("alarm")

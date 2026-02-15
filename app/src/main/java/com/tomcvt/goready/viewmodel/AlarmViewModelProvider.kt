@@ -4,7 +4,7 @@ import androidx.activity.ComponentActivity
 import com.tomcvt.goready.data.AlarmDatabase
 import com.tomcvt.goready.manager.AppAlarmManager
 import com.tomcvt.goready.manager.SystemAlarmScheduler
-import com.tomcvt.goready.repository.AlarmRepository
+import com.tomcvt.goready.repository.AlarmRepositoryImpl
 
 object AlarmViewModelProvider {
 
@@ -14,7 +14,7 @@ object AlarmViewModelProvider {
         if (instance == null) {
             // Create dependencies manually (manager, repository)
             val db = AlarmDatabase.getDatabase(activity) // your Room singleton
-            val repository = AlarmRepository(db.alarmDao())
+            val repository = AlarmRepositoryImpl(db.alarmDao())
             val manager = AppAlarmManager(repository, SystemAlarmScheduler(activity))
 
             //instance = AlarmViewModel(manager)
