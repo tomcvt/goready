@@ -12,6 +12,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Before
 import org.junit.Test
 import java.time.DayOfWeek
+import java.util.Calendar
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class AppAlarmManagerTest {
@@ -39,7 +40,10 @@ class AppAlarmManagerTest {
     }
 
     private fun someFixedMondayAt10amMillis(): Long {
-        return 1736154000 // Monday, 10:00 AM / 6 1 2025
+        return Calendar.getInstance().apply {
+            set(2025, Calendar.JANUARY, 6, 10, 0, 0)
+            set(Calendar.MILLISECOND, 0)
+        }.timeInMillis // Monday, 10:00 AM / 6 1 2025
     }
 
     @Test

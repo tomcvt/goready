@@ -59,7 +59,6 @@ class AlarmApp : Application() {
 
         val appPrefsRepository = AppPrefsRepository(this)
 
-
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
             SeedManager(
                 appPrefsRepository = appPrefsRepository,
@@ -68,7 +67,6 @@ class AlarmApp : Application() {
             ).applyStepsSeeds()
             Log.d("SeedManager", "Steps seeds applied")
         }
-
 
         alarmRepository = AlarmRepositoryImpl(db.alarmDao())
 

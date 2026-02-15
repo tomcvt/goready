@@ -38,19 +38,19 @@ class RepeatAlarmCalculator(
         calendar.set(Calendar.MILLISECOND, 0)
         if (calendar.timeInMillis >= now) {
             return calendar.timeInMillis
-
         }
         val currentDay = calendarToIso(calendar.get(Calendar.DAY_OF_WEEK))
         val startIndex = helperDays.indexOf(currentDay)
 
-        val dayIndex = startIndex + 1
+        var dayIndex = startIndex + 1
         for (i in 0..7) {
             if (alarm.repeatDays.contains(DayOfWeek.of(helperDays[dayIndex]))) {
-
+                break
             }
+            dayIndex = (dayIndex + 1) % helperDays.size
         }
-
-
+        calendar.add(Calendar.DAY_OF_MONTH, dayIndex - startIndex)
+        return calendar.timeInMillis
     }
 
     fun calendarToIso(calendarDay: Int): Int {
