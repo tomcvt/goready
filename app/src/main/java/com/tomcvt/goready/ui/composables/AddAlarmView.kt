@@ -225,12 +225,7 @@ fun AddAlarmContent(
                 value = rememberedData[state.taskType.name] ?: "",
                 taskType = state.taskType,
                 onPremiumRequest = { TODO("implement premium request") },
-                onTaskDataProvided = {
-                    Log.d("AddAlarmView", "Task data provided: ${it}")
-                    //if (!it.isBlank()){
-                    viewModel.setTaskData(it)
-                    //}
-                }
+                onTaskDataProvided = { viewModel.setTaskData(it) }
             )
             SnoozeInfoRow(
                 snoozeCount = state.snoozeCount,
@@ -276,8 +271,6 @@ fun RoutineSelectorModal(
     val routineList by viewModel.routinesStateFlow.collectAsState()
     //var selectedIndex by remember { mutableStateOf<Int?>(null) }
     var selectedRoutineId by remember { mutableStateOf<Long?>(null) }
-
-
 
     Box(
         modifier = modifier.fillMaxSize()
@@ -339,7 +332,6 @@ fun RoutineSelectorCard(
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                //.padding(top = 8.dp, end = 8.dp) // TODO: ????? what this for
                 .combinedClickable(
                     onClick = onCardClick,
                     onLongClick = onLongClick
@@ -359,28 +351,6 @@ fun RoutineSelectorCard(
                 Text(text = icon, style = MaterialTheme.typography.bodyMedium)
             }
         }
-        /*
-        Row (
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(10.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            SimpleStartButton(
-                onStart = onStartClick,
-                modifier = Modifier,
-                size = 32.dp,
-                contentDescription = "Start Routine"
-            )
-            FlexDeleteButton(
-                onDelete = onDelete,
-                modifier = Modifier,
-                size = 32.dp,
-                contentDescription = "Delete Routine"
-            )
-        }
-
-         */
     }
 }
 

@@ -215,7 +215,7 @@ class AlarmForegroundService : Service() {
     private fun alarmActivityPendingIntent(alarmId: Long, remainingSnooze: Int): PendingIntent {
         val intent = Intent(this, AlarmActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or
-                    Intent.FLAG_ACTIVITY_CLEAR_TOP
+                    Intent.FLAG_ACTIVITY_NO_HISTORY
             putExtra(EXTRA_ALARM_ID, alarmId)
             putExtra(EXTRA_REMAINING_SNOOZE, remainingSnooze)
         }

@@ -8,7 +8,6 @@ import android.content.Context
 import android.content.Intent
 import android.media.RingtoneManager
 import android.os.Build
-import android.os.SystemClock
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.tomcvt.goready.R
@@ -36,9 +35,10 @@ private const val SHOW_UI_REQUEST_CODE = 13
 private const val FAST_TO_NEXT_REQUEST_CODE = 14
 private const val ROUTINE_COMPLETE_REQUEST_CODE = 15
 
-private const val STATUS_CHANNEL = "routine_status_channel"
+private const val FLOW_STATUS_CHANNEL = "routine_status_channel"
 //TODO refactor to routine alarm channel
-private const val FLOW_CHANNEL = "routine_flow_channel"
+
+private const val FLOW_ALARM_CHANNEL = "routine_alarm_channel"
 
 
 class RoutineFlowManager(
@@ -132,7 +132,7 @@ class RoutineFlowManager(
         //val chronometerTime = SystemClock.elapsedRealtime() + timeoutMinutes * MINUTE
         val chronometerTime = System.currentTimeMillis() + timeoutMinutes * MINUTE
 
-        val notification = NotificationCompat.Builder(context, STATUS_CHANNEL)
+        val notification = NotificationCompat.Builder(context, FLOW_STATUS_CHANNEL)
             .setSmallIcon(R.drawable.ic_gicon)
             .setContentTitle(routine.name)
             .setContentText("(${stepNumber + 1} of ${steps.size}) ${currentStep.name}")
@@ -155,7 +155,7 @@ class RoutineFlowManager(
         notificationManager.notify(NOTIF_ID, notification)
     }
 
-    suspend fun postEndNotification(sessionId: Long, routineStatus: RoutineStatus) {
+    suspend fun postSessionEndNotification(sessionId: Long, routineStatus: RoutineStatus) {
         val session = routineSessionRepository.getRoutineSessionByIdFlow(sessionId).first()
         if (session == null) {
             Log.e(TAG, "Session not found")
@@ -174,8 +174,8 @@ class RoutineFlowManager(
             uiIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-
-        val notification = NotificationCompat.Builder(context, STATUS_CHANNEL)
+        getRoutineStatusChannel()
+        val notification = NotificationCompat.Builder(context, FLOW_STATUS_CHANNEL)
             .setSmallIcon(R.drawable.ic_gicon)
             .setContentTitle(routine.name)
             .setContentText("Routine completed")
@@ -189,7 +189,7 @@ class RoutineFlowManager(
         notificationManager.notify(NOTIF_ID, notification)
     }
 
-    suspend fun stepFinishedTimeout(sessionId: Long, routineId: Long, stepNumber: Int) {
+    suspend fun manageStepFinishedTimeout(sessionId: Long, routineId: Long, stepNumber: Int) {
         val session = routineSessionRepository.getRoutineSessionByIdFlow(sessionId).first()
         if (session == null) {
             Log.e(TAG, "Session not found")
@@ -208,11 +208,12 @@ class RoutineFlowManager(
             uiIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
+        getRoutineAlarmChannel()
 
         //TODO i need size here only, optimize
         val steps = routineStepRepository.getRoutineStepsWithDefinitionFlow(routineId).first()
 
-        val notification = NotificationCompat.Builder(context, FLOW_CHANNEL)
+        val notification = NotificationCompat.Builder(context, FLOW_ALARM_CHANNEL)
             .setSmallIcon(R.drawable.ic_gicon)
             .setContentTitle(routine.name)
             .setContentText("(${stepNumber + 1} of ${steps.size}) Time is up!")
@@ -245,7 +246,7 @@ class RoutineFlowManager(
             val routineStatus = RoutineStatus.COMPLETED
             val endTime = System.currentTimeMillis()
             routineSessionRepository.updateRoutineSession(session.copy(stepStatus = stepStatus, status = routineStatus, endTime = endTime))
-            postEndNotification(sessionId, routineStatus)
+            postSessionEndNotification(sessionId, routineStatus)
         } else {
             val stepStatus = StepStatus.COMPLETED
             routineSessionRepository.updateRoutineSession(session.copy(stepStatus = stepStatus))
@@ -278,7 +279,6 @@ class RoutineFlowManager(
 
             //routineScheduler.scheduleStepTimeout(sessionId, session.routineId, nextNumber, nextStep.length.toInt())
         }
-
     }
 
     suspend fun startStep(sessionId: Long) {
@@ -337,17 +337,19 @@ class RoutineFlowManager(
         }
     }
 
-    private fun getRoutineFlowChannel() {
+
+    //TODO migrate to different place maybe
+    private fun getRoutineAlarmChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val existingChannel = context.getSystemService(NotificationManager::class.java)
-                .getNotificationChannel(FLOW_CHANNEL)
+                .getNotificationChannel(FLOW_ALARM_CHANNEL)
             if (existingChannel != null) {
                 return
             }
             val defaultSoundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
             val channel = NotificationChannel(
-                FLOW_CHANNEL,
-                "Routine Flow",
+                FLOW_ALARM_CHANNEL,
+                "Routine Alarm",
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
                 setSound(defaultSoundUri, null)

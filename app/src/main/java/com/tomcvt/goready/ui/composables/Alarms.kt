@@ -45,6 +45,9 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.layout.layoutId
 import androidx.compose.ui.platform.LocalContext
 import com.tomcvt.goready.BuildConfig
@@ -64,12 +67,17 @@ fun AlarmListRoute(
 ) {
     val context = LocalContext.current
     val alarmList by viewModel.alarmsStateFlow.collectAsState()
+    var alarmForDeletion by remember { mutableStateOf<AlarmEntity?>(null) }
+
     val onAddAlarmClick = {
         val lastAlarmId = alarmList.lastOrNull()?.id ?: -1
         Log.d("AlarmListRoute", "Last alarm ID: $lastAlarmId")
         context.launchAlarmNow(lastAlarmId)
     }
-    val onDeleteClick: (AlarmEntity) -> Unit = { alarm: AlarmEntity -> viewModel.deleteAlarm(alarm) }
+    val onDeleteAlarm: (AlarmEntity) -> Unit = { alarm: AlarmEntity -> viewModel.deleteAlarm(alarm); alarmForDeletion = null }
+    val onDeleteButton: (AlarmEntity) -> Unit = { alarm: AlarmEntity ->
+        alarmForDeletion = alarm
+    }
     val onAlarmSwitchChange: (AlarmEntity, Boolean) -> Unit = {
         alarm: AlarmEntity, enabled: Boolean -> viewModel.toggleAlarm(alarm, enabled)
     }
@@ -85,16 +93,24 @@ fun AlarmListRoute(
         context.sendBroadcast(intent)
     }
 
-    AlarmList(
-        alarmList = alarmList,
-        onAddClick = onAddAlarmClick,
-        onDeleteClick = onDeleteClick,
-        onAlarmSwitchChange = onAlarmSwitchChange,
-        onCardClick = onCardClick,
-        onDebugClick = onBroadcastAlarmClick,
-        modifier = modifier
-    )
-
+    Box(modifier = Modifier.background(MaterialTheme.colorScheme.background)) {
+        AlarmList(
+            alarmList = alarmList,
+            onAddClick = onAddAlarmClick,
+            onDeleteClick = onDeleteButton,
+            onAlarmSwitchChange = onAlarmSwitchChange,
+            onCardClick = onCardClick,
+            onDebugClick = onBroadcastAlarmClick,
+            modifier = modifier
+        )
+        if (alarmForDeletion != null) {
+            val alarm = alarmForDeletion!!
+            DeleteAlarmModal(
+                onDismiss = { alarmForDeletion = null },
+                onConfirm = { onDeleteAlarm(alarm) }
+            )
+        }
+    }
 }
 
 @Composable
