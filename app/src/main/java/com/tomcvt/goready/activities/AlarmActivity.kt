@@ -97,7 +97,7 @@ class AlarmActivity : ComponentActivity() {
                 finish()
                 return@launch
             }
-            var taskType  = TaskType.valueOf(alarmEntity.task?: "NONE")
+            var taskType  = alarmEntity.task
             Log.d(TAG, "Task type: $taskType")
             val data = alarmEntity.taskData
             Log.d(TAG, "Task data: $data")

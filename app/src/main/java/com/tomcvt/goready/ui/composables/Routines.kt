@@ -289,7 +289,7 @@ fun RoutineEditor(
                 textAlign = TextAlign.Center)
             RoutineEditorDetailsCard(viewModel)
             LazyColumn(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().weight(1f),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(rEditorState.steps.size) { index ->
@@ -308,14 +308,13 @@ fun RoutineEditor(
             }
             Button(
                 onClick = { viewModel.openStepAdder() },
-                modifier = Modifier.padding(16.dp)
+                modifier = Modifier.padding(8.dp)
             ) {
                 Text("Add step")
             }
-            FloatingActionButton(
+            Button(
                 onClick = { viewModel.saveRoutine() },
-                modifier = Modifier.padding(16.dp),
-                containerColor = MaterialTheme.colorScheme.primary
+                modifier = Modifier.padding(8.dp)
             ) {
                 Text("Save")
             }

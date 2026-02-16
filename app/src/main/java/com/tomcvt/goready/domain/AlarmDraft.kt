@@ -1,5 +1,6 @@
 package com.tomcvt.goready.domain
 
+import com.tomcvt.goready.constants.TaskType
 import java.time.DayOfWeek
 
 data class AlarmDraft(
@@ -8,7 +9,7 @@ data class AlarmDraft(
     val repeatDays: Set<DayOfWeek>,
 
     var label : String? = "Alarm",
-    var task: String? = null,
+    var task: TaskType = TaskType.NONE,
     var taskData: String? = null,
     var soundUri: String? = null,
     var snoozeEnabled: Boolean = false,

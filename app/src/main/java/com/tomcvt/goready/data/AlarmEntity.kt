@@ -2,6 +2,7 @@ package com.tomcvt.goready.data
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import com.tomcvt.goready.constants.TaskType
 import java.time.DayOfWeek
 
 @Entity(tableName = "alarms")
@@ -12,7 +13,7 @@ data class AlarmEntity(
     val minute : Int = 0,
     val isEnabled : Boolean = true,
     val label : String? = null,
-    val task: String? = null,
+    val task: TaskType = TaskType.NONE,
     val taskData: String? = null,
     val repeatDays: Set<DayOfWeek> = emptySet(),
     val soundUri: String? = null,

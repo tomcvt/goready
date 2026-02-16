@@ -1,5 +1,6 @@
 package com.tomcvt.goready.preview
 
+import com.tomcvt.goready.constants.TaskType
 import com.tomcvt.goready.data.AlarmEntity
 
 object PreviewAlarms {
@@ -9,7 +10,7 @@ object PreviewAlarms {
         minute = 30,
         isEnabled = true,
         label = "Morning Alarm",
-        task = "math_quiz",
+        task = TaskType.TEXT,
         taskData = "easy",
         repeatDays = setOf(),
         soundUri = null,
@@ -22,7 +23,7 @@ object PreviewAlarms {
         minute = 0,
         isEnabled = false,
         label = "Bedtime Reminder",
-        task = "none",
+        task = TaskType.NONE,
         taskData = null,
         repeatDays = setOf(),
         soundUri = null,

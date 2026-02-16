@@ -29,8 +29,35 @@ import androidx.compose.ui.unit.sp
 import com.tomcvt.goready.BuildConfig
 import com.tomcvt.goready.constants.MathType
 import com.tomcvt.goready.constants.TaskType
+import com.tomcvt.goready.data.AlarmEntity
 import kotlin.math.sqrt
 
+
+@Composable
+fun AlarmScreen(
+    alarm: AlarmEntity,
+    canSnooze: Boolean,
+    snoozeTime: Int,
+    onSnooze: () -> Unit,
+    onStopAlarm: () -> Unit,
+    onInteraction: () -> Unit,
+    modifier: Modifier = Modifier,
+    dismissable: Boolean = false
+) {
+    AlarmScreen(
+        alarmId = alarm.id,
+        alarmName = alarm.label ?: "Alarm",
+        taskType = alarm.task,
+        taskData = alarm.taskData,
+        canSnooze = canSnooze,
+        snoozeTime = snoozeTime,
+        onSnooze = onSnooze,
+        onStopAlarm = onStopAlarm,
+        onInteraction = onInteraction,
+        modifier = modifier,
+        dismissable = dismissable
+    )
+}
 
 @Composable
 fun AlarmScreen(
@@ -43,7 +70,8 @@ fun AlarmScreen(
     onSnooze: () -> Unit,
     onStopAlarm: () -> Unit,
     onInteraction: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    dismissable: Boolean = false
 ) {
     var passedGate by remember { mutableStateOf(false) }
     if (!passedGate) {
@@ -59,13 +87,13 @@ fun AlarmScreen(
         when (taskType) {
             TaskType.NONE -> {
                 TestAlarmScreen(
-                    alarmId = alarmId,
+                    alarmLabel = alarmName,
                     onStopAlarm = onStopAlarm,
                     modifier = Modifier.fillMaxSize()
                 )
             }
             TaskType.TEXT -> {
-                if (BuildConfig.IS_ALARM_TEST) {
+                if (dismissable) {
                     DebugTextAlarmScreen(
                         text = taskData?: "Fallback",
                         onStopAlarm = onStopAlarm,
@@ -91,7 +119,7 @@ fun AlarmScreen(
                 )
             }
             TaskType.COUNTDOWN -> {
-                if (BuildConfig.IS_ALARM_TEST) {
+                if (dismissable) {
                     DebugCountdownAlarmScreen(
                         number = taskData?: "7",
                         onStopAlarm = onStopAlarm,
@@ -108,7 +136,7 @@ fun AlarmScreen(
                 }
             }
             TaskType.MATH -> {//TODO implement math alarm screen
-                if (BuildConfig.IS_ALARM_TEST) {
+                if (dismissable) {
                     DebugMathAlarmScreen(
                         taskData = taskData?: "FIRST|1",
                         onStopAlarm = onStopAlarm,
@@ -125,8 +153,6 @@ fun AlarmScreen(
                 }
             }
             TaskType.TARGET -> {
-                var dismissable = false
-                if (BuildConfig.IS_ALARM_TEST) dismissable = true
                 TargetMinigameAlarmScreen(
                     taskData = taskData?: "7",
                     onStopAlarm = onStopAlarm,
@@ -305,7 +331,7 @@ fun SimpleAlarmScreen(
 
 @Composable
 fun TestAlarmScreen(
-    alarmId: Long,
+    alarmLabel: String,
     onStopAlarm: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -319,7 +345,7 @@ fun TestAlarmScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text(alarmId.toString(), fontSize = 32.sp)
+            Text(alarmLabel, fontSize = 32.sp)
             Button(
                 onClick = onStopAlarm,
                 modifier = Modifier.size(200.dp)

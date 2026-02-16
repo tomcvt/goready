@@ -68,6 +68,7 @@ import com.tomcvt.goready.constants.EXTRA_REMAINING_SNOOZE
 import com.tomcvt.goready.manager.AlarmReceiver
 import com.tomcvt.goready.test.launchAlarmNow
 import com.tomcvt.goready.ui.imagevectors.IconBell
+import com.tomcvt.goready.ui.theme.VibrantLightTheme
 
 
 @Composable
@@ -82,6 +83,7 @@ fun AlarmListRoute(
     var alarmForDeletion by remember { mutableStateOf<AlarmEntity?>(null) }
     var alarmForDetails by remember { mutableStateOf<AlarmEntity?>(null) }
     var alarmDetailsRect by remember { mutableStateOf<Rect?>(null) }
+    var previewAlarm by remember { mutableStateOf<AlarmEntity?>(null) }
 
     val onAddAlarmClick = {
         val lastAlarmId = alarmList.lastOrNull()?.id ?: -1
@@ -135,8 +137,23 @@ fun AlarmListRoute(
                 alarm = alarm,
                 anchorRect = rect,
                 onDismiss = { alarmForDetails = null; alarmDetailsRect = null },
-                onPreview = { onBroadcastAlarmClick(alarm) },
+                onPreview = { previewAlarm = alarm },
             )
+        }
+        if (previewAlarm != null) {
+            val alarm = previewAlarm!!
+            val canSnooze = alarm.snoozeEnabled && (alarm.snoozeMaxCount?: 1) > 0
+            VibrantLightTheme {
+                AlarmScreen(
+                    alarm = alarm,
+                    canSnooze = canSnooze,
+                    snoozeTime = alarm.snoozeMaxCount ?: 0,
+                    onSnooze = { previewAlarm = null },
+                    onStopAlarm = { previewAlarm = null },
+                    onInteraction = {},
+                    dismissable = true
+                )
+            }
         }
     }
 }

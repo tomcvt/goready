@@ -10,8 +10,11 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.Favorite
@@ -245,7 +248,7 @@ fun GoReadyAppMain(
         modifier = Modifier.fillMaxSize()
     ) {
         Column (
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.statusBars)
         ) {
             NavHost(
                 navController = rootNavController,
@@ -278,8 +281,8 @@ fun GoReadyAppMain(
                     AddAlarmView(vm, rootNavController, alarmId = alarmId)
                 }
             }
-            BottomBarBannerAdView(
-                adUnitId = ADMOB_ID_TEST_BANNER,
+            BottomBarDynamicAdView(
+                adUnitId = ADMOB_ID_DYNAMIC_BANNER,
                 modifier = Modifier.fillMaxWidth()
             )
         }

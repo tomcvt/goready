@@ -105,7 +105,7 @@ class AlarmViewModel(
                     hour = alarm.hour,
                     minute = alarm.minute,
                     repeatDays = alarm.repeatDays,
-                    taskType = TaskType.valueOf(alarm.task?: "NONE"),
+                    taskType = alarm.task,
                     taskData = alarm.taskData?: "",
                     snoozeTime = alarm.snoozeDurationMinutes?: 0,
                     snoozeCount = alarm.snoozeMaxCount?: 0,
@@ -113,7 +113,7 @@ class AlarmViewModel(
                     routineId = alarm.routineId
                 )
                 TaskType.values().forEach {
-                    if (it.name == alarm.task) {
+                    if (it.name == alarm.task.name) {
                         _rememberedData.value[it.name] = alarm.taskData?: ""
                     } else {
                         _rememberedData.value[it.name] = ""
@@ -155,7 +155,7 @@ class AlarmViewModel(
                 hour = alarm.hour,
                 minute = alarm.minute,
                 repeatDays = alarm.repeatDays,
-                taskType = TaskType.valueOf(alarm.task?: "NONE"),
+                taskType = alarm.task,
                 taskData = alarm.taskData?: ""
             )
         }
@@ -178,7 +178,7 @@ class AlarmViewModel(
                     hour = s.hour,
                     minute = s.minute,
                     repeatDays = s.repeatDays,
-                    task = s.taskType.name,
+                    task = s.taskType,
                     taskData = s.taskData,
                     snoozeDurationMinutes = s.snoozeTime,
                     snoozeMaxCount = s.snoozeCount,
@@ -193,7 +193,7 @@ class AlarmViewModel(
                     hour = s.hour,
                     minute = s.minute,
                     repeatDays = s.repeatDays,
-                    task = s.taskType.name,
+                    task = s.taskType,
                     taskData = s.taskData,
                     snoozeDurationMinutes = s.snoozeTime,
                     snoozeMaxCount = s.snoozeCount,
