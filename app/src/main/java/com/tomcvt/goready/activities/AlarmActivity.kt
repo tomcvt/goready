@@ -22,7 +22,7 @@ import com.tomcvt.goready.constants.EXTRA_REMAINING_SNOOZE
 import com.tomcvt.goready.constants.EXTRA_ROUTINE_ID
 import com.tomcvt.goready.constants.SNOOZE_MINUTES
 import com.tomcvt.goready.constants.TaskType
-import com.tomcvt.goready.manager.AppAlarmManager
+import com.tomcvt.goready.manager.AppAlarmManagerImpl
 import com.tomcvt.goready.manager.SystemAlarmScheduler
 import com.tomcvt.goready.service.AlarmForegroundService
 import com.tomcvt.goready.ui.composables.*
@@ -39,7 +39,7 @@ class AlarmActivity : ComponentActivity() {
 
         val app = (application as AlarmApp)
         val repository = app.alarmRepository
-        val appAlarmManager = AppAlarmManager(repository, SystemAlarmScheduler(this))
+        val appAlarmManager = AppAlarmManagerImpl(repository, SystemAlarmScheduler(this))
 
         val routineRepository = app.routineRepository
 

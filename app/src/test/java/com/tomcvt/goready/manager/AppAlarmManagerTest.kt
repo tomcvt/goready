@@ -19,7 +19,7 @@ class AppAlarmManagerTest {
 
     private lateinit var fakeRepo: FakeAlarmRepository
     private lateinit var fakeScheduler: FakeAlarmScheduler
-    private lateinit var manager: AppAlarmManager
+    private lateinit var manager: AppAlarmManagerImpl
 
     @Before
     fun setup() {
@@ -32,7 +32,7 @@ class AppAlarmManagerTest {
 
         val calculator = RepeatAlarmCalculator(fakeTime)
 
-        manager = AppAlarmManager(
+        manager = AppAlarmManagerImpl(
             repository = fakeRepo,
             systemScheduler = fakeScheduler,
             repeatAlarmCalculator = calculator

@@ -6,7 +6,7 @@ import androidx.emoji2.text.EmojiCompat
 import com.tomcvt.goready.BuildConfig
 import com.tomcvt.goready.data.AlarmDatabase
 import com.tomcvt.goready.data.seeding.SeedManager
-import com.tomcvt.goready.manager.AppAlarmManager
+import com.tomcvt.goready.manager.AppAlarmManagerImpl
 import com.tomcvt.goready.manager.RoutineFlowManager
 import com.tomcvt.goready.manager.RoutineScheduler
 import com.tomcvt.goready.manager.SystemAlarmScheduler
@@ -41,7 +41,7 @@ class AlarmApp : Application() {
         private set
     lateinit var systemAlarmScheduler: SystemAlarmScheduler
         private set
-    lateinit var appAlarmManager: AppAlarmManager
+    lateinit var appAlarmManager: AppAlarmManagerImpl
         private set
     lateinit var routineFlowManager: RoutineFlowManager
         private set
@@ -72,7 +72,7 @@ class AlarmApp : Application() {
 
         systemAlarmScheduler = SystemAlarmScheduler(this)
 
-        appAlarmManager = AppAlarmManager(alarmRepository, systemAlarmScheduler)
+        appAlarmManager = AppAlarmManagerImpl(alarmRepository, systemAlarmScheduler)
 
 
         routineRepository = RoutineRepository(db.routineDao())

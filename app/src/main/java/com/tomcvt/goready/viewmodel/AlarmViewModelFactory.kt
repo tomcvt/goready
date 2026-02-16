@@ -2,11 +2,11 @@ package com.tomcvt.goready.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import com.tomcvt.goready.manager.AppAlarmManager
+import com.tomcvt.goready.manager.AppAlarmManagerImpl
 import com.tomcvt.goready.manager.AppRoutinesManager
 
 class AlarmViewModelFactory(
-    private val appAlarmManager: AppAlarmManager,
+    private val appAlarmManager: AppAlarmManagerImpl,
     private val routinesManager: AppRoutinesManager
 ) : ViewModelProvider.Factory {
 

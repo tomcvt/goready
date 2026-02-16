@@ -104,7 +104,7 @@ class RoutineFlowManager(
             )
             //TODO drawable
             val notifActionSkip = NotificationCompat.Action.Builder(
-                R.drawable.ic_gicon,
+                R.drawable.ic_gicon_mono,
                 "Skip",
                 pendingIntentFastToNext
             ).build()
@@ -118,14 +118,14 @@ class RoutineFlowManager(
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
             val notifActionFinish = NotificationCompat.Action.Builder(
-                R.drawable.ic_gicon,
+                R.drawable.ic_gicon_mono,
                 "Finish",
                 pendingIntentFinish
             ).build()
             secondAction = notifActionFinish
         }
         val notifActionUi = NotificationCompat.Action.Builder(
-            R.drawable.ic_gicon,
+            R.drawable.ic_gicon_mono,
             "Show Ui",
             pendingIntentUi
         ).build()
@@ -133,7 +133,7 @@ class RoutineFlowManager(
         val chronometerTime = System.currentTimeMillis() + timeoutMinutes * MINUTE
 
         val notification = NotificationCompat.Builder(context, FLOW_STATUS_CHANNEL)
-            .setSmallIcon(R.drawable.ic_gicon)
+            .setSmallIcon(R.drawable.ic_gicon_mono)
             .setContentTitle(routine.name)
             .setContentText("(${stepNumber + 1} of ${steps.size}) ${currentStep.name}")
             .setCategory(NotificationCompat.CATEGORY_SERVICE)
@@ -176,7 +176,7 @@ class RoutineFlowManager(
         )
         getRoutineStatusChannel()
         val notification = NotificationCompat.Builder(context, FLOW_STATUS_CHANNEL)
-            .setSmallIcon(R.drawable.ic_gicon)
+            .setSmallIcon(R.drawable.ic_gicon_mono)
             .setContentTitle(routine.name)
             .setContentText("Routine completed")
             .setCategory(NotificationCompat.CATEGORY_SERVICE)
@@ -214,7 +214,7 @@ class RoutineFlowManager(
         val steps = routineStepRepository.getRoutineStepsWithDefinitionFlow(routineId).first()
 
         val notification = NotificationCompat.Builder(context, FLOW_ALARM_CHANNEL)
-            .setSmallIcon(R.drawable.ic_gicon)
+            .setSmallIcon(R.drawable.ic_gicon_mono)
             .setContentTitle(routine.name)
             .setContentText("(${stepNumber + 1} of ${steps.size}) Time is up!")
             .setCategory(NotificationCompat.CATEGORY_ALARM)

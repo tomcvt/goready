@@ -8,6 +8,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -40,6 +41,31 @@ fun SimpleDeleteButton(
             imageVector = Icons.Default.Close,
             contentDescription = "Delete Alarm",
             tint = MaterialTheme.colorScheme.onErrorContainer,
+            modifier = Modifier.size(18.dp)
+        )
+    }
+}
+
+@Composable
+fun SimpleDetailsButton(
+    onDetails: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    IconButton(
+        onClick = onDetails,
+        modifier = modifier
+            .padding(4.dp)
+            .background(
+                color = MaterialTheme.colorScheme.secondary,
+                shape = RoundedCornerShape(8.dp)
+            )
+            .layoutId("details_button")
+            .size(32.dp)
+    ) {
+        Icon(
+            imageVector = Icons.Default.Settings,
+            contentDescription = "Details",
+            tint = MaterialTheme.colorScheme.onSecondary,
             modifier = Modifier.size(18.dp)
         )
     }
@@ -117,7 +143,7 @@ fun SimpleStartButton(
         modifier = modifier
             .padding(4.dp)
             .background(
-                color = MaterialTheme.colorScheme.surfaceTint,
+                color = MaterialTheme.colorScheme.secondary,
                 shape = RoundedCornerShape(roundedSize)
             )
             .layoutId("start_button")
@@ -126,7 +152,7 @@ fun SimpleStartButton(
         Icon(
             imageVector = Icons.Default.PlayArrow,
             contentDescription = contentDescription,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            tint = MaterialTheme.colorScheme.onSecondary,
             modifier = Modifier.size(iconSize)
         )
     }

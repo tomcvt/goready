@@ -45,8 +45,9 @@ import com.tomcvt.goready.ads.BottomBarBannerAdView
 import com.tomcvt.goready.ads.BottomBarDynamicAdView
 import com.tomcvt.goready.application.AlarmApp
 import com.tomcvt.goready.constants.EXTRA_ALARM_ID
-import com.tomcvt.goready.manager.AppAlarmManager
+import com.tomcvt.goready.manager.AppAlarmManagerImpl
 import com.tomcvt.goready.manager.AppRoutinesManager
+import com.tomcvt.goready.manager.AppRoutinesManagerImpl
 import com.tomcvt.goready.manager.SystemAlarmScheduler
 import com.tomcvt.goready.premium.PremiumRepositoryI
 import com.tomcvt.goready.premium.PremiumState
@@ -69,7 +70,6 @@ import com.tomcvt.goready.viewmodel.SettingsViewModel
 import com.tomcvt.goready.viewmodel.SettingsViewModelFactory
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -77,7 +77,7 @@ class MainActivity : ComponentActivity() {
     lateinit var appObject: AlarmApp
         private set
 
-    lateinit var appAlarmManager: AppAlarmManager
+    lateinit var appAlarmManager: AppAlarmManagerImpl
         private set
     lateinit var appRoutinesManager: AppRoutinesManager
         private set
@@ -94,11 +94,11 @@ class MainActivity : ComponentActivity() {
 
         appObject = (application as AlarmApp)
 
-        appAlarmManager = AppAlarmManager(
+        appAlarmManager = AppAlarmManagerImpl(
             repository = AlarmRepositoryImpl(appObject.db.alarmDao()),
             systemScheduler = SystemAlarmScheduler(this)
         )
-        appRoutinesManager = AppRoutinesManager(
+        appRoutinesManager = AppRoutinesManagerImpl(
             RoutineRepository(appObject.db.routineDao()),
             RoutineStepRepository(appObject.db.routineStepDao()),
             StepDefinitionRepository(appObject.db.stepDefinitionDao())
@@ -127,7 +127,7 @@ class MainActivity : ComponentActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             Log.d("MainActivity", "SystemAlarmManager: $systemAlarmManager")
             val canSchedule = systemAlarmManager.canScheduleExactAlarms()
-            Log.d("MainActivity", "AppAlarmManager: $appAlarmManager")
+            Log.d("MainActivity", "AppAlarmManagerImpl: $appAlarmManager")
             Log.d("MainActivity", "Can schedule: $canSchedule")
         }
 
@@ -400,6 +400,7 @@ fun AlarmListPreview() {
             onAlarmSwitchChange = { _, _ -> },
             onCardClick = {},
             onDebugClick = {},
+            onDetailsClick = { _, _ -> },
             modifier = Modifier)
     }
 }

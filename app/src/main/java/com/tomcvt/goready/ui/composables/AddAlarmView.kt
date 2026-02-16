@@ -224,7 +224,7 @@ fun AddAlarmContent(
             TaskDataInput(
                 value = rememberedData[state.taskType.name] ?: "",
                 taskType = state.taskType,
-                onPremiumRequest = { TODO("implement premium request") },
+                onPremiumRequest = { Log.d("AddAlarmContent", "Premium request") },
                 onTaskDataProvided = { viewModel.setTaskData(it) }
             )
             SnoozeInfoRow(
@@ -423,7 +423,17 @@ fun TaskDataInput(
         } else {
 
             when (taskType) {
-                TaskType.TIMER -> {}
+                TaskType.TIMER -> {
+                    NumbersInput(
+                        value = value,
+                        onValueChange = {
+                            onTaskDataProvided(it)
+                        },
+                        onFocusLost = { onTaskDataProvided(it) },
+                        placeholder = "   ",
+                        modifier = Modifier.widthIn(min = 100.dp, max = 150.dp)
+                    )
+                }
                 TaskType.COUNTDOWN -> {
                     NumbersInput(
                         value = value,
@@ -432,7 +442,7 @@ fun TaskDataInput(
                         },
                         onFocusLost = { onTaskDataProvided(it) },
                         placeholder = "   ",
-                        modifier = Modifier.widthIn(min = 100.dp, max = 250.dp)
+                        modifier = Modifier.widthIn(min = 100.dp, max = 150.dp)
                     )
                 }
 
@@ -466,34 +476,13 @@ fun TaskDataInput(
                         },
                         onFocusLost = { onTaskDataProvided(it) },
                         placeholder = "   ",
-                        modifier = Modifier.widthIn(min = 100.dp, max = 250.dp)
+                        modifier = Modifier.widthIn(min = 100.dp, max = 150.dp)
                     )
                 }
 
                 else -> {}
             }
         }
-    }
-}
-
-@Deprecated("Not used")
-fun parseData(taskType: TaskType, taskData: String) : String?  {
-    when (taskType) {
-        TaskType.TIMER -> {return null}
-        TaskType.COUNTDOWN -> {
-            if (taskData.isDigitsOnly() && taskData.toInt() > 0) {
-                return taskData
-            }
-            return null
-        }
-        TaskType.TEXT -> {
-            if (taskData.isNotBlank()) {
-                return taskData
-            }
-            return null
-        }
-        TaskType.MATH -> {return taskData}
-        else -> {return null}
     }
 }
 

@@ -43,13 +43,25 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.layoutId
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntRect
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupPositionProvider
+import androidx.compose.ui.window.PopupProperties
 import com.tomcvt.goready.BuildConfig
 import com.tomcvt.goready.constants.EXTRA_ALARM_ID
 import com.tomcvt.goready.constants.EXTRA_REMAINING_SNOOZE
@@ -68,6 +80,8 @@ fun AlarmListRoute(
     val context = LocalContext.current
     val alarmList by viewModel.alarmsStateFlow.collectAsState()
     var alarmForDeletion by remember { mutableStateOf<AlarmEntity?>(null) }
+    var alarmForDetails by remember { mutableStateOf<AlarmEntity?>(null) }
+    var alarmDetailsRect by remember { mutableStateOf<Rect?>(null) }
 
     val onAddAlarmClick = {
         val lastAlarmId = alarmList.lastOrNull()?.id ?: -1
@@ -92,6 +106,9 @@ fun AlarmListRoute(
         }
         context.sendBroadcast(intent)
     }
+    val onDetailsClick: (Rect, AlarmEntity) -> Unit = {
+        rect, alarm -> alarmDetailsRect = rect; alarmForDetails = alarm
+    }
 
     Box(modifier = Modifier.background(MaterialTheme.colorScheme.background)) {
         AlarmList(
@@ -101,6 +118,7 @@ fun AlarmListRoute(
             onAlarmSwitchChange = onAlarmSwitchChange,
             onCardClick = onCardClick,
             onDebugClick = onBroadcastAlarmClick,
+            onDetailsClick = onDetailsClick,
             modifier = modifier
         )
         if (alarmForDeletion != null) {
@@ -110,8 +128,63 @@ fun AlarmListRoute(
                 onConfirm = { onDeleteAlarm(alarm) }
             )
         }
+        if (alarmForDetails != null) {
+            val alarm = alarmForDetails!!
+            val rect = alarmDetailsRect!!
+            AlarmSettingsDialog(
+                alarm = alarm,
+                anchorRect = rect,
+                onDismiss = { alarmForDetails = null; alarmDetailsRect = null },
+                onPreview = { onBroadcastAlarmClick(alarm) },
+            )
+        }
     }
 }
+
+@Composable
+fun AlarmSettingsDialog(
+    alarm: AlarmEntity,
+    anchorRect: Rect,
+    onDismiss: () -> Unit,
+    onPreview: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+
+    Popup(
+        onDismissRequest = onDismiss,
+        properties = PopupProperties(focusable = true),
+        popupPositionProvider = object : PopupPositionProvider {
+            override fun calculatePosition(
+                anchorBounds: IntRect,
+                windowSize: IntSize,
+                layoutDirection: LayoutDirection,
+                popupContentSize: IntSize
+            ): IntOffset {
+
+                val rect = anchorRect
+
+                return IntOffset(
+                    x = rect.left.toInt() - popupContentSize.width,
+                    y = rect.top.toInt()
+                )
+            }
+        }
+    ) {
+        Surface {
+            Column {
+                Text("Preview", modifier = Modifier.clickable {
+                    onPreview()
+                    onDismiss()
+                })
+                Text("Option 2", modifier = Modifier.clickable {
+                    onDismiss()
+                })
+            }
+        }
+    }
+}
+
+
 
 @Composable
 fun AlarmList(
@@ -121,8 +194,11 @@ fun AlarmList(
     onAlarmSwitchChange: (AlarmEntity, Boolean) -> Unit,
     onCardClick: (AlarmEntity) -> Unit,
     onDebugClick: (AlarmEntity) -> Unit,
+    onDetailsClick: (Rect, AlarmEntity) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var alarmDetails by remember { mutableStateOf<AlarmEntity?>(null) }
+
     Box(modifier = modifier.fillMaxSize()) {
         Column(modifier = modifier.fillMaxSize()) {
             Text(
@@ -147,11 +223,13 @@ fun AlarmList(
                         repeatDays = alarm.repeatDays,
                         onCardClick = { onCardClick(alarm) },
                         onDebugClick = { onDebugClick(alarm) },
+                        onDetailsClick = { onDetailsClick(it, alarm) },
                         modifier = Modifier.padding(8.dp)
                     )
                 }
             }
         }
+
         //here the button to add alarm
         FloatingActionButton(
             onClick = onAddClick,
@@ -169,15 +247,20 @@ fun AlarmList(
 
 
 @Composable
-fun AlarmCard(alarmName: String,
-              alarmTime: String,
-              enabled: Boolean,
-              onDelete: () -> Unit,
-              onToggleEnabled: (Boolean) -> Unit,
-              repeatDays: Set<DayOfWeek>,
-              onCardClick: () -> Unit,
-              onDebugClick: () -> Unit,
-              modifier: Modifier = Modifier) {
+fun AlarmCard(
+    alarmName: String,
+    alarmTime: String,
+    enabled: Boolean,
+    onDelete: () -> Unit,
+    onToggleEnabled: (Boolean) -> Unit,
+    repeatDays: Set<DayOfWeek>,
+    onCardClick: () -> Unit,
+    onDebugClick: () -> Unit,
+    onDetailsClick: (Rect) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var detailsRect by remember { mutableStateOf<Rect?>(null) }
+
     Box(modifier = modifier.fillMaxWidth()) {
         Card(
             modifier = Modifier
@@ -205,26 +288,18 @@ fun AlarmCard(alarmName: String,
             if (BuildConfig.DEBUG) {
                 SimpleStartButton(
                     onStart = onDebugClick,
-                    modifier = Modifier
-                        .padding(4.dp)
                 )
             }
+            SimpleDetailsButton(
+                onDetails = { detailsRect?.let { onDetailsClick(it) } },
+                modifier = Modifier.onGloballyPositioned {
+                    detailsRect = it.boundsInWindow()
+                }
+            )
             FlexDeleteButton(
                 onDelete = onDelete,
-                modifier = Modifier
-                    .padding(4.dp)
             )
         }
-        /*
-        // The Delete Button
-        SimpleDeleteButton(
-            onDelete = onDelete,
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-        )
-
-         */
-
 
         Switch(
             checked = enabled,

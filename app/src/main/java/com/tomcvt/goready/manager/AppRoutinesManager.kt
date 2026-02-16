@@ -1,128 +1,45 @@
 package com.tomcvt.goready.manager
 
 import android.util.Log
-import androidx.room.Transaction
 import com.tomcvt.goready.constants.StepType
 import com.tomcvt.goready.data.RoutineEntity
 import com.tomcvt.goready.data.RoutineStepEntity
 import com.tomcvt.goready.data.StepDefinitionEntity
+import com.tomcvt.goready.data.StepWithDefinition
 import com.tomcvt.goready.domain.RoutineDraft
 import com.tomcvt.goready.domain.StepDefinitionDraft
-import com.tomcvt.goready.repository.RoutineRepository
-import com.tomcvt.goready.repository.RoutineStepRepository
-import com.tomcvt.goready.repository.StepDefinitionRepository
+import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
-class AppRoutinesManager(
-    private val routineRepository: RoutineRepository,
-    private val routineStepRepository: RoutineStepRepository,
-    private val stepDefinitionRepository: StepDefinitionRepository
-) {
-    fun getAllRoutinesFlow() = routineRepository.getAllRoutinesFlow()
+interface AppRoutinesManager {
+    fun getAllRoutinesFlow() : Flow<List<RoutineEntity>>
 
-    fun getRoutineByIdFlow(id: Long) = routineRepository.getRoutineByIdFlow(id)
+    fun getRoutineByIdFlow(id: Long) : Flow<RoutineEntity?>
 
-    fun getUserStepDefinitionsFlow() = stepDefinitionRepository.getUserStepDefinitionsFlow()
+    fun getUserStepDefinitionsFlow() : Flow<List<StepDefinitionEntity>>
 
-    fun getAllStepDefinitionsFlow() = stepDefinitionRepository.getAllStepDefinitionsFlow()
 
-    fun getRoutineStepsFlow(routineId: Long) = routineStepRepository.getRoutineStepsFlow(routineId)
+    fun getAllStepDefinitionsFlow() : Flow<List<StepDefinitionEntity>>
 
-    fun getRoutineStepsWithDefinitionFlow(routineId: Long) = routineStepRepository.getRoutineStepsWithDefinitionFlow(routineId)
 
-    fun getStepDefinitionsByTypeFlow(type: StepType) = stepDefinitionRepository.getStepDefinitionsByTypeFlow(type)
+    fun getRoutineStepsFlow(routineId: Long) : Flow<List<RoutineStepEntity>>
 
-    suspend fun getStepDefinition(id: Long) = stepDefinitionRepository.getStepDefinition(id)
+    fun getRoutineStepsWithDefinitionFlow(routineId: Long) : Flow<List<StepWithDefinition>>
 
-    //fun getRoutineStep(id: Long) = routineStepRepository.getRoutineStep(id)
-    suspend fun getRoutineById(id: Long) = routineRepository.getRoutineById(id)
 
-    suspend fun addStepDefinition(stepDefinitionDraft: StepDefinitionDraft) : Long {
-        val stepDefinitionEntity = stepDefinitionDraft.toEntity()
-        val jsonString = Json.encodeToString<StepDefinitionEntity>(value = stepDefinitionEntity)
-        Log.d("JSON_DEV", jsonString)
-        return stepDefinitionRepository.insertStepDefinition(stepDefinitionEntity)
-    }
+    fun getStepDefinitionsByTypeFlow(type: StepType) : Flow<List<StepDefinitionEntity>>
 
-    suspend fun updateStepDefinition(stepDefinitionDraft: StepDefinitionDraft) {
-        val stepDefinitionEntity = stepDefinitionDraft.toEntityUpdate()
-        val jsonString = Json.encodeToString<StepDefinitionEntity>(stepDefinitionEntity)
-        Log.d("JSON_DEV", jsonString)
-        stepDefinitionRepository.updateStepDefinition(stepDefinitionEntity)
-    }
+    suspend fun getStepDefinition(id: Long) : StepDefinitionEntity?
 
-    //Add/edit routine by id
+    suspend fun getRoutineById(id: Long) : RoutineEntity?
 
-    suspend fun addRoutine(routineDraft: RoutineDraft) {
-        if (routineDraft.id == null) {
-            val routineEntity = routineDraft.toEntity()
-            val routineId = routineRepository.insertRoutine(routineEntity)
 
-            //TODO add steps
-            for (i in routineDraft.steps.indices) {
-                val step = routineDraft.steps[i]
-                val routineStepEntity = RoutineStepEntity(
-                    routineId = routineId,
-                    stepId = step.first.id,
-                    stepNumber = i,
-                    length = step.second.toLong()
-                )
-                //can get i here but for what?
-                routineStepRepository.insertRoutineStep(routineStepEntity)
-            }
-        } else {
-            val routineEntity = routineDraft.toEntity()
-            routineRepository.updateRoutine(routineEntity)
-            val routineId = routineEntity.id
-            val list = mutableListOf<RoutineStepEntity>()
-            for (i in routineDraft.steps.indices) {
-                val step = routineDraft.steps[i]
-                val routineStepEntity = RoutineStepEntity(
-                    routineId = routineId,
-                    stepId = step.first.id,
-                    stepNumber = i,
-                    length = step.second.toLong()
-                )
-                list.add(routineStepEntity)
-            }
-            routineStepRepository.replaceRoutineSteps(routineId, list)
-        }
-    }
+    suspend fun addStepDefinition(stepDefinitionDraft: StepDefinitionDraft) : Long
 
-    suspend fun deleteRoutine(routine: RoutineEntity) {
-        routineRepository.deleteRoutine(routine)
-        routineStepRepository.deleteRoutineStepsForRoutine(routine.id)
-    }
+    suspend fun updateStepDefinition(stepDefinitionDraft: StepDefinitionDraft)
+
+    suspend fun addRoutine(routineDraft: RoutineDraft)
+
+    suspend fun deleteRoutine(routine: RoutineEntity)
 }
-
-private fun StepDefinitionDraft.toEntity() : StepDefinitionEntity {
-    return StepDefinitionEntity(
-        stepType = this.stepType,
-        name = this.name,
-        description = this.description,
-        icon = this.icon,
-        updatable = true
-    )
-}
-
-private fun StepDefinitionDraft.toEntityUpdate() : StepDefinitionEntity {
-    return StepDefinitionEntity(
-        id = this.id,
-        stepType = this.stepType,
-        name = this.name,
-        description = this.description,
-        icon = this.icon,
-        updatable = true
-    )
-}
-
-private fun RoutineDraft.toEntity() : RoutineEntity {
-    return RoutineEntity(
-        id = this.id?: 0,
-        name = this.name,
-        description = this.description,
-        icon = this.icon
-    )
-}
-

@@ -32,7 +32,7 @@ class AlarmReceiver : BroadcastReceiver() {
         val app = context.applicationContext as AlarmApp
         val context = context.applicationContext
 
-        val appAlarmManager = AppAlarmManager(app.alarmRepository, app.systemAlarmScheduler)
+        val appAlarmManager = AppAlarmManagerImpl(app.alarmRepository, app.systemAlarmScheduler)
 
         val action = intent.action
         val alarmId = intent.getLongExtra(EXTRA_ALARM_ID, -1L)

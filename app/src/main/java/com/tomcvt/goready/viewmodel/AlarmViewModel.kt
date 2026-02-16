@@ -2,24 +2,18 @@
 
 package com.tomcvt.goready.viewmodel
 
-import android.Manifest
-import android.content.Intent
-import android.net.Uri
-import android.os.Build
-import android.provider.Settings
 import android.util.Log
-import androidx.compose.runtime.retain.RetainedValuesStoreRegistry
-import androidx.core.content.ContextCompat.startActivity
 import androidx.core.text.isDigitsOnly
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.tomcvt.goready.constants.MathType
 import com.tomcvt.goready.constants.TaskType
 import com.tomcvt.goready.data.AlarmEntity
 import com.tomcvt.goready.data.RoutineEntity
 import com.tomcvt.goready.data.StepWithDefinition
 import com.tomcvt.goready.domain.AlarmDraft
-import com.tomcvt.goready.domain.SimpleAlarmDraft
 import com.tomcvt.goready.manager.AppAlarmManager
+import com.tomcvt.goready.manager.AppAlarmManagerImpl
 import com.tomcvt.goready.manager.AppRoutinesManager
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -296,6 +290,43 @@ class AlarmViewModel(
         closeRoutineSelector()
     }
 
+    fun validateData(taskType: TaskType, taskData: String) : Boolean {
+        when (taskType) {
+            TaskType.NONE -> {return true}
+            TaskType.TIMER -> {return true}
+            TaskType.COUNTDOWN -> {
+                if (taskData.isBlank()) return false
+                if (taskData.toIntOrNull()?.let { it > 0 } != true) return false
+                return true
+            }
+            TaskType.TEXT -> {
+                if (taskData.isNotBlank()) {
+                    return true
+                }
+            }
+            //TODO validate math task
+            TaskType.MATH -> {
+                val s = taskData.split("|")
+                if (s.size != 2) return false
+                if (s[1].toIntOrNull()?.let { it > 0 } != true) return false
+                try {
+                    MathType.valueOf(s[0])
+                } catch (e: Exception) {
+                    return false
+                }
+                return true
+            }
+            TaskType.TARGET -> {
+                if (taskData.isBlank()) return false
+                if (taskData.toIntOrNull()?.let { it > 0 } == true) {
+                    return true
+                }
+            }
+            else -> {return false}
+        }
+        return false
+    }
+
 }
 
 // UI observes `uiState` and reacts
@@ -338,58 +369,18 @@ fun parseData(taskType: TaskType, taskData: String) : String?  {
     when (taskType) {
         TaskType.NONE -> {return null}
         TaskType.TIMER -> {return null}
-        TaskType.COUNTDOWN -> {
-            if (taskData.isBlank()) return ""
-            if (taskData.isDigitsOnly() && taskData.toInt() > 0) {
-                return taskData
-            }
-            return null
-        }
+        TaskType.COUNTDOWN -> { return taskData }
         TaskType.TEXT -> {
-            if (taskData.isNotBlank()) {
-                return taskData
-            }
+            if (taskData.isNotBlank()) { return taskData }
             return ""
         }
         TaskType.MATH -> {return taskData}
-        TaskType.TARGET -> {
-            if (taskData.isBlank()) return ""
-            if (taskData.isDigitsOnly() && taskData.toInt() > 0) {
-                return taskData
-            }
-            return null
-        }
+        TaskType.TARGET -> { return taskData }
         else -> {return null}
     }
 }
 
-fun validateData(taskType: TaskType, taskData: String) : Boolean {
-    when (taskType) {
-        TaskType.NONE -> {return true}
-        TaskType.TIMER -> {return true}
-        TaskType.COUNTDOWN -> {
-            if (taskData.isBlank()) return false
-            if (taskData.isDigitsOnly() && taskData.toInt() > 0) {
-                return true
-            }
-        }
-        TaskType.TEXT -> {
-            if (taskData.isNotBlank()) {
-                return true
-            }
-        }
-        //TODO validate math task
-        TaskType.MATH -> {return true}
-        TaskType.TARGET -> {
-            if (taskData.isBlank()) return false
-            if (taskData.isDigitsOnly() && taskData.toInt() > 0) {
-                return true
-            }
-        }
-        else -> {return false}
-    }
-    return false
-}
+
 
 
 

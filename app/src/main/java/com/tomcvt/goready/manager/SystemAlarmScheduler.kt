@@ -26,7 +26,7 @@ class SystemAlarmScheduler(private val context: Context) : AlarmScheduler {
 
     @RequiresPermission(Manifest.permission.SCHEDULE_EXACT_ALARM)
     override fun scheduleOneTimeAlarm(alarm: AlarmEntity, alarmId: Long, remainingSnooze: Int) {
-        //val appAlarmManager = appContext.getSystemService(Context.ALARM_SERVICE) as android.app.AppAlarmManager
+        //val appAlarmManager = appContext.getSystemService(Context.ALARM_SERVICE) as android.app.AppAlarmManagerImpl
         Log.d("AlarmScheduler", "Scheduling alarm with ID: $alarmId and snooze: $remainingSnooze")
         val intent = Intent(appContext
             , AlarmReceiver::class.java).apply {
@@ -68,7 +68,7 @@ class SystemAlarmScheduler(private val context: Context) : AlarmScheduler {
 
         //triggerTime = System.currentTimeMillis() + 15000
 
-        //val info = AppAlarmManager.AlarmClockInfo(triggerTime, pendingIntent)
+        //val info = AppAlarmManagerImpl.AlarmClockInfo(triggerTime, pendingIntent)
         //appAlarmManager.setAlarmClock(info, pendingIntent)
         try {
             /*
