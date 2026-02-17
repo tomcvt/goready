@@ -5,6 +5,7 @@ import com.tomcvt.goready.constants.StepType
 import com.tomcvt.goready.data.RoutineEntity
 import com.tomcvt.goready.data.RoutineStepEntity
 import com.tomcvt.goready.data.StepDefinitionEntity
+import com.tomcvt.goready.domain.OpResult
 import com.tomcvt.goready.domain.RoutineDraft
 import com.tomcvt.goready.domain.StepDefinitionDraft
 import com.tomcvt.goready.repository.RoutineRepository
@@ -50,6 +51,25 @@ class AppRoutinesManagerImpl(
         stepDefinitionRepository.updateStepDefinition(stepDefinitionEntity)
     }
 
+    override suspend fun deleteStepDefinition(stepDefinition: StepDefinitionEntity) : OpResult<Unit> {
+        if (stepDefinition.seedKey != null) {
+            Log.e(TAG, "Cannot delete seeded definition")
+            return OpResult.Error(Exception("This is a built in feature, cannot be deleted"))
+        }
+        try {
+            stepDefinitionRepository.deleteStepDefinition(stepDefinition)
+        } catch (e: Exception) {
+            if (e.message?.contains("FOREIGN KEY constraint failed") == true) {
+                Log.e(TAG, "Cannot delete definition with steps")
+                return OpResult.Error(Exception("This step is used in a routine, cannot be deleted"))
+            }
+            return OpResult.Error(e)
+        }
+        return OpResult.Success(Unit)
+
+    }
+
+
     //Add/edit routine by id
 
     override suspend fun addRoutine(routineDraft: RoutineDraft) {
@@ -92,6 +112,10 @@ class AppRoutinesManagerImpl(
         routineRepository.deleteRoutine(routine)
         routineStepRepository.deleteRoutineStepsForRoutine(routine.id)
     }
+
+    companion object {
+        private const val TAG = "AppRoutinesManagerImpl"
+    }
 }
 
 private fun StepDefinitionDraft.toEntity() : StepDefinitionEntity {
@@ -100,7 +124,7 @@ private fun StepDefinitionDraft.toEntity() : StepDefinitionEntity {
         name = this.name,
         description = this.description,
         icon = this.icon,
-        updatable = true
+        suggestedTimeMinutes = this.suggestedTimeMinutes
     )
 }
 
@@ -111,7 +135,7 @@ private fun StepDefinitionDraft.toEntityUpdate() : StepDefinitionEntity {
         name = this.name,
         description = this.description,
         icon = this.icon,
-        updatable = true
+        suggestedTimeMinutes = this.suggestedTimeMinutes
     )
 }
 

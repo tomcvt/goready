@@ -26,7 +26,8 @@ class SeedParser(
             Log.e("SeedParser", "JSON file is empty: $fileName")
             return null
         }
-        val stepsJsonTemplate = Json.decodeFromString<StepsJsonTemplate>(json)
+        val decoder = Json { ignoreUnknownKeys = true }
+        val stepsJsonTemplate = decoder.decodeFromString<StepsJsonTemplate>(json)
         val stepSeedFile = StepSeedFile(
             version = version,
             replace = replace,

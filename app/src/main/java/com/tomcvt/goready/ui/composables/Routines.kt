@@ -447,37 +447,39 @@ fun RoutineEditorStepCard(
             modifier = Modifier
                 .fillMaxWidth()
         ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth().padding(16.dp)
-            ) {
-                Text(
-                    text = step.first.name,
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.weight(1f)
-                )
-                Text(
-                    text = step.first.icon,
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.width(50.dp)
-                )
-                Text(
-                    text = step.second.toString(),
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.width(50.dp)
-                        .clickable { viewModel.setStepModalNumber(index) }
+            Box(modifier = modifier.fillMaxWidth()) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth().padding(16.dp)
+                ) {
+                    Text(
+                        text = step.first.name,
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text(
+                        text = step.first.icon,
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.width(50.dp)
+                    )
+                    Text(
+                        text = step.second.toString(),
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.width(50.dp)
+                            .clickable { viewModel.setStepModalNumber(index) }
+                    )
+                }
+                StepCardOverlay(
+                    expanded = expanded,
+                    updatable = step.first.seedKey == null,
+                    onDismiss = { expanded = false },
+                    onDelete = { onDelete(); expanded = false },
+                    onEdit = { onEdit(); expanded = false },
+                    modifier = Modifier.matchParentSize()
                 )
             }
         }
-        StepCardOverlay(
-            expanded = expanded,
-            updatable = step.first.updatable,
-            onDismiss = { expanded = false },
-            onDelete = { onDelete(); expanded = false },
-            onEdit = { onEdit(); expanded = false },
-            modifier = Modifier.matchParentSize()
-        )
     }
 }
 
@@ -553,7 +555,7 @@ fun StaticDeleteButton(
     }
 }
 
-val STEP_TIMES_LIST = (5..90 step 5).toList()
+val STEP_TIMES_LIST = (1..24).toList() + (25..90 step 5).toList()
 
 @Composable
 fun StepSelector(
@@ -669,7 +671,10 @@ fun StepSelectorByType(
                 val step = selectedSteps[index]
                 StepDefRowCardClickable(
                     step,
-                    onClick = { viewModel.addStepDefToRoutineEditor(step) }
+                    onClick = { viewModel.addStepDefToRoutineEditor(step) },
+                    onDelete = { viewModel.deleteStepDefIfUsers(step) },
+                    onEdit = { viewModel.openStepEditorWithStep(step, -1) },
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
         }
@@ -874,8 +879,12 @@ fun RoutineEntityDetails(
 fun StepDefRowCardClickable(
     step: StepDefinitionEntity,
     onClick: () -> Unit,
+    onDelete: () -> Unit,
+    onEdit: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var expanded by remember { mutableStateOf(false) }
+
     Card(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.secondaryContainer,
@@ -884,23 +893,70 @@ fun StepDefRowCardClickable(
         elevation = CardDefaults.cardElevation(8.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = { expanded = true }
+            )
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth().padding(16.dp)
+            ) {
+                Text(
+                    step.name,
+                    style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier.weight(1f)
+                )
+                Text(
+                    step.icon,
+                    style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier
+                )
+            }
+            StepDefRowCardOverlay(
+                expanded = expanded,
+                updatable = step.seedKey == null,
+                onDismiss = { expanded = false },
+                onDelete = { onDelete(); expanded = false },
+                onEdit = { onEdit(); expanded = false }, //TODO make editing (editors and selector stakc)
+                modifier = Modifier.matchParentSize()
+            )
+        }
+    }
+}
+
+@Composable
+fun StepDefRowCardOverlay(
+    expanded: Boolean,
+    updatable: Boolean,
+    onDismiss: () -> Unit,
+    onDelete: () -> Unit,
+    onEdit: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    AnimatedVisibility(
+        visible = expanded,
+        enter = slideInHorizontally(initialOffsetX = { it }),
+        exit = slideOutHorizontally(targetOffsetX = { it }),
+        modifier = modifier
     ) {
         Row(
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth().padding(16.dp)
+            Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.5f))
+                .clickable { onDismiss() },
+            horizontalArrangement = Arrangement.End,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                step.name,
-                style = MaterialTheme.typography.headlineSmall,
-                modifier = Modifier.weight(1f)
-            )
-            Text(
-                step.icon,
-                style = MaterialTheme.typography.headlineSmall,
-                modifier = Modifier
-            )
+            if (updatable) {
+                StaticEditButton(onEdit)
+                StaticDeleteButton(onDelete)
+            }
         }
     }
 }

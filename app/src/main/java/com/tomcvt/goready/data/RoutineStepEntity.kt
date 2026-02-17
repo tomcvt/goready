@@ -3,6 +3,7 @@ package com.tomcvt.goready.data
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.ForeignKey.Companion.CASCADE
+import androidx.room.ForeignKey.Companion.RESTRICT
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
@@ -19,7 +20,7 @@ import androidx.room.PrimaryKey
             entity = StepDefinitionEntity::class,
             parentColumns = ["id"],
             childColumns = ["stepId"],
-            onDelete = CASCADE
+            onDelete = RESTRICT
         )
     ],
     indices = [

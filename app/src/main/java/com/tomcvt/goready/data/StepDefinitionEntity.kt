@@ -18,5 +18,5 @@ data class StepDefinitionEntity (
     val name: String,
     val description: String,
     val icon: String,
-    val updatable: Boolean = false
+    val suggestedTimeMinutes: Int = 15
 )

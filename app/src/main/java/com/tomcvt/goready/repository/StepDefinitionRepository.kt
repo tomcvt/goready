@@ -31,4 +31,9 @@ class StepDefinitionRepository(
     suspend fun updateStepDefinition(stepDefinitionEntity: StepDefinitionEntity) {
         stepDefinitionDao.updateStepDefinition(stepDefinitionEntity)
     }
+
+    suspend fun deleteStepDefinition(stepDefinitionEntity: StepDefinitionEntity) {
+        stepDefinitionDao.deleteStepDefinition(stepDefinitionEntity)
+    }
+
 }

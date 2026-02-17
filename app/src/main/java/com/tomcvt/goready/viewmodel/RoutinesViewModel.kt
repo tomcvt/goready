@@ -10,6 +10,7 @@ import com.tomcvt.goready.constants.StepTypeSelector
 import com.tomcvt.goready.data.RoutineEntity
 import com.tomcvt.goready.data.StepDefinitionEntity
 import com.tomcvt.goready.data.StepWithDefinition
+import com.tomcvt.goready.domain.OpResult
 import com.tomcvt.goready.domain.RoutineDraft
 import com.tomcvt.goready.domain.StepDefinitionDraft
 import com.tomcvt.goready.manager.AppRoutinesManager
@@ -130,12 +131,12 @@ class RoutinesViewModel(
             val stepsList = steps.map(
                 transform = { Pair(StepDefinitionEntity(
                     it.stepId,
-                    null,
+                    it.seedKey,
                     it.stepType,
                     it.name,
                     it.description,
                     it.icon,
-                    it.updatable
+                    it.suggestedTimeMinutes
                 ), it.length.toInt()) }
             )
             _routineEditorState.update {
@@ -260,6 +261,7 @@ class RoutinesViewModel(
             saveStepDefinitionAndAdd()
         } else {
             updateStepDefinitionAndSet()
+            //TODO replace all old
         }
     }
 
@@ -325,7 +327,7 @@ class RoutinesViewModel(
             routinesManager.updateStepDefinition(draft)
             val stepDefinition = routinesManager.getStepDefinition(s.id)
             if (stepDefinition != null) {
-                replaceStepDefInRoutineEditor(stepDefinition, index)
+                replaceWithUpdatedStep(stepDefinition)
             }
             cleanStepEditor()
             closeStepEditor()
@@ -333,22 +335,49 @@ class RoutinesViewModel(
         }
     }
 
+    fun deleteStepDefIfUsers(step: StepDefinitionEntity) {
+        viewModelScope.launch {
+            when (val result = routinesManager.deleteStepDefinition(step)) {
+                is OpResult.Success -> { Log.d("RoutinesViewModel", "Step definition deleted") }
+                is OpResult.Error -> {
+                    val errorMsg = result.error?.message
+                    if (errorMsg != null) {
+                        _uiState.update {
+                            it.copy(errorMessage = errorMsg)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private fun replaceWithUpdatedStep(step: StepDefinitionEntity) {
+        val currentSteps = _routineEditorState.value.steps.toMutableList()
+        for (i in currentSteps.indices) {
+            if (currentSteps[i].first.id == step.id) {
+                currentSteps[i] = Pair(step, 15) //TODO get the suggested step time
+            }
+        }
+        _routineEditorState.update { it.copy(steps = currentSteps) }
+    }
+
     private fun replaceStepDefInRoutineEditor(step: StepDefinitionEntity, position: Int) {
         val currentSteps = _routineEditorState.value.steps.toMutableList()
         currentSteps[position] = Pair(step, 15)
-        _routineEditorState.value = _routineEditorState.value.copy(steps = currentSteps)
+        _routineEditorState.update { it.copy(steps = currentSteps) }
     }
 
     private fun addStepDefToRoutineEditor(step: StepDefinitionEntity, position: Int) {
         val currentSteps = _routineEditorState.value.steps.toMutableList()
         currentSteps.add(position, Pair(step, 15))
-        _routineEditorState.value = _routineEditorState.value.copy(steps = currentSteps)
+        _routineEditorState.update { it.copy(steps = currentSteps) }
     }
 
     fun removeStepFromRoutineEditor(position: Int) {
         val currentSteps = _routineEditorState.value.steps.toMutableList()
         currentSteps.removeAt(position)
-        _routineEditorState.value = _routineEditorState.value.copy(steps = currentSteps)
+        _routineEditorState.update { it.copy(steps = currentSteps) }
+
     }
 
     fun cleanStepEditor() {

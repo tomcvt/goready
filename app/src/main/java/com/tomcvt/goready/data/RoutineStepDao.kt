@@ -25,7 +25,8 @@ interface RoutineStepDao {
             sd.name,
             sd.description,
             sd.icon,
-            sd.updatable
+            sd.seedKey,
+            sd.suggestedTimeMinutes
         FROM routine_steps rs
         JOIN step_definitions sd ON rs.stepId = sd.id
         WHERE rs.routineId = :routineId
@@ -44,7 +45,8 @@ interface RoutineStepDao {
             sd.name,
             sd.description,
             sd.icon,
-            sd.updatable
+            sd.seedKey,
+            sd.suggestedTimeMinutes
         FROM routine_steps rs
         JOIN step_definitions sd ON rs.stepId = sd.id
         WHERE rs.routineId = :routineId AND rs.stepNumber = :stepNumber

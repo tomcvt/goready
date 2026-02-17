@@ -12,5 +12,6 @@ data class StepWithDefinition(
     val name: String,
     val description: String,
     val icon: String,
-    val updatable: Boolean
+    val seedKey: String?,
+    val suggestedTimeMinutes: Int
 )

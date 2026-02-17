@@ -427,7 +427,8 @@ private val emptyStep = StepWithDefinition(
     stepNumber = 0,
     stepId = 0,
     description = "",
-    updatable = false
+    seedKey = null,
+    suggestedTimeMinutes = 15
 )
 
 

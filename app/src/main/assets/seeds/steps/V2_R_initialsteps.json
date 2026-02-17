@@ -1,0 +1,244 @@
+{
+  "steps": [
+    {
+      "stepType": "HYGIENE",
+      "seedKey": "brush_teeth",
+      "name": "Brush teeth",
+      "description": "Clean your teeth thoroughly.",
+      "icon": "🪥",
+      "suggestedTimeMinutes": 5
+    },
+    {
+      "stepType": "HYGIENE",
+      "seedKey": "floss_teeth",
+      "name": "Floss teeth",
+      "description": "Remove plaque between teeth.",
+      "icon": "🧵",
+      "suggestedTimeMinutes": 5
+    },
+    {
+      "stepType": "HYGIENE",
+      "seedKey": "take_shower",
+      "name": "Take a shower",
+      "description": "Full body hygiene routine.",
+      "icon": "🚿",
+      "suggestedTimeMinutes": 15
+    },
+    {
+      "stepType": "HYGIENE",
+      "seedKey": "wash_face",
+      "name": "Wash face",
+      "description": "Cleanse your face properly.",
+      "icon": "🫧",
+      "suggestedTimeMinutes": 5
+    },
+    {
+      "stepType": "HYGIENE",
+      "seedKey": "trim_nails",
+      "name": "Trim nails",
+      "description": "Keep nails clean and trimmed.",
+      "icon": "✂️",
+      "suggestedTimeMinutes": 10
+    },
+    {
+      "stepType": "HEALTH",
+      "seedKey": "drink_water",
+      "name": "Drink water",
+      "description": "Drink a full glass of water.",
+      "icon": "💧",
+      "suggestedTimeMinutes": 2
+    },
+    {
+      "stepType": "HEALTH",
+      "seedKey": "morning_stretch",
+      "name": "Morning stretch",
+      "description": "Light full-body stretching.",
+      "icon": "🤸",
+      "suggestedTimeMinutes": 10
+    },
+    {
+      "stepType": "HEALTH",
+      "seedKey": "short_walk",
+      "name": "Take a short walk",
+      "description": "Move your body for circulation.",
+      "icon": "🚶",
+      "suggestedTimeMinutes": 15
+    },
+    {
+      "stepType": "HEALTH",
+      "seedKey": "sleep_on_time",
+      "name": "Go to bed on time",
+      "description": "Maintain consistent sleep schedule.",
+      "icon": "🌙",
+      "suggestedTimeMinutes": 5
+    },
+    {
+      "stepType": "HEALTH",
+      "seedKey": "light_exercise",
+      "name": "Light exercise",
+      "description": "Quick bodyweight exercise session.",
+      "icon": "🏃",
+      "suggestedTimeMinutes": 15
+    },
+    {
+      "stepType": "PRODUCTIVITY",
+      "seedKey": "plan_day",
+      "name": "Plan the day",
+      "description": "Write down key tasks for today.",
+      "icon": "📝",
+      "suggestedTimeMinutes": 10
+    },
+    {
+      "stepType": "PRODUCTIVITY",
+      "seedKey": "focus_session",
+      "name": "Focus session",
+      "description": "Work distraction-free on one task.",
+      "icon": "⏳",
+      "suggestedTimeMinutes": 25
+    },
+    {
+      "stepType": "PRODUCTIVITY",
+      "seedKey": "review_goals",
+      "name": "Review goals",
+      "description": "Check progress on current goals.",
+      "icon": "🎯",
+      "suggestedTimeMinutes": 10
+    },
+    {
+      "stepType": "PRODUCTIVITY",
+      "seedKey": "clear_workspace",
+      "name": "Clear workspace",
+      "description": "Organize and declutter your desk.",
+      "icon": "🧹",
+      "suggestedTimeMinutes": 10
+    },
+    {
+      "stepType": "PRODUCTIVITY",
+      "seedKey": "learn_something",
+      "name": "Learn something new",
+      "description": "Study or practice a new skill.",
+      "icon": "📚",
+      "suggestedTimeMinutes": 20
+    },
+    {
+      "stepType": "CLEANING",
+      "seedKey": "make_bed",
+      "name": "Make the bed",
+      "description": "Neatly arrange sheets and pillows.",
+      "icon": "🛏️",
+      "suggestedTimeMinutes": 5
+    },
+    {
+      "stepType": "CLEANING",
+      "seedKey": "wash_dishes",
+      "name": "Wash dishes",
+      "description": "Clean used dishes and utensils.",
+      "icon": "🍽️",
+      "suggestedTimeMinutes": 15
+    },
+    {
+      "stepType": "CLEANING",
+      "seedKey": "take_out_trash",
+      "name": "Take out trash",
+      "description": "Empty household trash bins.",
+      "icon": "🗑️",
+      "suggestedTimeMinutes": 5
+    },
+    {
+      "stepType": "CLEANING",
+      "seedKey": "vacuum_floor",
+      "name": "Vacuum floor",
+      "description": "Vacuum main living areas.",
+      "icon": "🧼",
+      "suggestedTimeMinutes": 15
+    },
+    {
+      "stepType": "CLEANING",
+      "seedKey": "clean_bathroom",
+      "name": "Clean bathroom",
+      "description": "Wipe surfaces and sanitize sink.",
+      "icon": "🧽",
+      "suggestedTimeMinutes": 20
+    },
+    {
+      "stepType": "WELLNESS",
+      "seedKey": "meditation",
+      "name": "Meditation",
+      "description": "Practice mindful breathing.",
+      "icon": "🧘",
+      "suggestedTimeMinutes": 10
+    },
+    {
+      "stepType": "WELLNESS",
+      "seedKey": "journaling",
+      "name": "Journaling",
+      "description": "Write thoughts or reflections.",
+      "icon": "📓",
+      "suggestedTimeMinutes": 10
+    },
+    {
+      "stepType": "WELLNESS",
+      "seedKey": "gratitude_practice",
+      "name": "Gratitude practice",
+      "description": "List things you are grateful for.",
+      "icon": "🙏",
+      "suggestedTimeMinutes": 5
+    },
+    {
+      "stepType": "WELLNESS",
+      "seedKey": "digital_detox",
+      "name": "Digital detox",
+      "description": "Avoid screens for a while.",
+      "icon": "📵",
+      "suggestedTimeMinutes": 30
+    },
+    {
+      "stepType": "WELLNESS",
+      "seedKey": "deep_breathing",
+      "name": "Deep breathing",
+      "description": "Slow controlled breathing exercise.",
+      "icon": "🌬️",
+      "suggestedTimeMinutes": 5
+    },
+    {
+      "stepType": "OTHER",
+      "seedKey": "call_someone",
+      "name": "Call someone",
+      "description": "Reach out to a friend or family member.",
+      "icon": "📞",
+      "suggestedTimeMinutes": 10
+    },
+    {
+      "stepType": "OTHER",
+      "seedKey": "read_book",
+      "name": "Read a book",
+      "description": "Read for knowledge or enjoyment.",
+      "icon": "📖",
+      "suggestedTimeMinutes": 20
+    },
+    {
+      "stepType": "OTHER",
+      "seedKey": "hobby_time",
+      "name": "Work on a hobby",
+      "description": "Spend time on a personal interest.",
+      "icon": "🎨",
+      "suggestedTimeMinutes": 25
+    },
+    {
+      "stepType": "OTHER",
+      "seedKey": "organize_files",
+      "name": "Organize files",
+      "description": "Sort digital or physical documents.",
+      "icon": "🗂️",
+      "suggestedTimeMinutes": 15
+    },
+    {
+      "stepType": "OTHER",
+      "seedKey": "random_kindness",
+      "name": "Random act of kindness",
+      "description": "Do something kind for someone.",
+      "icon": "❤️",
+      "suggestedTimeMinutes": 5
+    }
+  ]
+}

@@ -6,6 +6,7 @@ import com.tomcvt.goready.data.RoutineEntity
 import com.tomcvt.goready.data.RoutineStepEntity
 import com.tomcvt.goready.data.StepDefinitionEntity
 import com.tomcvt.goready.data.StepWithDefinition
+import com.tomcvt.goready.domain.OpResult
 import com.tomcvt.goready.domain.RoutineDraft
 import com.tomcvt.goready.domain.StepDefinitionDraft
 import kotlinx.coroutines.flow.Flow
@@ -34,6 +35,7 @@ interface AppRoutinesManager {
 
     suspend fun getRoutineById(id: Long) : RoutineEntity?
 
+    suspend fun deleteStepDefinition(stepDefinition: StepDefinitionEntity) : OpResult<Unit>
 
     suspend fun addStepDefinition(stepDefinitionDraft: StepDefinitionDraft) : Long
 

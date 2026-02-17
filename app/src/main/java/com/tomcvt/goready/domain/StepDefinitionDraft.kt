@@ -8,4 +8,5 @@ data class StepDefinitionDraft (
     val name: String,
     val description: String,
     val icon: String,
+    val suggestedTimeMinutes: Int = 15
 )
