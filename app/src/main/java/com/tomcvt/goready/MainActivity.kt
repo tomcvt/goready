@@ -65,6 +65,7 @@ import com.tomcvt.goready.ui.composables.AlarmsNavHost
 import com.tomcvt.goready.ui.composables.RoutineListRoute
 import com.tomcvt.goready.ui.composables.SettingsView
 import com.tomcvt.goready.ui.theme.GoReadyTheme
+import com.tomcvt.goready.ui.theme.VibrantTheme
 import com.tomcvt.goready.viewmodel.AlarmViewModel
 import com.tomcvt.goready.viewmodel.AlarmViewModelFactory
 import com.tomcvt.goready.viewmodel.RoutinesViewModel
@@ -168,7 +169,7 @@ class MainActivity : ComponentActivity() {
 
         enableEdgeToEdge()
         setContent {
-            GoReadyTheme {
+            VibrantTheme {
                 if (alarmId != -1L) {
                     GoReadyApp(
                         alarmViewModelFactory,

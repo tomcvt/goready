@@ -19,4 +19,8 @@ data class StepDefinitionEntity (
     val description: String,
     val icon: String,
     val suggestedTimeMinutes: Int = 15
-)
+) {
+    companion object {
+        val STEP_TIMES_LIST = (5..24).toList() + (25..90 step 5).toList()
+    }
+}

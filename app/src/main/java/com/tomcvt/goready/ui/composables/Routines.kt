@@ -32,6 +32,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardColors
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -39,6 +40,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -61,6 +63,7 @@ import com.tomcvt.goready.constants.StepType
 import com.tomcvt.goready.constants.StepTypeSelector
 import com.tomcvt.goready.data.RoutineEntity
 import com.tomcvt.goready.data.StepDefinitionEntity
+import com.tomcvt.goready.data.StepDefinitionEntity.Companion.STEP_TIMES_LIST
 import com.tomcvt.goready.data.StepWithDefinition
 import com.tomcvt.goready.util.isExactlyOneEmoji
 import com.tomcvt.goready.viewmodel.RoutinesViewModel
@@ -278,47 +281,9 @@ fun RoutineEditor(
         .clickable { viewModel.closeRoutineEditor() },
         contentAlignment = Alignment.Center
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text("Edit routine", style = MaterialTheme.typography.headlineSmall,
-                textAlign = TextAlign.Center)
-            RoutineEditorDetailsCard(viewModel)
-            LazyColumn(
-                modifier = Modifier.fillMaxWidth().weight(1f),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(rEditorState.steps.size) { index ->
-                    val step = rEditorState.steps[index]
-                    RoutineEditorStepCard(
-                        viewModel, index, step,
-                        modifier = Modifier.fillMaxWidth(),
-                        onEdit = {
-                            viewModel.openStepEditorWithStep(step.first, index)
-                        },
-                        onDelete = {
-                            viewModel.removeStepFromRoutineEditor(index)
-                        }
-                    )
-                }
-            }
-            Button(
-                onClick = { viewModel.openStepAdder() },
-                modifier = Modifier.padding(8.dp)
-            ) {
-                Text("Add step")
-            }
-            Button(
-                onClick = { viewModel.saveRoutine() },
-                modifier = Modifier.padding(8.dp)
-            ) {
-                Text("Save")
-            }
-        }
+        RoutineEditorContent(
+            viewModel = viewModel
+        )
         if (uiState.stepModalNumber != null) {
             StepTimeModal(
                 initialTime = rEditorState.steps[uiState.stepModalNumber!!].second,
@@ -340,6 +305,77 @@ fun RoutineEditor(
                 //navController = navController,
                 modifier = modifier
             )
+        }
+    }
+}
+
+@Composable
+fun RoutineEditorContent(
+    viewModel: RoutinesViewModel,
+    modifier: Modifier = Modifier
+) {
+    val rEditorState by viewModel.routineEditorState.collectAsState()
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+    ) {
+        Card(
+            elevation = CardDefaults.cardElevation(8.dp),
+            modifier = Modifier.fillMaxSize().padding(16.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    "Edit routine", style = MaterialTheme.typography.headlineSmall,
+                    textAlign = TextAlign.Center
+                )
+                RoutineEditorDetailsCard(
+                    viewModel,
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+                    )
+                )
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth().weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(rEditorState.steps.size) { index ->
+                        val step = rEditorState.steps[index]
+                        RoutineEditorStepCard(
+                            viewModel, index, step,
+                            modifier = Modifier.fillMaxWidth(),
+                            onEdit = {
+                                viewModel.openStepEditorWithStep(step.first, index)
+                            },
+                            onDelete = {
+                                viewModel.removeStepFromRoutineEditor(index)
+                            },
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                        )
+                    }
+                }
+                Button(
+                    onClick = { viewModel.openStepAdder() },
+                    modifier = Modifier.padding(8.dp)
+                ) {
+                    Text("Add step")
+                }
+                Button(
+                    onClick = { viewModel.saveRoutine() },
+                    modifier = Modifier.padding(8.dp)
+                ) {
+                    Text("Save")
+                }
+            }
         }
     }
 }
@@ -389,13 +425,20 @@ fun CategoryPill(
 @Composable
 fun RoutineEditorDetailsCard(
     viewModel: RoutinesViewModel,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    colors: CardColors = CardDefaults.cardColors()
 ) {
     val rEditorState by viewModel.routineEditorState.collectAsState()
-
+    val textFieldColors = TextFieldDefaults.colors(
+        focusedTextColor = MaterialTheme.colorScheme.onTertiaryContainer,
+        unfocusedTextColor = MaterialTheme.colorScheme.onTertiaryContainer,
+        focusedContainerColor = MaterialTheme.colorScheme.tertiaryContainer,
+        unfocusedContainerColor = MaterialTheme.colorScheme.tertiaryContainer,
+    )
     Card(
         elevation = CardDefaults.cardElevation(8.dp),
         modifier = Modifier.fillMaxWidth(),
+        colors = colors
     ) {
         Row (horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -404,23 +447,30 @@ fun RoutineEditorDetailsCard(
             TextField(
                 value = rEditorState.name,
                 onValueChange = { viewModel.setRoutineName(it) },
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                colors = textFieldColors
             )
-            //Spacer(modifier = Modifier.size(8.dp))
             TextField(
                 value = rEditorState.icon,
                 onValueChange = {
                     if (isExactlyOneEmoji(it) || it.isEmpty()) viewModel.setRoutineIcon(it) },
                 placeholder = { Text("\uD83D\uDC4D") },
-                modifier = Modifier.width(50.dp)
+                modifier = Modifier.width(50.dp),
+                colors = textFieldColors
             )
         }
-        Spacer(modifier = Modifier.size(8.dp))
-        TextField(
-            value = rEditorState.description,
-            onValueChange = { viewModel.setRoutineDescription(it) },
-            modifier = Modifier.fillMaxWidth()
-        )
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth().padding(16.dp)
+        ) {
+            TextField(
+                value = rEditorState.description,
+                onValueChange = { viewModel.setRoutineDescription(it) },
+                modifier = Modifier.fillMaxWidth(),
+                colors = textFieldColors
+            )
+        }
     }
 }
 
@@ -431,7 +481,8 @@ fun RoutineEditorStepCard(
     step: Pair<StepDefinitionEntity, Int>,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    colors: CardColors = CardDefaults.cardColors()
 ) {
     var expanded by remember { mutableStateOf(false) }
     Box(
@@ -445,7 +496,8 @@ fun RoutineEditorStepCard(
         Card(
             elevation = CardDefaults.cardElevation(8.dp),
             modifier = Modifier
-                .fillMaxWidth()
+                .fillMaxWidth(),
+            colors = colors
         ) {
             Box(modifier = modifier.fillMaxWidth()) {
                 Row(
@@ -554,8 +606,6 @@ fun StaticDeleteButton(
         )
     }
 }
-
-val STEP_TIMES_LIST = (1..24).toList() + (25..90 step 5).toList()
 
 @Composable
 fun StepSelector(

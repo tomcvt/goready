@@ -355,7 +355,7 @@ class RoutinesViewModel(
         val currentSteps = _routineEditorState.value.steps.toMutableList()
         for (i in currentSteps.indices) {
             if (currentSteps[i].first.id == step.id) {
-                currentSteps[i] = Pair(step, 15) //TODO get the suggested step time
+                currentSteps[i] = Pair(step, currentSteps[i].second) //TODO get the suggested step time
             }
         }
         _routineEditorState.update { it.copy(steps = currentSteps) }
@@ -363,13 +363,13 @@ class RoutinesViewModel(
 
     private fun replaceStepDefInRoutineEditor(step: StepDefinitionEntity, position: Int) {
         val currentSteps = _routineEditorState.value.steps.toMutableList()
-        currentSteps[position] = Pair(step, 15)
+        currentSteps[position] = Pair(step, currentSteps[position].second)
         _routineEditorState.update { it.copy(steps = currentSteps) }
     }
 
     private fun addStepDefToRoutineEditor(step: StepDefinitionEntity, position: Int) {
         val currentSteps = _routineEditorState.value.steps.toMutableList()
-        currentSteps.add(position, Pair(step, 15))
+        currentSteps.add(position, Pair(step, step.suggestedTimeMinutes))
         _routineEditorState.update { it.copy(steps = currentSteps) }
     }
 
