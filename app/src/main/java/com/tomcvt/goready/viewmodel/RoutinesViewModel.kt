@@ -267,12 +267,12 @@ class RoutinesViewModel(
 
     //TODO keep editing step id, init step editor with selected step, save on edit
 
-    fun addStepDefToRoutineEditor(step: StepDefinitionEntity) {
+    fun addStepDefToRoutineEditorLast(step: StepDefinitionEntity) {
         val index = _routineEditorState.value.steps.size
         addStepDefToRoutineEditor(step, index)
         cleanStepEditor()
         closeStepEditor()
-        closeStepAdder()
+        closeStepSelector()
         _uiState.update { it.copy(successMessage = "Step definition added") }
     }
 
@@ -298,8 +298,8 @@ class RoutinesViewModel(
                 addStepDefToRoutineEditor(stepDefinition, index)
             }
             cleanStepEditor()
-            //closeStepEditor()
-            closeStepAdder()
+            closeStepEditor()
+            closeStepSelector()
             _uiState.update { it.copy(successMessage = "Step definition added") }
             Log.d("RoutinesViewModel", "Step definition added")
         }
@@ -384,12 +384,12 @@ class RoutinesViewModel(
         _stepEditorState.value = StepDefinitionState()
     }
 
-    fun openStepAdder() {
-        _uiState.update { it.copy(isStepAdderOpen = true) }
+    fun openStepSelector() {
+        _uiState.update { it.copy(isStepSelectorOpen = true) }
     }
 
-    fun closeStepAdder() {
-        _uiState.update { it.copy(isStepAdderOpen = false) }
+    fun closeStepSelector() {
+        _uiState.update { it.copy(isStepSelectorOpen = false) }
     }
 
     fun updateTimeForStepInEditor(time: Int, position: Int) {
@@ -459,7 +459,7 @@ data class RoutineUiState(
     val stepModalNumber: Int? = null,
     val isRoutineEditorOpen: Boolean = false,
     val isStepEditorOpen: Boolean = false,
-    val isStepAdderOpen: Boolean = false,
+    val isStepSelectorOpen: Boolean = false,
     val isRoutineDetailsOpen: Boolean = false,
     val successMessage: String? = null,
     val errorMessage: String? = null

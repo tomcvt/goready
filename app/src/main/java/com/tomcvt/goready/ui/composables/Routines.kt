@@ -277,8 +277,7 @@ fun RoutineEditor(
     Box (
         modifier = Modifier
         .fillMaxSize()
-        .background(Color.Black.copy(alpha = 0.5f))
-        .clickable { viewModel.closeRoutineEditor() },
+        .background(Color.Black.copy(alpha = 0.5f)),
         contentAlignment = Alignment.Center
     ) {
         RoutineEditorContent(
@@ -292,7 +291,7 @@ fun RoutineEditor(
                 list = STEP_TIMES_LIST
             )
         }
-        if (uiState.isStepAdderOpen) {
+        if (uiState.isStepSelectorOpen) {
             StepSelector(
                 viewModel = viewModel,
                 //navController = navController,
@@ -315,13 +314,13 @@ fun RoutineEditorContent(
     modifier: Modifier = Modifier
 ) {
     val rEditorState by viewModel.routineEditorState.collectAsState()
-    Box(
-        modifier = modifier
-            .fillMaxSize()
+
+    Card(
+        elevation = CardDefaults.cardElevation(8.dp),
+        modifier = Modifier.fillMaxSize().padding(16.dp)
     ) {
-        Card(
-            elevation = CardDefaults.cardElevation(8.dp),
-            modifier = Modifier.fillMaxSize().padding(16.dp)
+        Box(
+            modifier = Modifier.fillMaxSize()
         ) {
             Column(
                 modifier = Modifier
@@ -364,7 +363,7 @@ fun RoutineEditorContent(
                     }
                 }
                 Button(
-                    onClick = { viewModel.openStepAdder() },
+                    onClick = { viewModel.openStepSelector() },
                     modifier = Modifier.padding(8.dp)
                 ) {
                     Text("Add step")
@@ -376,8 +375,14 @@ fun RoutineEditorContent(
                     Text("Save")
                 }
             }
+            FlexCloseButton(
+                onClose = { viewModel.closeRoutineEditor() },
+                modifier = Modifier
+                    .align(Alignment.TopEnd).padding(8.dp)
+            )
         }
     }
+
 }
 
 @Composable
@@ -440,36 +445,43 @@ fun RoutineEditorDetailsCard(
         modifier = Modifier.fillMaxWidth(),
         colors = colors
     ) {
-        Row (horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth().padding(16.dp)
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            TextField(
-                value = rEditorState.name,
-                onValueChange = { viewModel.setRoutineName(it) },
-                modifier = Modifier.weight(1f),
-                colors = textFieldColors
-            )
-            TextField(
-                value = rEditorState.icon,
-                onValueChange = {
-                    if (isExactlyOneEmoji(it) || it.isEmpty()) viewModel.setRoutineIcon(it) },
-                placeholder = { Text("\uD83D\uDC4D") },
-                modifier = Modifier.width(50.dp),
-                colors = textFieldColors
-            )
-        }
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth().padding(16.dp)
-        ) {
-            TextField(
-                value = rEditorState.description,
-                onValueChange = { viewModel.setRoutineDescription(it) },
-                modifier = Modifier.fillMaxWidth(),
-                colors = textFieldColors
-            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                TextField(
+                    value = rEditorState.name,
+                    onValueChange = { viewModel.setRoutineName(it) },
+                    modifier = Modifier.weight(1f),
+                    colors = textFieldColors
+                )
+                TextField(
+                    value = rEditorState.icon,
+                    onValueChange = {
+                        if (isExactlyOneEmoji(it) || it.isEmpty()) viewModel.setRoutineIcon(it)
+                    },
+                    placeholder = { Text("\uD83D\uDC4D") },
+                    modifier = Modifier.width(50.dp),
+                    colors = textFieldColors
+                )
+            }
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                TextField(
+                    value = rEditorState.description,
+                    onValueChange = { viewModel.setRoutineDescription(it) },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = textFieldColors
+                )
+            }
         }
     }
 }
@@ -622,14 +634,13 @@ fun StepSelector(
 
     BackHandler(
         enabled = true,
-        onBack = { viewModel.closeStepAdder() }
+        onBack = { viewModel.closeStepSelector() }
     )
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.5f))
-            .clickable { viewModel.closeStepAdder() },
+            .background(Color.Black.copy(alpha = 0.5f)),
         contentAlignment = Alignment.Center
     ) {
         Column (
@@ -684,8 +695,8 @@ fun StepSelector(
                 is StepTypeSelector.Add -> {
                     StepEditorBox(
                         viewModel,
-                        onDismiss = { viewModel.closeStepAdder() },
-                        modifier = Modifier.weight(0.5f)
+                        onDismiss = {},
+                        modifier = Modifier.weight(0.5f),
                     )
                 }
                 is StepTypeSelector.User -> {
@@ -697,6 +708,10 @@ fun StepSelector(
                 }
             }
         }
+        FlexCloseButton(
+            onClose = { viewModel.closeStepSelector() },
+            modifier = Modifier.align(Alignment.TopEnd).padding(16.dp)
+        )
     }
 }
 
@@ -707,10 +722,7 @@ fun StepSelectorByType(
     modifier: Modifier = Modifier
 ) {
     Box(
-        modifier = modifier
-            //.fillMaxSize()
-            //.background(Color.Black.copy(alpha = 0.5f))
-            .clickable(onClick = { viewModel.closeStepEditor() }),
+        modifier = modifier,
         contentAlignment = Alignment.Center
     ) {
         LazyColumn(
@@ -721,7 +733,7 @@ fun StepSelectorByType(
                 val step = selectedSteps[index]
                 StepDefRowCardClickable(
                     step,
-                    onClick = { viewModel.addStepDefToRoutineEditor(step) },
+                    onClick = { viewModel.addStepDefToRoutineEditorLast(step) },
                     onDelete = { viewModel.deleteStepDefIfUsers(step) },
                     onEdit = { viewModel.openStepEditorWithStep(step, -1) },
                     modifier = Modifier.fillMaxWidth()
@@ -736,15 +748,14 @@ fun StepSelectorByType(
 fun StepEditorBox(
     viewModel: RoutinesViewModel,
     onDismiss: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    label: String = "Add step"
 ) {
     val stepEditorState by viewModel.stepEditorState.collectAsState()
     var showStepTypeModal by remember { mutableStateOf(false) }
 
     Box (
         modifier = modifier
-            //.fillMaxSize()
-            //.background(Color.Black.copy(alpha = 0.5f))
             .clickable { onDismiss() },
         contentAlignment = Alignment.Center
     ) {
@@ -760,7 +771,7 @@ fun StepEditorBox(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    "Add step", style = MaterialTheme.typography.headlineSmall,
+                    label, style = MaterialTheme.typography.headlineSmall,
                     textAlign = TextAlign.Center
                 )
                 Row(
@@ -861,10 +872,6 @@ fun RoutineDetailsScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text(
-                        "Edit routine", style = MaterialTheme.typography.headlineSmall,
-                        textAlign = TextAlign.Center
-                    )
                     RoutineEntityDetails(routineEntity)
                     LazyColumn(
                         modifier = Modifier.fillMaxWidth().weight(1f),

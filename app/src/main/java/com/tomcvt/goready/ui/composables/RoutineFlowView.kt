@@ -191,10 +191,9 @@ fun WaitingStepBox(viewModel: RoutineFlowViewModel) {
 @Composable
 fun CompletedStepBox(viewModel: RoutineFlowViewModel) {
     val currentStep by viewModel.currentStep.collectAsState()
-    var passedGate by remember { mutableStateOf(false) }
     var enabled by remember { mutableStateOf(false) }
 
-    LaunchedEffect(passedGate) {
+    LaunchedEffect(Unit) {
         delay(1000)
         enabled = true
     }
@@ -204,45 +203,30 @@ fun CompletedStepBox(viewModel: RoutineFlowViewModel) {
             .background(MaterialTheme.colorScheme.background),
         contentAlignment = Alignment.Center
     ) {
-        if (!passedGate) {
-            Text("Completed step: ${currentStep?.name}")
-            Button(
-                onClick = { passedGate = true },
-                modifier = Modifier.padding(16.dp)
+        if (BuildConfig.DEBUG) {
+            Button (
+                onClick = { enabled = !enabled },
+                modifier = Modifier.padding(16.dp).align(Alignment.TopEnd)
             ) {
-                Text("Next Step")
+                Text("Toggle Enabled")
             }
-        } else {
-            Box (
-                modifier = Modifier.fillMaxSize().padding(16.dp),
-
-            ) {
-                if (BuildConfig.DEBUG) {
-                    Button (
-                        onClick = { enabled = !enabled },
-                        modifier = Modifier.padding(16.dp).align(Alignment.TopEnd)
-                    ) {
-                        Text("Toggle Enabled")
-                    }
-                }
-                StepDetailsCard(
-                    step = currentStep ?: emptyStep
-                    , modifier = Modifier.align(Alignment.TopCenter)
-                )
-                SimpleTickCircleAnimations(
-                    checked = enabled,
-                    modifier = Modifier.padding(16.dp).align(Alignment.Center)
-                )
-                Button(
-                    onClick = { viewModel.nextStep(); passedGate = false },
-                    modifier = Modifier.padding(16.dp).align(Alignment.BottomCenter)
-                ) {
-                    Text(
-                        "Next Step",
-                        style = MaterialTheme.typography.headlineSmall
-                    )
-                }
-            }
+        }
+        StepDetailsCard(
+            step = currentStep ?: emptyStep
+            , modifier = Modifier.align(Alignment.TopCenter)
+        )
+        SimpleTickCircleAnimations(
+            checked = enabled,
+            modifier = Modifier.padding(16.dp).align(Alignment.Center)
+        )
+        Button(
+            onClick = { viewModel.nextStep() },
+            modifier = Modifier.padding(16.dp).align(Alignment.BottomCenter)
+        ) {
+            Text(
+                "Next Step",
+                style = MaterialTheme.typography.headlineSmall
+            )
         }
     }
 }
