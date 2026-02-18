@@ -172,19 +172,29 @@ fun WaitingStepBox(viewModel: RoutineFlowViewModel) {
         delay(1000)
         launched = true
     }
-    CardPopupAnimated(
-        launched = launched
+    Box(
+        modifier = Modifier.fillMaxSize().padding(16.dp)
+            .background(MaterialTheme.colorScheme.background)
     ) {
-        StepDetailsCard(
-            step = currentStep ?: emptyStep
-        )
-    }
-
-    Button(
-        onClick = { viewModel.startStep() },
-        modifier = Modifier.padding(16.dp)
-    ) {
-        Text("Start Step")
+        Column(
+            modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            CardPopupAnimated(
+                launched = launched
+            ) {
+                StepDetailsCard(
+                    step = currentStep ?: emptyStep
+                )
+            }
+        }
+        //TODO here render something, maybe chosen emoji/ default something
+        Button(
+            onClick = { viewModel.startStep() },
+            modifier = Modifier.padding(16.dp).align(Alignment.BottomCenter)
+        ) {
+            Text("Start Step")
+        }
     }
 }
 
