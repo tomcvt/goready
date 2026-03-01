@@ -69,7 +69,7 @@ class AlarmActivity : ComponentActivity() {
 
         val testAlarm = intent.getBooleanExtra("TestAlarm", false)
         var onInteraction = {
-            Log.d(TAG, "Sending interaction intent")
+            //Log.d(TAG, "Sending interaction intent")
             sendInteraction()
         }
         if (testAlarm) {

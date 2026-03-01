@@ -135,7 +135,7 @@ fun AlarmScreen(
                     )
                 }
             }
-            TaskType.MATH -> {//TODO implement math alarm screen
+            TaskType.MATH -> {
                 if (dismissable) {
                     DebugMathAlarmScreen(
                         taskData = taskData?: "FIRST|1",

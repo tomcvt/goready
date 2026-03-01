@@ -49,9 +49,8 @@ enum class TaskType(
     TEXT("Text", 3),
     MATH("Math tasks", 4),
     TARGET("Target Minigame", 5, true),
-    TASK_CHAIN("Task Chain", 6, true);
-
-
+    TASK_CHAIN("Task Chain", 6, true),
+    GAME("Game", 7, false);
 
     companion object {
         fun fromLabel(label: String): TaskType? =
