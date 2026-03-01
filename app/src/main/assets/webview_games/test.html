@@ -1,0 +1,202 @@
+<canvas id="gameCanvas"></canvas>
+<script>
+    /*
+    class GameBridge(
+    private val mainHandler: Handler,
+    private val onGameFinishedCallback: (Long) -> Unit,
+    private val onInteractionCallback: () -> Unit,
+) {
+    @JavascriptInterface
+    fun onGameFinished(score: Long) {
+        mainHandler.post { onGameFinishedCallback(score) }
+    }
+    @JavascriptInterface
+    fun onInteraction() {
+        mainHandler.post { onInteractionCallback() }
+    }
+}
+    WebView(context).apply {
+            settings.javaScriptEnabled = true
+            addJavascriptInterface(GameBridge(
+                webViewHandler,
+                onGameFinished,
+                onInteraction,
+            ), "AndroidBridge")
+            loadUrl("file:///android_asset/webview_games/${gameFilename}")
+        }
+    */
+    // Set up
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    const local = window.AndroidBridge ? true : false;
+    
+    const onGameFinishedCallback = local ? window.AndroidBridge.onGameFinished : () => {};
+    const onInteractionCallback = local ? window.AndroidBridge.onInteraction : () => {};
+
+    function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    // Game logic
+    
+    const gameBox = document.getElementById('gameBox');
+    const inputPanel = document.getElementById('inputPanel');
+
+    function getGameSize() {
+        // Slightly smaller than 720p width, square
+        const maxWidth = Math.min(window.innerWidth, 640);
+        return maxWidth;
+    }
+
+    function resizeCanvas() {
+        const size = getGameSize();
+        canvas.width = size;
+        canvas.height = size;
+        gameBox.style.width = size + 'px';
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    // --- Brick Breaker Game ---
+    const ROWS = 4, COLS = 4;
+    let bricks = [];
+    let paddle = { w: 100, h: 16, x: 0, y: 0, speed: 0 };
+    let ball = { x: 0, y: 0, r: 10, vx: 0, vy: 0 };
+    let score = 0;
+    let running = true;
+
+    function resetGame() {
+        // Bricks
+        bricks = [];
+        for (let r = 0; r < ROWS; r++) {
+            for (let c = 0; c < COLS; c++) {
+                bricks.push({ x: c, y: r, alive: true });
+            }
+        }
+        // Paddle
+        const size = getGameSize();
+        paddle.w = Math.max(80, size / 5);
+        paddle.h = 16;
+        paddle.x = (size - paddle.w) / 2;
+        paddle.y = size - 40;
+        paddle.speed = 0;
+        // Ball
+        ball.r = Math.max(8, size / 48);
+        ball.x = size / 2;
+        ball.y = paddle.y - ball.r - 2;
+        ball.vx = (Math.random() > 0.5 ? 1 : -1) * (size / 240);
+        ball.vy = -size / 180;
+        score = 0;
+        running = true;
+    }
+    resetGame();
+
+    function draw() {
+        const size = getGameSize();
+        ctx.clearRect(0, 0, size, size);
+        // Draw bricks
+        const brickW = (size - 40) / COLS, brickH = 24;
+        for (const b of bricks) {
+            if (!b.alive) continue;
+            ctx.fillStyle = '#2ad';
+            ctx.fillRect(20 + b.x * brickW, 32 + b.y * brickH, brickW - 6, brickH - 6);
+        }
+        // Draw paddle
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(paddle.x, paddle.y, paddle.w, paddle.h);
+        // Draw ball
+        ctx.beginPath();
+        ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
+        ctx.fillStyle = '#fa2';
+        ctx.fill();
+        // Draw score
+        ctx.fillStyle = '#fff';
+        ctx.font = '20px sans-serif';
+        ctx.fillText('Score: ' + score, 20, size - 12);
+    }
+
+    function update(delta) {
+        if (!running) return;
+        const size = getGameSize();
+        // Move paddle
+        paddle.x += paddle.speed * delta / 16;
+        paddle.x = Math.max(0, Math.min(size - paddle.w, paddle.x));
+        // Move ball
+        ball.x += ball.vx * delta / 16;
+        ball.y += ball.vy * delta / 16;
+        // Wall collision
+        if (ball.x - ball.r < 0) { ball.x = ball.r; ball.vx *= -1; }
+        if (ball.x + ball.r > size) { ball.x = size - ball.r; ball.vx *= -1; }
+        if (ball.y - ball.r < 0) { ball.y = ball.r; ball.vy *= -1; }
+        // Paddle collision
+        if (ball.y + ball.r > paddle.y && ball.x > paddle.x && ball.x < paddle.x + paddle.w && ball.y < paddle.y + paddle.h) {
+            ball.y = paddle.y - ball.r;
+            ball.vy *= -1;
+            ball.vx += paddle.speed * 0.1;
+        }
+        // Brick collision
+        for (const b of bricks) {
+            if (!b.alive) continue;
+            const brickW = (size - 40) / COLS, brickH = 24;
+            const bx = 20 + b.x * brickW, by = 32 + b.y * brickH;
+            if (
+                ball.x > bx && ball.x < bx + brickW - 6 &&
+                ball.y - ball.r < by + brickH - 6 && ball.y + ball.r > by
+            ) {
+                b.alive = false;
+                score++;
+                ball.vy *= -1;
+                break;
+            }
+        }
+        // Lose condition
+        if (ball.y - ball.r > size) {
+            running = false;
+            setTimeout(() => { resetGame(); }, 1200);
+        }
+        // Win condition
+        if (bricks.every(b => !b.alive)) {
+            running = false;
+            setTimeout(() => { resetGame(); }, 1200);
+        }
+    }
+
+    // --- Input Panel ---
+    let leftPressed = false, rightPressed = false;
+    const btnLeft = document.getElementById('btnLeft');
+    const btnRight = document.getElementById('btnRight');
+
+    function setPaddleSpeed() {
+        const size = getGameSize();
+        if (leftPressed && !rightPressed) paddle.speed = -size / 80;
+        else if (rightPressed && !leftPressed) paddle.speed = size / 80;
+        else paddle.speed = 0;
+    }
+
+    btnLeft.addEventListener('touchstart', e => { leftPressed = true; setPaddleSpeed(); e.preventDefault(); });
+    btnLeft.addEventListener('touchend', e => { leftPressed = false; setPaddleSpeed(); e.preventDefault(); });
+    btnRight.addEventListener('touchstart', e => { rightPressed = true; setPaddleSpeed(); e.preventDefault(); });
+    btnRight.addEventListener('touchend', e => { rightPressed = false; setPaddleSpeed(); e.preventDefault(); });
+    // Also support mouse for desktop testing
+    btnLeft.addEventListener('mousedown', e => { leftPressed = true; setPaddleSpeed(); });
+    btnLeft.addEventListener('mouseup', e => { leftPressed = false; setPaddleSpeed(); });
+    btnRight.addEventListener('mousedown', e => { rightPressed = true; setPaddleSpeed(); });
+    btnRight.addEventListener('mouseup', e => { rightPressed = false; setPaddleSpeed(); });
+
+    // --- Game Loop ---
+    let lastTime = 0;
+    function gameLoop(timestamp) {
+        if (!lastTime) lastTime = timestamp;
+        const delta = timestamp - lastTime;
+        lastTime = timestamp;
+        update(delta);
+        draw();
+        requestAnimationFrame(gameLoop);
+    }
+    gameLoop();
+</script>
