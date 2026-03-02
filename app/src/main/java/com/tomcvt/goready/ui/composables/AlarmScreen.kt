@@ -1,5 +1,6 @@
 package com.tomcvt.goready.ui.composables
 
+import android.os.Handler
 import androidx.compose.runtime.Composable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -30,6 +31,8 @@ import com.tomcvt.goready.BuildConfig
 import com.tomcvt.goready.constants.MathType
 import com.tomcvt.goready.constants.TaskType
 import com.tomcvt.goready.data.AlarmEntity
+import com.tomcvt.goready.games.GamesRegistry
+import com.tomcvt.goready.games.WebviewGameAlarmScreen
 import kotlin.math.sqrt
 
 
@@ -71,7 +74,8 @@ fun AlarmScreen(
     onStopAlarm: () -> Unit,
     onInteraction: () -> Unit,
     modifier: Modifier = Modifier,
-    dismissable: Boolean = false
+    dismissable: Boolean = false,
+    webViewHandler: Handler? = null
 ) {
     var passedGate by remember { mutableStateOf(false) }
     if (!passedGate) {
@@ -159,6 +163,17 @@ fun AlarmScreen(
                     onInteraction = onInteraction,
                     dismissable = dismissable,
                     modifier = Modifier.fillMaxSize()
+                )
+            }
+            TaskType.GAME -> {
+                WebviewGameAlarmScreen(
+                    webViewHandler = webViewHandler?: Handler(),
+                    gameId = taskData?: "test",
+                    gamesRegistry = GamesRegistry(),
+                    onStopAlarm = onStopAlarm,
+                    onInteraction = onInteraction,
+                    modifier = Modifier.fillMaxSize(),
+                    dismissable = dismissable
                 )
             }
             else -> {}

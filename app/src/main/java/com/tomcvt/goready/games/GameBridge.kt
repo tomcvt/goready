@@ -7,6 +7,7 @@ class GameBridge(
     private val mainHandler: Handler,
     private val onGameFinishedCallback: (Long) -> Unit,
     private val onInteractionCallback: () -> Unit,
+    private val gameSkippable: Boolean
 ) {
     @JavascriptInterface
     fun onGameFinished(score: Long) {
@@ -15,5 +16,9 @@ class GameBridge(
     @JavascriptInterface
     fun onInteraction() {
         mainHandler.post { onInteractionCallback() }
+    }
+    @JavascriptInterface
+    fun isSkippable() : Boolean {
+        return gameSkippable;
     }
 }

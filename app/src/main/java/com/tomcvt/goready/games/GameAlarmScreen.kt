@@ -128,7 +128,8 @@ fun WebViewContainerBox(
     gameFilename: String,
     onStopAlarm: () -> Unit,
     onInteraction: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    skippable: Boolean = false
 ) {
     val context = LocalContext.current
     val onGameFinished: (Long) -> Unit = {
@@ -142,6 +143,7 @@ fun WebViewContainerBox(
                 webViewHandler,
                 onGameFinished,
                 onInteraction,
+                skippable
             ), "AndroidBridge")
             loadUrl("file:///android_asset/webview_games/${gameFilename}")
         }

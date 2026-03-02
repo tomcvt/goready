@@ -1,4 +1,101 @@
-<canvas id="gameCanvas"></canvas>
+<style>
+    body {
+        margin: 0;
+        background: #222;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+    }
+
+    .portrait-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        margin-top: 24px;
+        width: 100vw;
+        max-width: 100vw;
+    }
+
+    @media (min-aspect-ratio: 4/3) {
+        .portrait-container {
+            max-width: 480px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+    }
+
+    #gameBox {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+    }
+
+    #gameCanvas {
+        background: #111;
+        border-radius: 12px;
+        box-shadow: 0 4px 24px #000a;
+        display: block;
+        border: 1px solid red;
+    }
+
+    #inputPanel {
+        width: 100%;
+        position: relative;
+        display: flex;
+        justify-content: center;
+        gap: 16px;
+        margin-top: 16px;
+        margin-bottom: 8px;
+    }
+
+    #skipBtn {
+        position: absolute;
+        width: 80px;
+        height: 32px;
+        right: 16px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 0.9rem;
+        background: #555;
+        color: #fff;
+        border: none;
+        padding: 8px 12px;
+        cursor: pointer;
+        display: none; /* Hidden by default, can be shown if needed */
+    }
+
+    .gameBtn {
+        width: 100px;
+        height: 64px;
+        font-size: 1.5rem;
+        border-radius: 8px;
+        border: none;
+        background: #444;
+        color: #fff;
+        box-shadow: 0 2px 8px #0005;
+        touch-action: manipulation;
+        user-select: none;
+        transition: background 0.2s;
+    }
+
+    .gameBtn:active {
+        background: #666;
+    }
+</style>
+<div class="portrait-container">
+    <div id="gameBox">
+        <canvas id="gameCanvas"></canvas>
+        <div id="inputPanel">
+            <button class="gameBtn" id="btnLeft">◀️ Left</button>
+            <button class="gameBtn" id="btnRight">Right ▶️</button>
+            <button id="skipBtn" onclick="skipGame()">Skip</button>
+        </div>
+    </div>
+</div>
 <script>
     /*
     class GameBridge(
@@ -26,51 +123,83 @@
         }
     */
     // Set up
+    let GAME_SIZE = 0;
+
+    let debugPrintAccumulator = 1000;
+
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
+    const gameBox = document.getElementById('gameBox');
+    const inputPanel = document.getElementById('inputPanel');
+    const skipBtn = document.getElementById('skipBtn');
+    const dpr = window.devicePixelRatio || 1;
+
 
     const local = window.AndroidBridge ? true : false;
-    
-    const onGameFinishedCallback = local ? window.AndroidBridge.onGameFinished : () => {};
-    const onInteractionCallback = local ? window.AndroidBridge.onInteraction : () => {};
 
-    function resizeCanvas() {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
+    const onGameFinishedCallback = local ? window.AndroidBridge.onGameFinished : () => { };
+    const onInteractionCallback = local ? window.AndroidBridge.onInteraction : () => { };
+    if (local) {
+        // Show skip button if running in Android WebView
+        skipBtn.style.display = 'block';
+        skipBtn.onclick = () => {
+            onGameFinishedCallback(0); // Send score 0 on skip
+        };
     }
-
+    let lastInteractionTime = 0;
+    // Call onInteractionCallback whenever the user interacts (for idle detection) with 2 seconds debounce
+    function userInteracted() {
+        const now = Date.now();
+        if (now - lastInteractionTime > 2000) {
+            onInteractionCallback();
+            lastInteractionTime = now;
+        }
+    }
+    
+    // Responsive sizing
+    function getGameSize() {
+        // Slightly smaller than 720p width, square
+        // At least 680px, but scales up with higher resolutions, always square
+        return Math.max(680, Math.min(window.innerWidth, window.innerHeight));
+    }
+    function resizeCanvas() {
+        GAME_SIZE = getGameSize();
+        canvas.width = GAME_SIZE;
+        canvas.height = GAME_SIZE;
+        gameBox.style.width = GAME_SIZE + 'px';
+    }
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
 
     // Game logic
-    
-    const gameBox = document.getElementById('gameBox');
-    const inputPanel = document.getElementById('inputPanel');
-
-    function getGameSize() {
-        // Slightly smaller than 720p width, square
-        const maxWidth = Math.min(window.innerWidth, 640);
-        return maxWidth;
-    }
-
-    function resizeCanvas() {
-        const size = getGameSize();
-        canvas.width = size;
-        canvas.height = size;
-        gameBox.style.width = size + 'px';
-    }
-    resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
-
     // --- Brick Breaker Game ---
     const ROWS = 4, COLS = 4;
     let bricks = [];
+    let aliveBricks = 0;
     let paddle = { w: 100, h: 16, x: 0, y: 0, speed: 0 };
     let ball = { x: 0, y: 0, r: 10, vx: 0, vy: 0 };
     let score = 0;
     let running = true;
 
+    function debugSize() {
+        ctx.strokeStyle = 'blue';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(0, 0, GAME_SIZE, GAME_SIZE);
+    }
+
+    function printDebugs(delta) {
+        debugPrintAccumulator -= delta;
+        if (debugPrintAccumulator <= 0) {
+            console.log(`Game Size: ${GAME_SIZE}, 
+            Paddle: (${paddle.x.toFixed(1)}, ${paddle.y}), 
+            Ball: (${ball.x.toFixed(1)}, ${ball.y}), 
+            Score: ${score}`);
+            debugPrintAccumulator = 1000;
+        }
+    }
+
     function resetGame() {
+        debugSize();
         // Bricks
         bricks = [];
         for (let r = 0; r < ROWS; r++) {
@@ -78,8 +207,9 @@
                 bricks.push({ x: c, y: r, alive: true });
             }
         }
+        aliveBricks = ROWS * COLS;
         // Paddle
-        const size = getGameSize();
+        const size = GAME_SIZE;
         paddle.w = Math.max(80, size / 5);
         paddle.h = 16;
         paddle.x = (size - paddle.w) / 2;
@@ -97,7 +227,7 @@
     resetGame();
 
     function draw() {
-        const size = getGameSize();
+        const size = GAME_SIZE;
         ctx.clearRect(0, 0, size, size);
         // Draw bricks
         const brickW = (size - 40) / COLS, brickH = 24;
@@ -107,22 +237,28 @@
             ctx.fillRect(20 + b.x * brickW, 32 + b.y * brickH, brickW - 6, brickH - 6);
         }
         // Draw paddle
+        ctx.save();
         ctx.fillStyle = '#fff';
         ctx.fillRect(paddle.x, paddle.y, paddle.w, paddle.h);
+        ctx.restore();
         // Draw ball
+        ctx.save();
         ctx.beginPath();
         ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
         ctx.fillStyle = '#fa2';
         ctx.fill();
+        ctx.restore();
         // Draw score
+        ctx.save();
         ctx.fillStyle = '#fff';
         ctx.font = '20px sans-serif';
         ctx.fillText('Score: ' + score, 20, size - 12);
+        ctx.restore();
     }
 
     function update(delta) {
         if (!running) return;
-        const size = getGameSize();
+        const size = GAME_SIZE;
         // Move paddle
         paddle.x += paddle.speed * delta / 16;
         paddle.x = Math.max(0, Math.min(size - paddle.w, paddle.x));
@@ -134,10 +270,26 @@
         if (ball.x + ball.r > size) { ball.x = size - ball.r; ball.vx *= -1; }
         if (ball.y - ball.r < 0) { ball.y = ball.r; ball.vy *= -1; }
         // Paddle collision
-        if (ball.y + ball.r > paddle.y && ball.x > paddle.x && ball.x < paddle.x + paddle.w && ball.y < paddle.y + paddle.h) {
+        if (
+            ball.y + ball.r > paddle.y &&
+            ball.x > paddle.x && ball.x < paddle.x + paddle.w &&
+            ball.y < paddle.y + paddle.h + ball.r
+        ) {
             ball.y = paddle.y - ball.r;
-            ball.vy *= -1;
-            ball.vx += paddle.speed * 0.1;
+            // Calculate hit position: -1 (left edge) to 1 (right edge)
+            const hitNorm = ((ball.x - paddle.x) / paddle.w) * 2 - 1;
+            // Add to vx based on hitNorm, but keep total speed constant
+            const speed = Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy);
+            // Tweak factor: how much the hitNorm affects vx (tuneable)
+            const tweak = speed * 0.6; // 0.6 is a sensitivity factor
+            ball.vx += hitNorm * tweak;
+            // Clamp vx to not exceed 90% of speed (to avoid too flat angles)
+            const maxVx = speed * 0.9;
+            if (ball.vx > maxVx) ball.vx = maxVx;
+            if (ball.vx < -maxVx) ball.vx = -maxVx;
+            // Recalculate vy to preserve speed, always negative (up)
+            const newVy = -Math.sqrt(Math.max(0.01, speed * speed - ball.vx * ball.vx));
+            ball.vy = newVy;
         }
         // Brick collision
         for (const b of bricks) {
@@ -149,6 +301,7 @@
                 ball.y - ball.r < by + brickH - 6 && ball.y + ball.r > by
             ) {
                 b.alive = false;
+                aliveBricks--;
                 score++;
                 ball.vy *= -1;
                 break;
@@ -166,13 +319,21 @@
         }
     }
 
+    function checkWinCon() {
+        if (aliveBricks === 0) {
+            running = false;
+            return true;
+        }
+        return false;
+    }
+
     // --- Input Panel ---
     let leftPressed = false, rightPressed = false;
     const btnLeft = document.getElementById('btnLeft');
     const btnRight = document.getElementById('btnRight');
 
     function setPaddleSpeed() {
-        const size = getGameSize();
+        const size = GAME_SIZE;
         if (leftPressed && !rightPressed) paddle.speed = -size / 80;
         else if (rightPressed && !leftPressed) paddle.speed = size / 80;
         else paddle.speed = 0;
@@ -188,6 +349,15 @@
     btnRight.addEventListener('mousedown', e => { rightPressed = true; setPaddleSpeed(); });
     btnRight.addEventListener('mouseup', e => { rightPressed = false; setPaddleSpeed(); });
 
+    window.addEventListener('keydown', e => {
+        if (e.key === 'ArrowLeft') { leftPressed = true; setPaddleSpeed(); }
+        if (e.key === 'ArrowRight') { rightPressed = true; setPaddleSpeed(); }
+    });
+    window.addEventListener('keyup', e => {
+        if (e.key === 'ArrowLeft') { leftPressed = false; setPaddleSpeed(); }
+        if (e.key === 'ArrowRight') { rightPressed = false; setPaddleSpeed(); }
+    });
+
     // --- Game Loop ---
     let lastTime = 0;
     function gameLoop(timestamp) {
@@ -196,7 +366,13 @@
         lastTime = timestamp;
         update(delta);
         draw();
-        requestAnimationFrame(gameLoop);
+        if (!checkWinCon()) {
+            requestAnimationFrame(gameLoop);
+        } else {
+            onGameFinishedCallback(score);
+        }
     }
-    gameLoop();
+    window.onload = () => {
+        requestAnimationFrame(gameLoop);
+    };
 </script>

@@ -322,6 +322,10 @@ class AlarmViewModel(
                     return true
                 }
             }
+            //TODO fix here and make real
+            TaskType.GAME -> {
+                return true
+            }
             else -> {return false}
         }
         return false
