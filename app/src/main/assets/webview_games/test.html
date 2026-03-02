@@ -137,8 +137,8 @@
 
     const local = window.AndroidBridge ? true : false;
 
-    const onGameFinishedCallback = local ? window.AndroidBridge.onGameFinished : () => { };
-    const onInteractionCallback = local ? window.AndroidBridge.onInteraction : () => { };
+    const onGameFinishedCallback = local ? window.AndroidBridge.onGameFinished() : () => { };
+    const onInteractionCallback = local ? window.AndroidBridge.onInteraction() : () => { };
     if (local) {
         // Show skip button if running in Android WebView
         skipBtn.style.display = 'block';
@@ -158,9 +158,12 @@
     
     // Responsive sizing
     function getGameSize() {
-        // Slightly smaller than 720p width, square
+        // Slightly smaller than 720p width, square, to fit well on mobile screens and scale up on larger screens
         // At least 680px, but scales up with higher resolutions, always square
-        return Math.max(680, Math.min(window.innerWidth, window.innerHeight));
+        if (window.innerWidth >= 720) {
+            return 680;
+        }
+        return Math.min(window.innerWidth, window.innerHeight);
     }
     function resizeCanvas() {
         GAME_SIZE = getGameSize();
@@ -339,9 +342,9 @@
         else paddle.speed = 0;
     }
 
-    btnLeft.addEventListener('touchstart', e => { leftPressed = true; setPaddleSpeed(); e.preventDefault(); });
+    btnLeft.addEventListener('touchstart', e => { leftPressed = true; setPaddleSpeed(); e.preventDefault(); userInteracted(); });
     btnLeft.addEventListener('touchend', e => { leftPressed = false; setPaddleSpeed(); e.preventDefault(); });
-    btnRight.addEventListener('touchstart', e => { rightPressed = true; setPaddleSpeed(); e.preventDefault(); });
+    btnRight.addEventListener('touchstart', e => { rightPressed = true; setPaddleSpeed(); e.preventDefault(); userInteracted(); });
     btnRight.addEventListener('touchend', e => { rightPressed = false; setPaddleSpeed(); e.preventDefault(); });
     // Also support mouse for desktop testing
     btnLeft.addEventListener('mousedown', e => { leftPressed = true; setPaddleSpeed(); });

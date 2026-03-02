@@ -2,6 +2,8 @@ package com.tomcvt.goready.ui.composables
 
 
 import android.content.Intent
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -143,6 +145,7 @@ fun AlarmListRoute(
         if (previewAlarm != null) {
             val alarm = previewAlarm!!
             val canSnooze = alarm.snoozeEnabled && (alarm.snoozeMaxCount?: 1) > 0
+            val mockHandler = Handler(Looper.getMainLooper())
             VibrantLightTheme {
                 AlarmScreen(
                     alarm = alarm,
@@ -151,7 +154,8 @@ fun AlarmListRoute(
                     onSnooze = { previewAlarm = null },
                     onStopAlarm = { previewAlarm = null },
                     onInteraction = {},
-                    dismissable = true
+                    dismissable = true,
+                    webViewHandler = mockHandler
                 )
             }
         }

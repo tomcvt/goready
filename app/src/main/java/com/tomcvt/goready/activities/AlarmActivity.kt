@@ -3,6 +3,7 @@ package com.tomcvt.goready.activities
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
 import android.util.Log
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
@@ -88,6 +89,8 @@ class AlarmActivity : ComponentActivity() {
             }
         }
 
+        val webviewHandler = Handler(mainLooper)
+
         lifecycleScope.launch {
             val alarmEntity = withContext(Dispatchers.IO) {appAlarmManager.getAlarm(alarmId)}
             Log.d(TAG, "Alarm entity: $alarmEntity")
@@ -119,10 +122,6 @@ class AlarmActivity : ComponentActivity() {
                 }
             }
 
-
-            if (data.isNullOrEmpty()) {
-                taskType = TaskType.NONE
-            }
             var canSnooze = receivedRemainingSnooze > 0
             if (snoozeTime !in SNOOZE_MINUTES || !alarmEntity.snoozeEnabled) {
                 canSnooze = false
@@ -158,7 +157,8 @@ class AlarmActivity : ComponentActivity() {
                         //TODO update later snooze,
                         canSnooze = canSnooze,
                         snoozeTime = snoozeTime,
-                        onSnooze = { onSnooze() }
+                        onSnooze = { onSnooze() },
+                        webViewHandler = webviewHandler
                     )
                 }
             }

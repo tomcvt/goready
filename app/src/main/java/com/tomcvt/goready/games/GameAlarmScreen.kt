@@ -107,6 +107,7 @@ fun WebviewGameAlarmScreen(
                 gameFilename = gamesRegistry.games[gameId]?.filename?: "test.html",
                 onStopAlarm = onStopAlarm,
                 onInteraction = onInteraction,
+                skippable = dismissable,
                 modifier = Modifier
                     .fillMaxWidth()
                     .fillMaxHeight()
@@ -153,6 +154,7 @@ fun WebViewContainerBox(
     ) {
         val width = maxWidth
         val height = maxHeight
+        Log.d("WebViewContainerBox", "Width: $width, Height: $height")
         AndroidView(
             modifier = Modifier.fillMaxSize(),
             factory = { webView },

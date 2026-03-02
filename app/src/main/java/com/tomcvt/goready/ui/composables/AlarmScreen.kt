@@ -44,6 +44,7 @@ fun AlarmScreen(
     onSnooze: () -> Unit,
     onStopAlarm: () -> Unit,
     onInteraction: () -> Unit,
+    webViewHandler: Handler,
     modifier: Modifier = Modifier,
     dismissable: Boolean = false
 ) {
@@ -57,6 +58,7 @@ fun AlarmScreen(
         onSnooze = onSnooze,
         onStopAlarm = onStopAlarm,
         onInteraction = onInteraction,
+        webViewHandler = webViewHandler,
         modifier = modifier,
         dismissable = dismissable
     )
@@ -73,9 +75,9 @@ fun AlarmScreen(
     onSnooze: () -> Unit,
     onStopAlarm: () -> Unit,
     onInteraction: () -> Unit,
+    webViewHandler: Handler,
     modifier: Modifier = Modifier,
-    dismissable: Boolean = false,
-    webViewHandler: Handler? = null
+    dismissable: Boolean = false
 ) {
     var passedGate by remember { mutableStateOf(false) }
     if (!passedGate) {
@@ -167,7 +169,7 @@ fun AlarmScreen(
             }
             TaskType.GAME -> {
                 WebviewGameAlarmScreen(
-                    webViewHandler = webViewHandler?: Handler(),
+                    webViewHandler = webViewHandler,
                     gameId = taskData?: "test",
                     gamesRegistry = GamesRegistry(),
                     onStopAlarm = onStopAlarm,
