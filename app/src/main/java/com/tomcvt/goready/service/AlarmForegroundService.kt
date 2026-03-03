@@ -71,7 +71,7 @@ class AlarmForegroundService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val alarmId = intent?.getLongExtra(EXTRA_ALARM_ID, -1L) ?: -1
         val remainingSnooze = intent?.getIntExtra(EXTRA_REMAINING_SNOOZE, -1) ?: -1
-        Log.d("AlarmForegroundService", "onStartCommand with alarm ID: $alarmId and snooze: $remainingSnooze")
+        //Log.d("AlarmForegroundService", "intent ID: $alarmId snooze: $remainingSnooze intent: $intent")
 
         if (intent?.action == ACTION_STOP_ALARM_SOUND) {
             alarmStopped = true
@@ -100,9 +100,7 @@ class AlarmForegroundService : Service() {
             muteUntil = System.currentTimeMillis() + 5000
             isTemporarilyMuted = true
             pauseAlarm()
-            Log.d(TAG, "Alarm muted for 5 seconds")
-            Log.d(TAG, "Mute until: $muteUntil")
-            Log.d(TAG, "Is active: $isActive")
+            //Log.d(TAG, "Alarm muted for 5 seconds")
             return START_STICKY
         }
 
@@ -277,7 +275,6 @@ class AlarmForegroundService : Service() {
     }
 
     private fun pauseAlarm() {
-        Log.d(TAG, "Pausing alarm")
         mediaPlayer?.pause()
     }
 

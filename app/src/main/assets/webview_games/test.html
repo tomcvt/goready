@@ -135,11 +135,11 @@
     const dpr = window.devicePixelRatio || 1;
 
 
-    const local = window.AndroidBridge ? true : false;
-
-    const onGameFinishedCallback = local ? window.AndroidBridge.onGameFinished() : () => { };
-    const onInteractionCallback = local ? window.AndroidBridge.onInteraction() : () => { };
-    if (local) {
+    const local = window.AndroidBridge ? false : true; // If AndroidBridge is not present, we are likely running locally in a browser
+    
+    const onGameFinishedCallback = (score) => !local ? window.AndroidBridge.onGameFinished(score) : () => { };
+    const onInteractionCallback = () => !local ? window.AndroidBridge.onInteraction() : () => { };
+    if (local || (window.AndroidBridge && window.AndroidBridge.isSkippable && window.AndroidBridge.isSkippable())) {
         // Show skip button if running in Android WebView
         skipBtn.style.display = 'block';
         skipBtn.onclick = () => {

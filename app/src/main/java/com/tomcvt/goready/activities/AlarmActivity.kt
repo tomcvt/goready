@@ -18,6 +18,7 @@ import com.tomcvt.goready.application.AlarmApp
 import com.tomcvt.goready.constants.ACTION_RF_UI_LAUNCHER
 import com.tomcvt.goready.constants.ACTION_STOP_ALARM_SOUND
 import com.tomcvt.goready.constants.ACTION_UI_HIDDEN
+import com.tomcvt.goready.constants.ACTION_USER_INTERACTION
 import com.tomcvt.goready.constants.EXTRA_ALARM_ID
 import com.tomcvt.goready.constants.EXTRA_REMAINING_SNOOZE
 import com.tomcvt.goready.constants.EXTRA_ROUTINE_ID
@@ -187,7 +188,7 @@ class AlarmActivity : ComponentActivity() {
     }
     private fun sendInteraction() {
         val intent = Intent(this, AlarmForegroundService::class.java)
-        intent.action = "USER_INTERACTION"
+        intent.action = ACTION_USER_INTERACTION
         startService(intent)
     }
 
