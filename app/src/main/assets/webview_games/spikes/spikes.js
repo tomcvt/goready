@@ -1,3 +1,5 @@
+import GameScene from './scenes/gameScene.js';
+
 const config = {
     type: Phaser.AUTO,
     backgroundColor: '#1a1a2e',
