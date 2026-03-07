@@ -6,7 +6,7 @@ const config = {
     physics: {
         default: 'matter',
         matter: {
-            gravity: { y: 0.5 },
+            gravity: { x: 0, y: 0.5 },
             debug: true
         }
     },
@@ -20,3 +20,13 @@ const config = {
 }
 
 const game = new Phaser.Game(config)
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'p') {
+        if (game.scene.isPaused('GameScene')) {
+            game.scene.resume('GameScene')
+        } else {
+            game.scene.pause('GameScene')
+        }
+    }
+})

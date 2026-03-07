@@ -1,4 +1,4 @@
-export default class Bird extends Phaser.GameObjects.Sprite {
+export default class Bird extends Phaser.Physics.Matter.Sprite {
     constructor(scene) {
         const gfx = scene.make.graphics({ x: 0, y: 0, add: false })
         gfx.fillStyle(0xffff00)
@@ -6,14 +6,13 @@ export default class Bird extends Phaser.GameObjects.Sprite {
         gfx.generateTexture('bird', 40, 40)
         gfx.destroy()
 
-        super(scene, 180, 320, 'bird')
-        scene.add.existing(this)
-        scene.matter.add.gameObject(this, {
+        super(scene.matter.world, 180, 320, 'bird', undefined, {
             shape: { type: 'circle', radius: 20 },
             isStatic: false,
             frictionAir: 0,
             restitution: 1
         })
+        scene.add.existing(this)
 
         this.isAlive = true
 
@@ -21,7 +20,7 @@ export default class Bird extends Phaser.GameObjects.Sprite {
     }
 
     flap() {
-        this.setVelocityY(-5)
+        this.setVelocityY(-4)
     }
 
     kill() {
