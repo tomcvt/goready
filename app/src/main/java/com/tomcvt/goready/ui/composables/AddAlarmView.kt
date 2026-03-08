@@ -65,6 +65,7 @@ import com.tomcvt.goready.constants.TaskTypeContext
 import com.tomcvt.goready.data.RoutineEntity
 import com.tomcvt.goready.domain.AlarmDraft
 import com.tomcvt.goready.domain.SimpleAlarmDraft
+import com.tomcvt.goready.games.GamesRegistry
 import com.tomcvt.goready.viewmodel.AlarmViewModel
 import com.tomcvt.goready.viewmodel.RoutinesViewModel
 import com.tomcvt.goready.viewmodel.UiState
@@ -410,6 +411,7 @@ fun TaskDataInput(
     modifier: Modifier = Modifier
 ) {
     val premiumState = LocalPremiumState.current
+    val gamesRegistry = GamesRegistry()
 
     Box(
         modifier = modifier,
@@ -477,6 +479,14 @@ fun TaskDataInput(
                         onFocusLost = { onTaskDataProvided(it) },
                         placeholder = "   ",
                         modifier = Modifier.widthIn(min = 100.dp, max = 150.dp)
+                    )
+                }
+
+                TaskType.GAME -> {
+                    GameDropdownSelector(
+                        value = gamesRegistry.games[value] ?: gamesRegistry.games["spikes"]!!,
+                        options = GamesRegistry().getList(),
+                        onTypeSelected = { onTaskDataProvided(it.id) }
                     )
                 }
 

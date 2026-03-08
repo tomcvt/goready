@@ -12,9 +12,9 @@
   },
   "exclude": ["node_modules"],
   "include": [
+    "./*.js",
     "./objects/**/*.js",
     "./scenes/**/*.js",
-    "./types/**/*.d.ts",
-    "./spikes.js"
+    "./types/**/*.d.ts"
   ]
 }

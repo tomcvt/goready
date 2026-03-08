@@ -2,7 +2,12 @@ package com.tomcvt.goready.games
 
 import android.os.Handler
 import android.util.Log
+import android.view.View
+import android.webkit.WebResourceError
+import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
 import android.webkit.WebView
+import android.webkit.WebViewClient
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -32,6 +37,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.webkit.WebViewAssetLoader
 import com.tomcvt.goready.ui.composables.CountdownTargetMinigame
 import com.tomcvt.goready.ui.composables.FlexCloseButton
 
@@ -105,6 +111,7 @@ fun WebviewGameAlarmScreen(
             WebViewContainerBox(
                 webViewHandler = webViewHandler,
                 gameFilename = gamesRegistry.games[gameId]?.filename?: "test.html",
+                relPath = gamesRegistry.games[gameId]?.relPath,
                 onStopAlarm = onStopAlarm,
                 onInteraction = onInteraction,
                 skippable = dismissable,
@@ -130,7 +137,8 @@ fun WebViewContainerBox(
     onStopAlarm: () -> Unit,
     onInteraction: () -> Unit,
     modifier: Modifier = Modifier,
-    skippable: Boolean = false
+    skippable: Boolean = false,
+    relPath: String? = null
 ) {
     val context = LocalContext.current
     val onGameFinished: (Long) -> Unit = {
@@ -140,13 +148,48 @@ fun WebViewContainerBox(
     val webView = remember {
         WebView(context).apply {
             settings.javaScriptEnabled = true
+            settings.domStorageEnabled = true
+            setLayerType(View.LAYER_TYPE_SOFTWARE, null)
+            val assetLoader = WebViewAssetLoader.Builder()
+                .addPathHandler("/assets/", WebViewAssetLoader.AssetsPathHandler(context))
+                .build()
+            webViewClient = object : WebViewClient() {
+                override fun shouldInterceptRequest(
+                    view: WebView?,
+                    request: WebResourceRequest?
+                ): WebResourceResponse? {
+                    val response = assetLoader.shouldInterceptRequest(request?.url?: return null)
+                    if (request.url.path?.endsWith(".js") == true && response != null) {
+                        response.mimeType = "application/javascript"
+                    }
+                    Log.d("WebView",
+                        "Request: ${subend(request.url.toString())}, Response: ${substart(response?.toString()?: "")}")
+                    return response
+                }
+                override fun onReceivedError(
+                    view: WebView?,
+                    request: WebResourceRequest?,
+                    error: WebResourceError?
+                ) {
+                    Log.e("WebView", "Error: ${error?.description} for ${request?.url}")
+                }
+            }
+            //settings.allowFileAccessFromFileURLs = true
+            //settings.allowUniversalAccessFromFileURLs = true
+            //TODO remember to change this
             addJavascriptInterface(GameBridge(
                 webViewHandler,
                 onGameFinished,
                 onInteraction,
                 skippable
             ), "AndroidBridge")
-            loadUrl("file:///android_asset/webview_games/${gameFilename}")
+            if (relPath != null) {
+                //loadUrl("file:///android_asset/webview_games/$relPath/$gameFilename")
+                loadUrl("https://appassets.androidplatform.net/assets/webview_games/$relPath/$gameFilename")
+            } else {
+                //loadUrl("file:///android_asset/webview_games/${gameFilename}")
+                loadUrl("https://appassets.androidplatform.net/assets/webview_games/${gameFilename}")
+            }
         }
     }
     BoxWithConstraints(
@@ -160,4 +203,11 @@ fun WebViewContainerBox(
             factory = { webView },
         )
     }
+}
+
+fun subend(str: String) : String {
+    return str.substring((str.length - 20).coerceAtLeast(0), str.length)
+}
+fun substart(str: String) : String {
+    return str.substring(0, 20.coerceAtMost(str.length))
 }

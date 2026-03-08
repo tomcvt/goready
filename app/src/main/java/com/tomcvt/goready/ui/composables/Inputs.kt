@@ -16,9 +16,14 @@ import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -28,6 +33,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -39,7 +45,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.TextUnit
 import androidx.core.text.isDigitsOnly
+import com.tomcvt.goready.LocalPremiumState
 import com.tomcvt.goready.constants.MathType
+import com.tomcvt.goready.constants.TaskType
+import com.tomcvt.goready.games.GameEntry
+import com.tomcvt.goready.games.GamesRegistry
+import kotlin.collections.forEach
 
 @Composable
 fun TextInputCard(
@@ -206,6 +217,59 @@ fun setDefault(value: String) : Pair<MathType, Int> {
     }
     return type to range
 }
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun GameDropdownSelector(
+    value: GameEntry,
+    options: List<GameEntry>,
+    onTypeSelected: (GameEntry) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var expanded by remember { mutableStateOf(false) }
+    //var selectedOption by remember { mutableStateOf(selectedType.label) }
+    val premiumState = LocalPremiumState.current
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = !expanded }
+    ) {
+        TextField(
+            value = value.name,
+            onValueChange = {},
+            readOnly = true,
+            label = { Text("Select an option") },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            modifier = Modifier
+                .menuAnchor()
+                .fillMaxWidth()
+        )
+
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            options.forEach { option ->
+                val shouldDim = !premiumState.isPremium && option.premium
+                DropdownMenuItem(
+                    text = { Text(option.name) },
+                    onClick = {
+                        onTypeSelected(option)  // call lambda
+                        expanded = false
+                    },
+                    modifier = if (shouldDim) Modifier.alpha(0.5f) else Modifier
+                )
+            }
+        }
+    }
+}
+
+
+
+
+
+
+
 
 @Preview(showBackground = true)
 @Composable

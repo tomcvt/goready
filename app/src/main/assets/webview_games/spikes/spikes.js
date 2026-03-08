@@ -1,8 +1,8 @@
 import GameScene from './scenes/gameScene.js';
 
 const config = {
-    type: Phaser.AUTO,
-    backgroundColor: '#1a1a2e',
+    type: Phaser.CANVAS,
+    backgroundColor: '#00ff00',
     physics: {
         default: 'matter',
         matter: {
@@ -10,12 +10,8 @@ const config = {
             debug: true
         }
     },
-    scale: {
-        mode: Phaser.Scale.FIT,
-        autoCenter: Phaser.Scale.CENTER_BOTH,
-        width: 360,
-        height: 640
-    },
+    width: 360,
+    height: 640,
     scene: GameScene
 }
 

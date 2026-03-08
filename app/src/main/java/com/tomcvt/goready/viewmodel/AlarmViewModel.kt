@@ -380,6 +380,7 @@ fun parseData(taskType: TaskType, taskData: String) : String?  {
         }
         TaskType.MATH -> {return taskData}
         TaskType.TARGET -> { return taskData }
+        TaskType.GAME -> {return taskData}
         else -> {return null}
     }
 }

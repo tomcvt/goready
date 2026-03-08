@@ -4,7 +4,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
         * { margin: 0; padding: 0; }
-        html, body { width: 100%; height: 100vh; overflow: hidden; background: #000; }
+        html, body { width: 100%; height: 100vh; overflow: hidden; background: #888; }
         #game-container {position: relative; width: 100%; height: 100vh; min-height: 480px; }
         #skip-button {
             position: fixed;
@@ -35,32 +35,21 @@
         console.log('new DIAG: devicePixelRatio=' + window.devicePixelRatio);
     </script>
     <script src="phaser.min.js"></script>
-    <script>console.log('new DIAG: Phaser loaded, type=' + typeof Phaser);</script>
-    <script src="spikes.bundle.js"></script>
     <script>
-        console.log('DIAG: bundle executed, canvas count=' + document.querySelectorAll('canvas').length);
-        setTimeout(function() {
-            var c = document.getElementById('game-container');
-            console.log('DIAG delayed: container=' + c.offsetWidth + 'x' + c.offsetHeight);
-            var cvs = document.querySelector('canvas');
-            if (cvs) {
-                console.log('DIAG delayed: canvas size=' + cvs.width + 'x' + cvs.height + ' style=' + cvs.style.width + '/' + cvs.style.height);
-                console.log('DIAG delayed: canvas display=' + getComputedStyle(cvs).display + ' visibility=' + getComputedStyle(cvs).visibility + ' opacity=' + getComputedStyle(cvs).opacity);
-                console.log('DIAG delayed: canvas zIndex=' + getComputedStyle(cvs).zIndex + ' position=' + getComputedStyle(cvs).position);
-                console.log('DIAG delayed: canvas rect=' + JSON.stringify(cvs.getBoundingClientRect()));
-                // test raw canvas draw
-                var ctx = cvs.getContext('2d');
-                if (ctx) {
-                    ctx.fillStyle = 'red';
-                    ctx.fillRect(50, 50, 100, 100);
-                    console.log('DIAG delayed: drew red rect via 2d context');
-                } else {
-                    console.log('DIAG delayed: no 2d context (probably WebGL)');
-                    var gl = cvs.getContext('webgl') || cvs.getContext('webgl2');
-                    console.log('DIAG delayed: webgl context=' + !!gl);
+        console.log('new DIAG: Phaser loaded, type=' + typeof Phaser);
+        var game = new Phaser.Game({
+            type: Phaser.CANVAS,
+            width: 360,
+            height: 640,
+            backgroundColor: '#00ff00',
+            scene: {
+                create: function() {
+                    this.add.text(100, 200, 'PHASER WORKS', { color: '#ff0000', fontSize: '32px' });
+                    this.add.circle(180, 400, 50, 0x0000ff);
+                    console.log('MINIMAL SCENE: created, renderer type=' + game.renderer.type);
                 }
             }
-        }, 2000);
+        });
     </script>
     <script type="module">
         import Bridge from './AndroidBridge.js';

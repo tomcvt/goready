@@ -1,5 +1,6 @@
 import Bird from '../objects/bird.js';
 import Wall from '../objects/wall.js';
+import Bridge from '../AndroidBridge.js';
 
 export default class GameScene extends Phaser.Scene {
     constructor() {
@@ -11,7 +12,13 @@ export default class GameScene extends Phaser.Scene {
     }
 
     create() {
+        console.log('SCENE: create() started');
+        try {
+
+        this.score = 0
+
         this.bird = new Bird(this)
+        console.log('SCENE: bird created');
 
         const thickness = 25
         //this.matter.add.rectangle(0, 320, thickness, 640, { isStatic: true, label: 'leftWall' })
@@ -24,6 +31,7 @@ export default class GameScene extends Phaser.Scene {
         this.leftWall = new Wall(this, 'left', this.debug)
         this.rightWall = new Wall(this, 'right', this.debug)
         this.leftWall.extend()
+        console.log('SCENE: walls created');
         this.rightWall.extend()
 
         this.input.on('pointerdown', () => {
@@ -41,28 +49,43 @@ export default class GameScene extends Phaser.Scene {
                     const vy = this.bird.body.velocity.y
                     this.bird.setVelocity(-vx, vy)  // flip x, keep y
                     this.leftWall.hideAndRetract()  // hide spikes and retract
+                    this.score++
+                    Bridge.onInteraction()  // notify Android of interaction , skip button is onGameFinished
                 }
                 else if (labels.includes('rightWall')) {
                     const vx = this.bird.body.velocity.x
                     const vy = this.bird.body.velocity.y
                     this.bird.setVelocity(-vx, vy)  // flip x, keep y
                     this.rightWall.hideAndRetract()  // hide spikes and retract
+                    this.score++
+                    Bridge.onInteraction()  // notify Android of interaction , skip button is onGameFinished
                 }
                 else if (labels.includes('spike')) {
                     //turn off gravity so it doesn't fall after death
-                    this.bird.body.mass = 0 //
+                    this.bird.setIgnoreGravity(true)
+                    this.bird.setVelocity(0, 0)  // stop movement
                     this.bird.kill()  // kill immediately, no bounce
-                    this.time.delayedCall(1000, () => this.restart())  // restart after delay
+                    if (this.score > 9) {
+                        Bridge.onGameFinished(this.score)  // notify Android of game finished with score
+                    }
+                    this.time.delayedCall(3000, () => this.restart())  // restart after delay
                 }
 
                 if (labels.includes('ceiling') || labels.includes('floor')) {
                     const vx = this.bird.body.velocity.x
                     const vy = this.bird.body.velocity.y
+                    this.bird.setIgnoreGravity(true)
+                    this.bird.setVelocity(0, 0)  // flip y, keep x
                     this.bird.kill()  // kill
-                    this.time.delayedCall(1000, () => this.restart())  // restart after delay
+                    if (this.score > 9) {
+                        Bridge.onGameFinished(this.score)  // notify Android of game finished with score
+                    }
+                    this.time.delayedCall(3000, () => this.restart())  // restart after delay
                 }
             })
         })
+        console.log('SCENE: create() finished');
+        } catch(e) { console.error('SCENE ERROR:', e.message, e.stack); }
     }
 
     update() {
