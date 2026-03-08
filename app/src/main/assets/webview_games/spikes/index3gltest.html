@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        * { margin: 0; padding: 0; }
+        html { width: 100%; height: 100%; }
+        body { width: 100%; height: 100%; background: #222; color: #fff; font-family: sans-serif; padding: 10px; }
+        canvas { display: block; margin: 10px auto; border: 2px solid #fff; }
+        pre { font-size: 12px; white-space: pre-wrap; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <h2>WebGL Test</h2>
+    <div id="log"></div>
+    <script>
+        var logEl = document.getElementById('log');
+        function log(msg) {
+            console.log(msg);
+            logEl.innerHTML += msg + '<br>';
+        }
+
+        // Test 1: WebGL context
+        var c = document.createElement('canvas');
+        c.width = 300; c.height = 200;
+        document.body.appendChild(c);
+
+        var gl = c.getContext('webgl', { preserveDrawingBuffer: true })
+              || c.getContext('experimental-webgl', { preserveDrawingBuffer: true });
+
+        if (!gl) {
+            log('❌ WebGL NOT available');
+            var ctx = c.getContext('2d');
+            ctx.fillStyle = '#ff0000';
+            ctx.font = '30px sans-serif';
+            ctx.fillText('NO WEBGL', 70, 110);
+        } else {
+            log('✅ WebGL context obtained');
+            log('Vendor: ' + gl.getParameter(gl.VENDOR));
+            log('Renderer: ' + gl.getParameter(gl.RENDERER));
+            log('Version: ' + gl.getParameter(gl.VERSION));
+            log('GLSL: ' + gl.getParameter(gl.SHADING_LANGUAGE_VERSION));
+            log('Max texture: ' + gl.getParameter(gl.MAX_TEXTURE_SIZE));
+
+            // Clear to green
+            gl.clearColor(0.0, 0.8, 0.0, 1.0);
+            gl.clear(gl.COLOR_BUFFER_BIT);
+
+            // Draw red triangle
+            var vs = gl.createShader(gl.VERTEX_SHADER);
+            gl.shaderSource(vs, 'attribute vec2 p; void main(){ gl_Position=vec4(p,0,1); }');
+            gl.compileShader(vs);
+            if (!gl.getShaderParameter(vs, gl.COMPILE_STATUS)) log('VS error: ' + gl.getShaderInfoLog(vs));
+
+            var fs = gl.createShader(gl.FRAGMENT_SHADER);
+            gl.shaderSource(fs, 'precision mediump float; void main(){ gl_FragColor=vec4(1,0,0,1); }');
+            gl.compileShader(fs);
+            if (!gl.getShaderParameter(fs, gl.COMPILE_STATUS)) log('FS error: ' + gl.getShaderInfoLog(fs));
+
+            var prog = gl.createProgram();
+            gl.attachShader(prog, vs);
+            gl.attachShader(prog, fs);
+            gl.linkProgram(prog);
+            if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) log('Link error: ' + gl.getProgramInfoLog(prog));
+            gl.useProgram(prog);
+
+            var buf = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([0,0.7, -0.7,-0.7, 0.7,-0.7]), gl.STATIC_DRAW);
+            var loc = gl.getAttribLocation(prog, 'p');
+            gl.enableVertexAttribArray(loc);
+            gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+            gl.drawArrays(gl.TRIANGLES, 0, 3);
+            gl.flush();
+
+            // Read back pixels to verify
+            var px = new Uint8Array(4);
+            gl.readPixels(150, 100, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px);
+            log('Pixel@center: rgba(' + px[0] + ',' + px[1] + ',' + px[2] + ',' + px[3] + ')');
+            log(px[0] > 200 ? '✅ Red triangle rendered' : '⚠️ Pixel not red — rendering may be broken');
+
+            gl.readPixels(10, 10, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px);
+            log('Pixel@corner: rgba(' + px[0] + ',' + px[1] + ',' + px[2] + ',' + px[3] + ')');
+            log(px[1] > 150 ? '✅ Green background rendered' : '⚠️ Pixel not green — background may be broken');
+
+            log('');
+            log('If you see a green box with a red triangle above, WebGL works.');
+            log('If the box is black/empty, WebGL draws but display is broken.');
+        }
+
+        // Test 2: Canvas 2D control
+        log('');
+        log('--- Canvas 2D control test ---');
+        var c2 = document.createElement('canvas');
+        c2.width = 300; c2.height = 60;
+        document.body.appendChild(c2);
+        var ctx = c2.getContext('2d');
+        ctx.fillStyle = '#0088ff';
+        ctx.fillRect(0, 0, 300, 60);
+        ctx.fillStyle = '#fff';
+        ctx.font = '20px sans-serif';
+        ctx.fillText('Canvas 2D works if you see this', 15, 38);
+        log('✅ Canvas 2D control appended');
+    </script>
+</body>
+</html>

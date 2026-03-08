@@ -26,10 +26,6 @@ fun AlarmsNavHost(
     val navController = rememberNavController()
     var showExitModal by remember { mutableStateOf(false) }
 
-    BackHandler(enabled = true) {
-        showExitModal = true
-    }
-
     Box (
         modifier = modifier
     ) {
@@ -39,6 +35,7 @@ fun AlarmsNavHost(
                 AlarmListRoute(vm, navController, rootController)
             }
         }
+        /*
         if (showExitModal) {
             StandardModal(
                 onDismiss = { showExitModal = false },
@@ -48,6 +45,8 @@ fun AlarmsNavHost(
                 Text("Do you want to exit?")
             }
         }
+
+         */
     }
 
 }

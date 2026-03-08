@@ -87,7 +87,7 @@ fun WebviewGameAlarmScreen(
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 48.dp),
+                    .padding(16.dp),
                 shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surfaceVariant
@@ -95,7 +95,7 @@ fun WebviewGameAlarmScreen(
             ) {
                 Column(
                     modifier = Modifier
-                        .padding(32.dp)
+                        .padding(16.dp)
                         .fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
@@ -118,7 +118,7 @@ fun WebviewGameAlarmScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .fillMaxHeight()
-                    .padding(bottom = 64.dp)
+                    .padding(bottom = 16.dp)
             )
         }
         if (dismissable) {
@@ -149,7 +149,7 @@ fun WebViewContainerBox(
         WebView(context).apply {
             settings.javaScriptEnabled = true
             settings.domStorageEnabled = true
-            setLayerType(View.LAYER_TYPE_SOFTWARE, null)
+            setLayerType(View.LAYER_TYPE_HARDWARE, null)
             val assetLoader = WebViewAssetLoader.Builder()
                 .addPathHandler("/assets/", WebViewAssetLoader.AssetsPathHandler(context))
                 .build()
@@ -163,7 +163,7 @@ fun WebViewContainerBox(
                         response.mimeType = "application/javascript"
                     }
                     Log.d("WebView",
-                        "Request: ${subend(request.url.toString())}, Response: ${substart(response?.toString()?: "")}")
+                        "Request: ${subend(request.url.toString())}, Response: ${subend(response?.toString()?: "")}")
                     return response
                 }
                 override fun onReceivedError(

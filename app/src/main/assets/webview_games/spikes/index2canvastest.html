@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        * { margin: 0; padding: 0; }
+        html { width: 100%; height: 100%; min-height: 480px; overflow: hidden; }
+        body { width: 100%; height: 100%; min-height: 480px; overflow: hidden; background: #888; }
+        #game-container { position: relative; width: 100%; height: 100%; }
+        #skip-button {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            z-index: 1;
+            border-radius: 50%;
+        }
+        #skip-button img {
+            /* filter: invert(100%); */
+            width: 40px; 
+            height: 40px; 
+            vertical-align: middle;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container"></div>
+    <button id="skip-button">
+        <img src="skip_icon.png" alt="Skip">
+    </button>
+    <script>
+        window.onerror = function(msg, src, line, col, err) {
+            console.error('GLOBAL ERROR:', msg, 'at', src, line, col);
+        };
+
+        // === COMPREHENSIVE DIMENSION / CANVAS DIAGNOSTICS ===
+        function logDiag(label) {
+            var el = document.getElementById('game-container');
+            console.log('--- DIAG [' + label + '] ---');
+            console.log('  window.innerWidth=' + window.innerWidth + ' window.innerHeight=' + window.innerHeight);
+            console.log('  window.outerWidth=' + window.outerWidth + ' window.outerHeight=' + window.outerHeight);
+            console.log('  screen.width=' + screen.width + ' screen.height=' + screen.height);
+            console.log('  screen.availWidth=' + screen.availWidth + ' screen.availHeight=' + screen.availHeight);
+            console.log('  devicePixelRatio=' + window.devicePixelRatio);
+            console.log('  document.documentElement.clientWidth=' + document.documentElement.clientWidth + ' clientHeight=' + document.documentElement.clientHeight);
+            console.log('  document.body.clientWidth=' + document.body.clientWidth + ' clientHeight=' + document.body.clientHeight);
+            console.log('  document.body.offsetWidth=' + document.body.offsetWidth + ' offsetHeight=' + document.body.offsetHeight);
+            console.log('  document.body.scrollWidth=' + document.body.scrollWidth + ' scrollHeight=' + document.body.scrollHeight);
+            if (el) {
+                console.log('  container.offsetWidth=' + el.offsetWidth + ' offsetHeight=' + el.offsetHeight);
+                console.log('  container.clientWidth=' + el.clientWidth + ' clientHeight=' + el.clientHeight);
+                console.log('  container.scrollWidth=' + el.scrollWidth + ' scrollHeight=' + el.scrollHeight);
+                var r = el.getBoundingClientRect();
+                console.log('  container.getBoundingClientRect=' + JSON.stringify({x:r.x, y:r.y, w:r.width, h:r.height}));
+            }
+            // Check all canvases
+            var canvases = document.querySelectorAll('canvas');
+            console.log('  canvas count=' + canvases.length);
+            canvases.forEach(function(c, i) {
+                var cr = c.getBoundingClientRect();
+                console.log('  canvas[' + i + ']: width=' + c.width + ' height=' + c.height +
+                    ' style.width=' + c.style.width + ' style.height=' + c.style.height +
+                    ' offsetW=' + c.offsetWidth + ' offsetH=' + c.offsetHeight +
+                    ' rect=' + JSON.stringify({x:cr.x, y:cr.y, w:cr.width, h:cr.height}) +
+                    ' display=' + getComputedStyle(c).display +
+                    ' visibility=' + getComputedStyle(c).visibility +
+                    ' opacity=' + getComputedStyle(c).opacity +
+                    ' zIndex=' + getComputedStyle(c).zIndex);
+            });
+        }
+
+        logDiag('EARLY');
+    </script>
+    <script src="phaser.min.js"></script>
+    <script>
+        // TEST: Phaser CANVAS mode with deep render inspection
+        var updateCount = 0;
+        function bootWhenReady() {
+            var el = document.getElementById('game-container');
+            if (el && el.offsetHeight > 0) {
+                logDiag('PRE-BOOT');
+                var game = new Phaser.Game({
+                    type: Phaser.CANVAS,
+                    parent: 'game-container',
+                    width: 360,
+                    height: 460,
+                    backgroundColor: '#00ff00',
+                    fps: {
+                        target: 60,
+                        forceSetTimeOut: true
+                    },
+                    scene: {
+                        create: function() {
+                            console.log('CANVAS TEST: scene create, renderer=' + game.renderer.type);
+                            this.add.text(60, 100, 'CANVAS MODE WORKS!', { color: '#ff0000', fontSize: '28px' });
+                            this.add.circle(180, 280, 40, 0xffff00);
+                            var gfx = this.add.graphics();
+                            gfx.fillStyle(0xffffff);
+                            gfx.fillTriangle(180, 340, 140, 420, 220, 420);
+                            console.log('CANVAS TEST: all draw calls done');
+                        },
+                        update: function() {
+                            updateCount++;
+                            if (updateCount <= 5 || updateCount % 60 === 0) {
+                                console.log('UPDATE: frame ' + updateCount);
+                            }
+                        }
+                    }
+                });
+
+                // After 1 second, deeply inspect Phaser's canvas
+                setTimeout(function() {
+                    console.log('=== DEEP CANVAS INSPECTION ===');
+                    console.log('game.isBooted=' + game.isBooted);
+                    console.log('game.isRunning=' + game.isRunning);
+                    console.log('game.renderer=' + game.renderer);
+                    console.log('game.renderer.type=' + (game.renderer ? game.renderer.type : 'N/A'));
+                    console.log('updateCount=' + updateCount);
+
+                    var phaserCanvas = game.canvas;
+                    console.log('game.canvas=' + phaserCanvas);
+                    console.log('game.canvas.width=' + (phaserCanvas ? phaserCanvas.width : 'N/A'));
+                    console.log('game.canvas.height=' + (phaserCanvas ? phaserCanvas.height : 'N/A'));
+                    console.log('game.canvas.parentNode=' + (phaserCanvas ? phaserCanvas.parentNode : 'N/A'));
+                    console.log('game.canvas.parentNode.id=' + (phaserCanvas && phaserCanvas.parentNode ? phaserCanvas.parentNode.id : 'N/A'));
+
+                    // Try to read pixel data from Phaser's canvas
+                    if (phaserCanvas) {
+                        try {
+                            var ctx = phaserCanvas.getContext('2d');
+                            console.log('phaser canvas 2d context=' + ctx);
+                            if (ctx) {
+                                // Sample pixels at different positions
+                                var positions = [
+                                    {x: 0, y: 0, label: 'top-left'},
+                                    {x: 180, y: 230, label: 'center'},
+                                    {x: 100, y: 100, label: 'text-area'},
+                                    {x: 180, y: 280, label: 'circle-area'},
+                                    {x: 180, y: 380, label: 'triangle-area'}
+                                ];
+                                positions.forEach(function(p) {
+                                    var d = ctx.getImageData(p.x, p.y, 1, 1).data;
+                                    console.log('pixel@' + p.label + '(' + p.x + ',' + p.y + '): rgba(' + d[0] + ',' + d[1] + ',' + d[2] + ',' + d[3] + ')');
+                                });
+                            } else {
+                                console.log('WARN: could not get 2d context from phaser canvas (already webgl?)');
+                                // Try reading from webgl
+                                var gl = phaserCanvas.getContext('webgl') || phaserCanvas.getContext('experimental-webgl');
+                                if (gl) {
+                                    console.log('Phaser canvas is actually WebGL!');
+                                    var px = new Uint8Array(4);
+                                    gl.readPixels(180, 230, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px);
+                                    console.log('gl pixel@center: rgba(' + px[0] + ',' + px[1] + ',' + px[2] + ',' + px[3] + ')');
+                                }
+                            }
+                        } catch(e) {
+                            console.error('pixel read error:', e.message);
+                        }
+                    }
+
+                    logDiag('POST-INSPECT');
+
+                    // CONTROL TEST: Draw a raw 2D canvas right below Phaser's
+                    var ctrl = document.createElement('canvas');
+                    ctrl.width = 360; ctrl.height = 60;
+                    ctrl.style.cssText = 'display:block;';
+                    var ctx2 = ctrl.getContext('2d');
+                    ctx2.fillStyle = '#ff00ff';
+                    ctx2.fillRect(0, 0, 360, 60);
+                    ctx2.fillStyle = '#ffffff';
+                    ctx2.font = '24px sans-serif';
+                    ctx2.fillText('RAW 2D CANVAS CONTROL', 60, 40);
+                    document.getElementById('game-container').appendChild(ctrl);
+                    console.log('CONTROL: raw 2D canvas appended');
+                }, 1000);
+
+            } else {
+                console.log('CANVAS TEST: waiting for container... offsetH=' + (el ? el.offsetHeight : 'null'));
+                requestAnimationFrame(bootWhenReady);
+            }
+        }
+        if (document.readyState === 'complete') {
+            bootWhenReady();
+        } else {
+            window.addEventListener('load', function() {
+                logDiag('ON-LOAD');
+                bootWhenReady();
+            });
+        }
+    </script>
+    <script type="module">
+        import Bridge from './AndroidBridge.js';
+        const skipButton = document.getElementById('skip-button');
+        skipButton.addEventListener('click', () => {
+            if (Bridge.isSkippable()) {
+                Bridge.onGameFinished(0); // Notify Android that the game is finished with a score of 0
+            }
+        });
+        console.log(window.innerHeight, window.innerWidth);
+         // Initialize Phaser game
+    </script>
+</body>
+</html>

@@ -1,11 +1,13 @@
 package com.tomcvt.goready
 
 import android.Manifest
+import android.app.Activity
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Box
@@ -28,9 +30,13 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -64,6 +70,7 @@ import com.tomcvt.goready.ui.composables.AlarmList
 import com.tomcvt.goready.ui.composables.AlarmsNavHost
 import com.tomcvt.goready.ui.composables.RoutineListRoute
 import com.tomcvt.goready.ui.composables.SettingsView
+import com.tomcvt.goready.ui.composables.StandardModal
 import com.tomcvt.goready.ui.theme.GoReadyTheme
 import com.tomcvt.goready.ui.theme.VibrantTheme
 import com.tomcvt.goready.viewmodel.AlarmViewModel
@@ -225,6 +232,20 @@ fun GoReadyAppMain(
     val rootNavController = rememberNavController()
     val navbackStackEntry by rootNavController.currentBackStackEntryAsState()
     val currentRoute = navbackStackEntry?.destination?.route
+    var exitModalVisible by remember { mutableStateOf(false) }
+
+    // Enable BackHandler only when at the root/start destination
+    BackHandler(enabled = true) {
+        if (currentRoute == null || currentRoute == RootTab.ALARMS.name) {
+            exitModalVisible = true
+            return@BackHandler
+        }
+        if (!rootNavController.popBackStack()) {
+            // returned false = stack is empty = would exit
+            exitModalVisible = true
+            Log.d("GoReadyAppMain", "Exiting")
+        }
+    }
 
 
     NavigationSuiteScaffold(
@@ -247,45 +268,57 @@ fun GoReadyAppMain(
             }
         },
         modifier = Modifier.fillMaxSize()
-    ) {
-        Column (
-            modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.statusBars)
-        ) {
-            NavHost(
-                navController = rootNavController,
-                startDestination = RootTab.ALARMS.name,
-                modifier = Modifier.weight(1f)
+    ){
+        Box(modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.statusBars)) {
+            Column(
+                modifier = Modifier.fillMaxSize()
             ) {
-                composable(RootTab.HOME.name) {
-                    val vm = viewModel<RoutinesViewModel>(factory = routinesViewModelFactory)
-                    RoutineListRoute(vm, rootNavController)
+                NavHost(
+                    navController = rootNavController,
+                    startDestination = RootTab.ALARMS.name,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    composable(RootTab.HOME.name) {
+                        val vm = viewModel<RoutinesViewModel>(factory = routinesViewModelFactory)
+                        RoutineListRoute(vm, rootNavController)
+                    }
+                    composable(RootTab.ALARMS.name) {
+                        //val vm = viewModel<AlarmViewModel>(factory = alarmViewModelFactory)
+                        AlarmsNavHost(alarmViewModelFactory, rootNavController)
+                    }
+                    composable(RootTab.ADD_ALARM.name) {
+                        val vm = viewModel<AlarmViewModel>(factory = alarmViewModelFactory)
+                        AddAlarmView(vm, rootNavController)
+                        //AddAlarmRoute(vm, rootNavController) for now redundant
+                    }
+                    composable(RootTab.SETTINGS.name) {
+                        val vm = viewModel<SettingsViewModel>(factory = settingsViewModelFactory)
+                        SettingsView(vm)
+                    }
+                    composable(
+                        route = "edit_alarm/{alarmId}",
+                        arguments = listOf(navArgument("alarmId") { type = NavType.LongType })
+                    ) { backStackEntry ->
+                        val alarmId = backStackEntry.arguments?.getLong("alarmId")
+                        val vm = viewModel<AlarmViewModel>(factory = alarmViewModelFactory)
+                        AddAlarmView(vm, rootNavController, alarmId = alarmId)
+                    }
                 }
-                composable(RootTab.ALARMS.name) {
-                    //val vm = viewModel<AlarmViewModel>(factory = alarmViewModelFactory)
-                    AlarmsNavHost(alarmViewModelFactory, rootNavController)
-                }
-                composable(RootTab.ADD_ALARM.name) {
-                    val vm = viewModel<AlarmViewModel>(factory = alarmViewModelFactory)
-                    AddAlarmView(vm, rootNavController)
-                    //AddAlarmRoute(vm, rootNavController) for now redundant
-                }
-                composable(RootTab.SETTINGS.name) {
-                    val vm = viewModel<SettingsViewModel>(factory = settingsViewModelFactory)
-                    SettingsView(vm)
-                }
-                composable(
-                    route = "edit_alarm/{alarmId}",
-                    arguments = listOf(navArgument("alarmId") { type = NavType.LongType })
-                ) { backStackEntry ->
-                    val alarmId = backStackEntry.arguments?.getLong("alarmId")
-                    val vm = viewModel<AlarmViewModel>(factory = alarmViewModelFactory)
-                    AddAlarmView(vm, rootNavController, alarmId = alarmId)
+                BottomBarDynamicAdView(
+                    adUnitId = ADMOB_ID_DYNAMIC_BANNER,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+            if (exitModalVisible) {
+                val activity = LocalContext.current as? Activity
+                StandardModal(
+                    onDismiss = { exitModalVisible = false },
+                    onConfirm = { activity?.finish() }
+                ) {
+                    Text("Do you want to exit?")
                 }
             }
-            BottomBarDynamicAdView(
-                adUnitId = ADMOB_ID_DYNAMIC_BANNER,
-                modifier = Modifier.fillMaxWidth()
-            )
+
         }
     }
     LaunchedEffect(Unit) {
@@ -416,4 +449,3 @@ fun AddAlarmViewPreview() {
         //AddAlarmView(dummyViewModel)
     }
 }
-

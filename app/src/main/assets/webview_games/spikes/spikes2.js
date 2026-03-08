@@ -1,8 +1,8 @@
 import GameScene from './scenes/gameScene.js';
 
 const config = {
-    type: Phaser.CANVAS,
-    backgroundColor: '#474753',
+    type: Phaser.WEBGL,
+    backgroundColor: '#3d3d4d',
     physics: {
         default: 'matter',
         matter: {
