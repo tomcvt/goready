@@ -4,8 +4,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
         * { margin: 0; padding: 0; }
-        html, body { width: 100%; height: 100vh; overflow: hidden; background: #000; }
-        #game-container {position: relative; width: 100%; height: 100vh; min-height: 480px; }
+        html { width: 100%; height: 100%; min-height: 440px; overflow: hidden; }
+        body { width: 100%; height: 100%; min-height: 440px; overflow: hidden; background: #777; }
+        #game-container { position: relative; width: 100%; height: 100%; background: #555; }
         #skip-button {
             position: fixed;
             top: 10px;
@@ -26,42 +27,8 @@
     <button id="skip-button">
         <img src="skip_icon.png" alt="Skip">
     </button>
-    <script>
-        window.onerror = function(msg, src, line, col, err) {
-            console.error('GLOBAL ERROR:', msg, 'at', src, line, col);
-        };
-        console.log('new DIAG: innerWidth=' + window.innerWidth + ' innerHeight=' + window.innerHeight);
-        console.log('new DIAG: container=' + document.getElementById('game-container').offsetWidth + 'x' + document.getElementById('game-container').offsetHeight);
-        console.log('new DIAG: devicePixelRatio=' + window.devicePixelRatio);
-    </script>
     <script src="phaser.min.js"></script>
-    <script>console.log('new DIAG: Phaser loaded, type=' + typeof Phaser);</script>
     <script src="spikes.bundle.js"></script>
-    <script>
-        console.log('DIAG: bundle executed, canvas count=' + document.querySelectorAll('canvas').length);
-        setTimeout(function() {
-            var c = document.getElementById('game-container');
-            console.log('DIAG delayed: container=' + c.offsetWidth + 'x' + c.offsetHeight);
-            var cvs = document.querySelector('canvas');
-            if (cvs) {
-                console.log('DIAG delayed: canvas size=' + cvs.width + 'x' + cvs.height + ' style=' + cvs.style.width + '/' + cvs.style.height);
-                console.log('DIAG delayed: canvas display=' + getComputedStyle(cvs).display + ' visibility=' + getComputedStyle(cvs).visibility + ' opacity=' + getComputedStyle(cvs).opacity);
-                console.log('DIAG delayed: canvas zIndex=' + getComputedStyle(cvs).zIndex + ' position=' + getComputedStyle(cvs).position);
-                console.log('DIAG delayed: canvas rect=' + JSON.stringify(cvs.getBoundingClientRect()));
-                // test raw canvas draw
-                var ctx = cvs.getContext('2d');
-                if (ctx) {
-                    ctx.fillStyle = 'red';
-                    ctx.fillRect(50, 50, 100, 100);
-                    console.log('DIAG delayed: drew red rect via 2d context');
-                } else {
-                    console.log('DIAG delayed: no 2d context (probably WebGL)');
-                    var gl = cvs.getContext('webgl') || cvs.getContext('webgl2');
-                    console.log('DIAG delayed: webgl context=' + !!gl);
-                }
-            }
-        }, 2000);
-    </script>
     <script type="module">
         import Bridge from './AndroidBridge.js';
         const skipButton = document.getElementById('skip-button');

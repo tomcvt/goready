@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        * { margin: 0; padding: 0; }
+        html, body { width: 100%; height: 100vh; overflow: hidden; background: #888; }
+        #game-container {position: relative; width: 100%; height: 100vh; min-height: 480px; }
+        #skip-button {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            z-index: 1;
+            border-radius: 50%;
+        }
+        #skip-button img {
+            /* filter: invert(100%); */
+            width: 40px; 
+            height: 40px; 
+            vertical-align: middle;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container"></div>
+    <button id="skip-button">
+        <img src="skip_icon.png" alt="Skip">
+    </button>
+    <script>
+        window.onerror = function(msg, src, line, col, err) {
+            console.error('GLOBAL ERROR:', msg, 'at', src, line, col);
+        };
+        console.log('new DIAG: innerWidth=' + window.innerWidth + ' innerHeight=' + window.innerHeight);
+        console.log('new DIAG: container=' + document.getElementById('game-container').offsetWidth + 'x' + document.getElementById('game-container').offsetHeight);
+        console.log('new DIAG: devicePixelRatio=' + window.devicePixelRatio);
+    </script>
+    <script src="phaser.min.js"></script>
+    <script>
+        console.log('new DIAG: Phaser loaded, type=' + typeof Phaser);
+        function bootWhenReady() {
+            var el = document.getElementById('game-container');
+            if (el && el.offsetHeight > 0) {
+                console.log('BOOT: container ready ' + el.offsetWidth + 'x' + el.offsetHeight);
+                var game = new Phaser.Game({
+                    type: Phaser.WEBGL,
+                    parent: 'game-container',
+                    width: 360,
+                    height: 460,
+                    backgroundColor: '#00ff00',
+                    render: {
+                        preserveDrawingBuffer: true
+                    },
+                    fps: {
+                        target: 60,
+                        forceSetTimeOut: true
+                    },
+                    scene: {
+                        create: function() {
+                            this.add.text(100, 200, 'PHASER WORKS', { color: '#ff0000', fontSize: '32px' });
+                            this.add.circle(180, 400, 50, 0x0000ff);
+                            console.log('MINIMAL SCENE: created, renderer type=' + game.renderer.type);
+                        }
+                    }
+                });
+            } else {
+                console.log('BOOT: waiting for container...');
+                requestAnimationFrame(bootWhenReady);
+            }
+        }
+        if (document.readyState === 'complete') {
+            bootWhenReady();
+        } else {
+            window.addEventListener('load', bootWhenReady);
+        }
+    </script>
+    <script type="module">
+        import Bridge from './AndroidBridge.js';
+        const skipButton = document.getElementById('skip-button');
+        skipButton.addEventListener('click', () => {
+            if (Bridge.isSkippable()) {
+                Bridge.onGameFinished(0); // Notify Android that the game is finished with a score of 0
+            }
+        });
+        console.log(window.innerHeight, window.innerWidth);
+         // Initialize Phaser game
+    </script>
+</body>
+</html>

@@ -358,7 +358,7 @@ class GameScene extends Phaser.Scene {
 // === spikes.js ===
 const config = {
     type: Phaser.CANVAS,
-    backgroundColor: '#00ff00',
+    backgroundColor: '#1a1a2e',
     physics: {
         default: 'matter',
         matter: {
@@ -366,12 +366,38 @@ const config = {
             debug: true
         }
     },
-    width: 360,
-    height: 640,
+    parent: 'game-container',
+    scale: {
+        mode: Phaser.Scale.FIT,
+        autoCenter: Phaser.Scale.CENTER_BOTH,
+        width: 360,
+        height: 640
+    },
+    fps: {
+        target: 60,
+        forceSetTimeOut: true
+    },
     scene: GameScene
 }
 
-const game = new Phaser.Game(config)
+var game = null
+
+function bootWhenReady() {
+    var el = document.getElementById('game-container')
+    if (el && el.offsetHeight > 0) {
+        console.log('BOOT: container ready ' + el.offsetWidth + 'x' + el.offsetHeight)
+        game = new Phaser.Game(config)
+    } else {
+        console.log('BOOT: waiting for container...')
+        requestAnimationFrame(bootWhenReady)
+    }
+}
+
+if (document.readyState === 'complete') {
+    bootWhenReady()
+} else {
+    window.addEventListener('load', bootWhenReady)
+}
 
 document.addEventListener('keydown', (e) => {
     if (e.key === 'p') {
