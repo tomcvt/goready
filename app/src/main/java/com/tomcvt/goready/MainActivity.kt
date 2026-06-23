@@ -53,6 +53,8 @@ import com.tomcvt.goready.ads.ADMOB_ID_TEST_BANNER
 import com.tomcvt.goready.ads.BottomBarBannerAdView
 import com.tomcvt.goready.ads.BottomBarDynamicAdView
 import com.tomcvt.goready.application.AlarmApp
+import com.tomcvt.goready.ble.DeviceScanViewModel
+import com.tomcvt.goready.ble.DeviceScanViewModelFactory
 import com.tomcvt.goready.constants.EXTRA_ALARM_ID
 import com.tomcvt.goready.manager.AppAlarmManagerImpl
 import com.tomcvt.goready.manager.AppRoutinesManager
@@ -99,6 +101,7 @@ class MainActivity : ComponentActivity() {
         private set
     lateinit var settingsViewModelFactory: SettingsViewModelFactory
         private set
+    lateinit var deviceScanViewModelFactory: DeviceScanViewModelFactory
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -118,6 +121,7 @@ class MainActivity : ComponentActivity() {
         alarmViewModelFactory = AlarmViewModelFactory(appAlarmManager, appRoutinesManager)
         routinesViewModelFactory = RoutinesViewModelFactory(appRoutinesManager)
         settingsViewModelFactory = SettingsViewModelFactory(appObject.premiumRepository)
+        deviceScanViewModelFactory = DeviceScanViewModelFactory(appObject.blueToothAdapter, appObject.bleDeviceManager)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             val permissionCheck = ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
@@ -182,6 +186,7 @@ class MainActivity : ComponentActivity() {
                         alarmViewModelFactory,
                         routinesViewModelFactory,
                         settingsViewModelFactory,
+                        deviceScanViewModelFactory,
                         premiumRepository,
                         alarmId
                     )
@@ -190,6 +195,7 @@ class MainActivity : ComponentActivity() {
                         alarmViewModelFactory,
                         routinesViewModelFactory,
                         settingsViewModelFactory,
+                        deviceScanViewModelFactory,
                         premiumRepository
                     )
                 }
@@ -207,6 +213,7 @@ fun GoReadyApp(
     alarmViewModelFactory: AlarmViewModelFactory,
     routinesViewModelFactory: RoutinesViewModelFactory,
     settingsViewModelFactory: SettingsViewModelFactory,
+    deviceScanViewModelFactory: DeviceScanViewModelFactory,
     premiumRepository: PremiumRepositoryI,
     alarmId: Long? = null
 ) {
@@ -216,6 +223,7 @@ fun GoReadyApp(
             alarmViewModelFactory,
             routinesViewModelFactory,
             settingsViewModelFactory,
+            deviceScanViewModelFactory,
             alarmId
         )
     }
@@ -227,6 +235,7 @@ fun GoReadyAppMain(
     alarmViewModelFactory: AlarmViewModelFactory,
     routinesViewModelFactory: RoutinesViewModelFactory,
     settingsViewModelFactory: SettingsViewModelFactory,
+    deviceScanViewModelFactory: DeviceScanViewModelFactory,
     alarmId: Long? = null
 ) {
     val rootNavController = rememberNavController()
@@ -292,8 +301,9 @@ fun GoReadyAppMain(
                         //AddAlarmRoute(vm, rootNavController) for now redundant
                     }
                     composable(RootTab.SETTINGS.name) {
-                        val vm = viewModel<SettingsViewModel>(factory = settingsViewModelFactory)
-                        SettingsView(vm)
+                        val vmsettings = viewModel<SettingsViewModel>(factory = settingsViewModelFactory)
+                        val wmScan = viewModel<DeviceScanViewModel>(factory = deviceScanViewModelFactory)
+                        SettingsView(vmsettings, wmScan)
                     }
                     composable(
                         route = "edit_alarm/{alarmId}",
@@ -342,6 +352,7 @@ fun MainNavHost(
     alarmViewModelFactory: AlarmViewModelFactory,
     routinesViewModelFactory: RoutinesViewModelFactory,
     settingsViewModelFactory: SettingsViewModelFactory,
+    deviceScanViewModelFactory: DeviceScanViewModelFactory,
     alarmId: Long? = null
 ) {
     val rootNavController = rememberNavController()
@@ -372,7 +383,8 @@ fun MainNavHost(
                 }
                 composable(RootTab.SETTINGS.name) {
                     val vm = viewModel<SettingsViewModel>(factory = settingsViewModelFactory)
-                    SettingsView(vm)
+                    val wmScan = viewModel<DeviceScanViewModel>(factory = deviceScanViewModelFactory)
+                    SettingsView(vm, wmScan)
                 }
                 composable(
                     route = "edit_alarm/{alarmId}",

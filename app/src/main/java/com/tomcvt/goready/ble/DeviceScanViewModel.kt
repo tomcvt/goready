@@ -30,66 +30,22 @@ class DeviceScanViewModel(
 ) : ViewModel() {
     private val scanner get() = adapter.bluetoothLeScanner
 
-    private val _devices = MutableStateFlow<List<DiscoveredDevice>>(emptyList())
-    val devices: StateFlow<List<DiscoveredDevice>> = _devices
+    val devices: StateFlow<List<DiscoveredDevice>> = manager.scanResults
 
-    private val _isScanning = MutableStateFlow(false)
-    val isScanning: StateFlow<Boolean> = _isScanning
+    val isScanning: StateFlow<Boolean> = manager.isScanning
 
     private val seen = mutableMapOf<String, DiscoveredDevice>()
 
     val savedDevice: StateFlow<SavedDevice?> = manager.savedDevice
     val connectionState: StateFlow<BleConnectionState> = manager.connectionState
 
-    private val callback = object : ScanCallback() {
-        override fun onScanResult(type: Int, result: ScanResult) {
-            val mfg = result.scanRecord?.getManufacturerSpecificData(0xFFFF)
-            val deviceType = mfg?.getOrNull(2)?.toInt() // byte after "AL"
-            try {
-                seen[result.device.address] =
-                    DiscoveredDevice(result.device, result.device.name, result.rssi, deviceType)
-            } catch (e: SecurityException) {
-                //TODO resolve this correctly
-                Log.w(TAG, "Security exception: $e")
-                return
-            }
-            _devices.value = seen.values.sortedByDescending { it.rssi }
-        }
-        override fun onScanFailed(errorCode: Int) { _isScanning.value = false }
-    }
+    fun startScan() { manager.startScan() }
 
-    @SuppressLint("MissingPermission")
-    fun startScan() {
-        if (_isScanning.value) return
-        //check permission, log debug when not granted
-        /*
-        if (hasBlePermissions(context).not()) {
-            Log.w(TAG, "Missing BLE permissions")
-            return
-        }*/
-        seen.clear(); _devices.value = emptyList(); _isScanning.value = true
-
-        val filter = ScanFilter.Builder()
-            .setServiceUuid(ParcelUuid(BleConstants.SERVICE_UUID))
-            .build()
-        scanner.startScan(
-            listOf(filter),
-            ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build(),
-            callback
-        )
-        viewModelScope.launch { delay(8000); stopScan() } // don't let scans run forever
-    }
-
-    @SuppressLint("MissingPermission")
-    fun stopScan() {
-        if (!_isScanning.value) return
-        scanner.stopScan(callback)
-        _isScanning.value = false
-    }
+    fun stopScan() { manager.stopScan() }
 
     fun saveDeviceAndConnect(device: BluetoothDevice) {
         manager.connectAndSave(device)
     }
 
-    override fun onCleared() = stopScan()
+    override fun onCleared() = manager.stopScan()
 }

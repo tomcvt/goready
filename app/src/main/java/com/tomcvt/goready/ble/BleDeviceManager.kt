@@ -168,11 +168,11 @@ class BleDeviceManager(
     // ---------------- Connection lifecycle ----------------
 
     fun connectAndSave(device: BluetoothDevice) {
-        val saved: SavedDevice? = _savedDevice.value
+        var saved: SavedDevice?
         try {
-            val saved = SavedDevice(device.address, device.name)
+            saved = SavedDevice(device.address, device.name)
         } catch (e: SecurityException) {
-            Log.d(TAG, "Missing permission", e)
+            Log.e(TAG, "Missing permission", e)
             _events.tryEmit(BleEvent.Error("Security exception: $e"))
             return
         }

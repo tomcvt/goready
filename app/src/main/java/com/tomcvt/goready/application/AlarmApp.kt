@@ -6,6 +6,7 @@ import android.bluetooth.BluetoothManager
 import android.util.Log
 import androidx.emoji2.text.EmojiCompat
 import com.tomcvt.goready.BuildConfig
+import com.tomcvt.goready.ble.BleDeviceManager
 import com.tomcvt.goready.data.AlarmDatabase
 import com.tomcvt.goready.data.seeding.SeedManager
 import com.tomcvt.goready.manager.AppAlarmManagerImpl
@@ -51,6 +52,7 @@ class AlarmApp : Application() {
         private set
 
     lateinit var blueToothAdapter: BluetoothAdapter
+    lateinit var bleDeviceManager: BleDeviceManager
 
     override fun onCreate() {
         super.onCreate()
@@ -103,6 +105,8 @@ class AlarmApp : Application() {
             }
 
         blueToothAdapter = appContext.getSystemService(BluetoothManager::class.java).adapter
+
+        bleDeviceManager = BleDeviceManager(appContext, blueToothAdapter)
 
     }
 }

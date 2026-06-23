@@ -56,7 +56,7 @@ private enum class SettingsTab { GENERAL, BLUETOOTH }
 @Composable
 fun SettingsView(
     viewModel: SettingsViewModel,
-    scanViewModel: DeviceScanViewModel,
+    deviceScanViewModel: DeviceScanViewModel,
     modifier: Modifier = Modifier
 ) {
     var selectedTab by remember { mutableStateOf(SettingsTab.GENERAL) }
@@ -72,7 +72,7 @@ fun SettingsView(
 
         when (selectedTab) {
             SettingsTab.GENERAL -> PermissionSettingsScreen(viewModel = viewModel)
-            SettingsTab.BLUETOOTH -> ScanScreen(viewModel = scanViewModel, onSelect = {})
+            SettingsTab.BLUETOOTH -> ScanScreen(viewModel = deviceScanViewModel, onSelect = {})
         }
     }
 }

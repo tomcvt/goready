@@ -184,69 +184,81 @@ fun AddAlarmContent(
         modifier = modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
-        Column(
+        LazyColumn(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Card(
-                elevation = CardDefaults.cardElevation(8.dp),
-                modifier = Modifier.padding(24.dp),
-            ) {
-                Text(
-                    "%02d:%02d".format(state.hour, state.minute),
-                    modifier = Modifier
-                        .padding(16.dp)
-                        .clickable {
-                            picker.show()
-                        },
-                    style = MaterialTheme.typography.displayMedium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            }
-            Row {
-                DayOfWeek.values().forEach { day ->
-                    FilterChip(
-                        selected = day in state.repeatDays,
-                        onClick = {
-                            viewModel.toggleDay(day)
-                        },
-                        label = { Text(day.name.take(1)) }
+            item {
+                Card(
+                    elevation = CardDefaults.cardElevation(8.dp),
+                    modifier = Modifier.padding(24.dp),
+                ) {
+                    Text(
+                        "%02d:%02d".format(state.hour, state.minute),
+                        modifier = Modifier
+                            .padding(16.dp)
+                            .clickable {
+                                picker.show()
+                            },
+                        style = MaterialTheme.typography.displayMedium,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 }
+                Row {
+                    DayOfWeek.values().forEach { day ->
+                        FilterChip(
+                            selected = day in state.repeatDays,
+                            onClick = {
+                                viewModel.toggleDay(day)
+                            },
+                            label = { Text(day.name.take(1)) }
+                        )
+                    }
+                }
             }
+            item {
             AlarmTypeSelector(
                 value = state.taskType,
                 options = TaskType.getList(),
                 onTypeSelected = { viewModel.setTaskType(it) }
-            )
+            ) }
+            item {
             TaskDataInput(
                 value = rememberedData[state.taskType.name] ?: "",
                 taskType = state.taskType,
                 onPremiumRequest = { Log.d("AddAlarmContent", "Premium request") },
                 onTaskDataProvided = { viewModel.setTaskData(it) }
-            )
-            SnoozeInfoRow(
-                snoozeCount = state.snoozeCount,
-                snoozeTime = state.snoozeTime,
-                snoozeActive = state.snoozeActive,
-                onClick = { snoozeModal = true },
-                onSwitchChange = { viewModel.setSnoozeActive(it) }
-            )
+            ) }
+            item {
+                SnoozeInfoRow(
+                    snoozeCount = state.snoozeCount,
+                    snoozeTime = state.snoozeTime,
+                    snoozeActive = state.snoozeActive,
+                    onClick = { snoozeModal = true },
+                    onSwitchChange = { viewModel.setSnoozeActive(it) }
+                )
+            }
+            item {
             state.routineId?.let {
                 Text("Routine ID: $it")
                 //SelectedRoutineRow
-            }
+            } }
+            item {
             Button(onClick = { viewModel.openRoutineSelector() }) {
                 //TODO implement viewmodel
                 Text("Select Routine")
-            }
-            Spacer(modifier = Modifier.weight(1f))
+            } }
+            /*
+            item {
+                Spacer(modifier = Modifier.weight(1f))
+            } */
+            item {
             Button(onClick = { viewModel.save() }) {
                 Text("Save Alarm")
-            }
+            } }
         }
         if (snoozeModal) {
             SnoozeInputModal(
