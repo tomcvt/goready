@@ -29,7 +29,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -42,20 +44,37 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.tomcvt.goready.BuildConfig
 import com.tomcvt.goready.MainActivity
+import com.tomcvt.goready.ble.DeviceScanViewModel
+import com.tomcvt.goready.ble.ScanScreen
 import com.tomcvt.goready.domain.PermissionSpec
 import com.tomcvt.goready.registries.getPermissionRegistryForSdk
 import com.tomcvt.goready.viewmodel.AlarmViewModel
 import com.tomcvt.goready.viewmodel.SettingsViewModel
 
+private enum class SettingsTab { GENERAL, BLUETOOTH }
+
 @Composable
 fun SettingsView(
     viewModel: SettingsViewModel,
+    scanViewModel: DeviceScanViewModel,
     modifier: Modifier = Modifier
 ) {
-    PermissionSettingsScreen(
-        viewModel = viewModel,
-        modifier = modifier
-    )
+    var selectedTab by remember { mutableStateOf(SettingsTab.GENERAL) }
+
+    Column(modifier = modifier) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(8.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            Button(onClick = { selectedTab = SettingsTab.GENERAL }) { Text("Settings") }
+            Button(onClick = { selectedTab = SettingsTab.BLUETOOTH }) { Text("Bluetooth") }
+        }
+
+        when (selectedTab) {
+            SettingsTab.GENERAL -> PermissionSettingsScreen(viewModel = viewModel)
+            SettingsTab.BLUETOOTH -> ScanScreen(viewModel = scanViewModel, onSelect = {})
+        }
+    }
 }
 
 @Composable

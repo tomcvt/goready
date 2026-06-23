@@ -1,6 +1,8 @@
 package com.tomcvt.goready.application
 
 import android.app.Application
+import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothManager
 import android.util.Log
 import androidx.emoji2.text.EmojiCompat
 import com.tomcvt.goready.BuildConfig
@@ -47,6 +49,8 @@ class AlarmApp : Application() {
         private set
     lateinit var routineScheduler: RoutineScheduler
         private set
+
+    lateinit var blueToothAdapter: BluetoothAdapter
 
     override fun onCreate() {
         super.onCreate()
@@ -97,6 +101,8 @@ class AlarmApp : Application() {
             } else {
                 ProdPremiumRepository()
             }
+
+        blueToothAdapter = appContext.getSystemService(BluetoothManager::class.java).adapter
 
     }
 }

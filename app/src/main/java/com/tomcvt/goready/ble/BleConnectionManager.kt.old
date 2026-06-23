@@ -1,0 +1,139 @@
+package com.tomcvt.goready.ble
+
+import android.bluetooth.BluetoothDevice
+import android.bluetooth.BluetoothGatt
+import android.bluetooth.BluetoothGattCallback
+import android.bluetooth.BluetoothGattCharacteristic
+import android.bluetooth.BluetoothGattDescriptor
+import android.bluetooth.BluetoothManager
+import android.bluetooth.BluetoothProfile
+import android.bluetooth.le.ScanCallback
+import android.bluetooth.le.ScanFilter
+import android.bluetooth.le.ScanResult
+import android.bluetooth.le.ScanSettings
+import android.content.Context
+import android.os.ParcelUuid
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
+
+sealed class BleConnectionState {
+    object Disconnected : BleConnectionState()
+    object Connecting : BleConnectionState()
+    data class Connected(val deviceInfo: String) : BleConnectionState()
+}
+
+class BleConnectionManager(private val context: Context) {
+
+    private val bluetoothManager = context.getSystemService(BluetoothManager::class.java)
+    private var gatt: BluetoothGatt? = null
+    private var rxChar: BluetoothGattCharacteristic? = null
+    private var txChar: BluetoothGattCharacteristic? = null
+
+    private var savedDevice: BluetoothDevice? = null
+
+    private val _connectionState = MutableStateFlow<BleConnectionState>(BleConnectionState.Disconnected)
+    val connectionState: StateFlow<BleConnectionState> = _connectionState
+
+    private val _incoming = MutableSharedFlow<String>(extraBufferCapacity = 16)
+    val incoming: SharedFlow<String> = _incoming
+
+    private val opQueue = Channel<suspend () -> Unit>(Channel.UNLIMITED)
+    private var queueJob: Job? = null
+
+    init {
+        queueJob = CoroutineScope(Dispatchers.IO).launch {
+            for (op in opQueue) op()
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    fun scanAndConnect() {
+        _connectionState.value = BleConnectionState.Connecting
+        val scanner = bluetoothManager.adapter.bluetoothLeScanner
+        val filter = ScanFilter.Builder()
+            .setServiceUuid(ParcelUuid(BleConstants.SERVICE_UUID))
+            .build()
+        val settings = ScanSettings.Builder()
+            .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
+            .build()
+
+        val callback = object : ScanCallback() {
+            override fun onScanResult(callbackType: Int, result: ScanResult) {
+                scanner.stopScan(this)
+                connect(result.device)
+            }
+        }
+        scanner.startScan(listOf(filter), settings, callback)
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun connect(device: BluetoothDevice) {
+        gatt = device.connectGatt(context, false, gattCallback, BluetoothDevice.TRANSPORT_LE)
+    }
+
+    private val gattCallback = object : BluetoothGattCallback() {
+        @SuppressLint("MissingPermission")
+        override fun onConnectionStateChange(g: BluetoothGatt, status: Int, newState: Int) {
+            if (newState == BluetoothProfile.STATE_CONNECTED) {
+                g.discoverServices()
+            } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
+                _connectionState.value = BleConnectionState.Disconnected
+            }
+        }
+
+        @SuppressLint("MissingPermission")
+        override fun onServicesDiscovered(g: BluetoothGatt, status: Int) {
+            val service = g.getService(BleConstants.SERVICE_UUID) ?: return
+            rxChar = service.getCharacteristic(BleConstants.CHAR_RX)
+            txChar = service.getCharacteristic(BleConstants.CHAR_TX)
+            val infoChar = service.getCharacteristic(BleConstants.CHAR_INFO)
+
+            // enable notifications on TX
+            txChar?.let {
+                g.setCharacteristicNotification(it, true)
+                val cccd = it.getDescriptor(BleConstants.CCCD_UUID)
+                cccd?.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
+                cccd?.let { d -> g.writeDescriptor(d) }
+            }
+
+            // read device info once
+            infoChar?.let { g.readCharacteristic(it) }
+        }
+
+        override fun onCharacteristicRead(g: BluetoothGatt, characteristic: BluetoothGattCharacteristic, status: Int) {
+            if (characteristic.uuid == BleConstants.CHAR_INFO) {
+                val info = characteristic.value?.toString(Charsets.UTF_8) ?: ""
+                _connectionState.value = BleConnectionState.Connected(info)
+            }
+        }
+
+        override fun onCharacteristicChanged(g: BluetoothGatt, characteristic: BluetoothGattCharacteristic, value: ByteArray) {
+            if (characteristic.uuid == BleConstants.CHAR_TX) {
+                _incoming.tryEmit(value.toString(Charsets.UTF_8))
+            }
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    fun sendCommand(command: String) {
+        opQueue.trySend {
+            val char = rxChar ?: return@trySend
+            val g = gatt ?: return@trySend
+            g.writeCharacteristic(char, command.toByteArray(Charsets.UTF_8), BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT)
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    fun disconnect() {
+        gatt?.disconnect()
+        gatt?.close()
+        gatt = null
+    }
+}
