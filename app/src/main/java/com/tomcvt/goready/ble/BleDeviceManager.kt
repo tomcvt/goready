@@ -29,7 +29,10 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
 import java.io.IOException
@@ -60,6 +63,14 @@ sealed class BleEvent {
     data class Error(val message: String) : BleEvent()
 }
 
+data class DeviceConnection(
+    val savedDevice: SavedDevice?,
+    val connectionState: BleConnectionState,
+) {
+    val isConnected : Boolean get() = savedDevice != null && connectionState is BleConnectionState.Connected
+}
+
+
 // ---- Permission helper (min SDK 24 branch) ----
 fun hasBlePermissions(context: Context): Boolean = if (Build.VERSION.SDK_INT >= 31) {
     ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_SCAN) == PERMISSION_GRANTED &&
@@ -70,11 +81,14 @@ fun hasBlePermissions(context: Context): Boolean = if (Build.VERSION.SDK_INT >= 
 
 // ---- The manager ----
 class BleDeviceManager(
-    private val context: Context,
+    private val passedContext: Context,
     private val bluetoothAdapter: BluetoothAdapter
 ) {
+    private val context = passedContext.applicationContext
     private val prefs = context.getSharedPreferences("ble_prefs", Context.MODE_PRIVATE)
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+
+    private val notificationManager = BleNotificationManager(context)
 
     // --- Public state ---
     private val _connectionState = MutableStateFlow<BleConnectionState>(BleConnectionState.Disconnected)
@@ -83,8 +97,10 @@ class BleDeviceManager(
     private val _savedDevice = MutableStateFlow(loadSavedDevice())
     val savedDevice: StateFlow<SavedDevice?> = _savedDevice
 
-    private val _currentDevice = MutableStateFlow<BluetoothDevice?>(null)
-    val currentDevice: StateFlow<BluetoothDevice?> = _currentDevice
+    val deviceConnectionState: StateFlow<DeviceConnection> = combine(savedDevice, connectionState) { saved, conn ->
+        DeviceConnection(saved, conn)
+    }.stateIn(scope, SharingStarted.Eagerly, DeviceConnection(loadSavedDevice(), BleConnectionState.Disconnected))
+
 
 
     private val _scanResults = MutableStateFlow<List<DiscoveredDevice>>(emptyList())
@@ -180,7 +196,7 @@ class BleDeviceManager(
         _savedDevice.value = saved
         intentionalDisconnect = false
         retryCount = 0
-        connect(device, autoConnect = false)
+        connect(device, autoConnect = true)
     }
 
     @SuppressLint("MissingPermission")
@@ -249,7 +265,14 @@ class BleDeviceManager(
                     failAllPendingRpc(IOException("BLE disconnected"))
                     _events.tryEmit(BleEvent.Disconnected(unexpected = !wasIntentional))
                     g.close()
-                    if (!wasIntentional) scheduleReconnect(g.device)
+                    val dcDevice = g.device
+                    gatt = null
+                    if (wasIntentional) {
+                        notificationManager.cancelNotification()
+                    } else {
+                        notificationManager.notifyDisconnected(dcDevice.address)
+                        scheduleReconnect(dcDevice)
+                    }
                 }
             }
         }
@@ -277,6 +300,7 @@ class BleDeviceManager(
             }
             _connectionState.value = BleConnectionState.Connected
             _events.tryEmit(BleEvent.Connected)
+            notificationManager.notifyConnected(g.device.address)
         }
 
         // pre-API 33 path

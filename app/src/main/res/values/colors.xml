@@ -8,4 +8,6 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
     <color name="orange_logo">#FFFFA900</color>
+    <color name="bt_connected">#A4D663</color>
+    <color name="bt_disconnected">#FF4B33</color>
 </resources>
