@@ -8,21 +8,15 @@ import android.os.Build
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -36,6 +30,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
 import androidx.core.content.PermissionChecker.PERMISSION_GRANTED
 import androidx.lifecycle.Lifecycle
@@ -59,6 +55,8 @@ fun ScanScreen(viewModel: DeviceScanViewModel, onSelect: (BluetoothDevice) -> Un
     val isScanning by viewModel.isScanning.collectAsState()
     val savedDevice: SavedDevice? by viewModel.savedDevice.collectAsState()
     val connectionState: BleConnectionState by viewModel.connectionState.collectAsState()
+    val showScenarios by viewModel.showBleScenariosModal.collectAsState()
+
 
     LaunchedEffect(savedDevice, connectionState) {
         Log.d(
@@ -86,32 +84,37 @@ fun ScanScreen(viewModel: DeviceScanViewModel, onSelect: (BluetoothDevice) -> Un
         )
     }
 
-    Column {
-        if (!ble.state.isReady) {
-            if (!ble.state.canScan || !ble.state.canConnect) {
-                Button(onClick = ble.requestPermissions) { Text("Grant Bluetooth permissions") }
-            } else if (!ble.state.locationServicesOn) {
-                Button(onClick = ble.openLocationSettings) { Text("Turn on Location") }
-            }
-            return@Column
-        }
-        if (savedDevice != null) {
-            ConnectedRow(savedDevice!!, connectionState)
-        }
-        Button(onClick = { viewModel.startScan() }, enabled = !isScanning) {
-            Text(if (isScanning) "Scanning…" else "Scan")
-        }
-        LazyColumn {
-            items(devices.size, key = { devices[it].device.address }) { d ->
-                val deviced = devices[d]
-                DeviceRow(deviced, onClick = {
-                    viewModel.stopScan()
-                    if (!hasBlePermissionsC(context)) {
-                        Log.w("ScanScreen", "Missing BLE permissions")}
-                    viewModel.saveDeviceAndConnect(deviced.device)}
-                )
+    Scaffold(
+        floatingActionButton = {
+            FloatingActionButton(onClick = { viewModel.showBleScenariosModal.value = true }) {
+                Icon(Icons.Filled.PlayArrow, contentDescription = "Run test scenario")
             }
         }
+    ) { padding ->
+        Column(modifier = Modifier.padding(padding)) {
+            if (savedDevice != null) {
+                ConnectedRow(savedDevice!!, connectionState)
+            }
+            Button(onClick = { viewModel.startScan() }, enabled = !isScanning) {
+                Text(if (isScanning) "Scanning…" else "Scan")
+            }
+            LazyColumn {
+                items(devices.size, key = { devices[it].device.address }) { d ->
+                    val deviced = devices[d]
+                    DeviceRow(deviced, onClick = {
+                        viewModel.stopScan()
+                        if (!hasBlePermissionsC(context)) {
+                            Log.w("ScanScreen", "Missing BLE permissions")
+                        }
+                        viewModel.saveDeviceAndConnect(deviced.device)
+                    })
+                }
+            }
+        }
+    }
+
+    if (showScenarios) {
+        BleScenariosModal(viewModel = viewModel, onDismiss = { viewModel.showBleScenariosModal.value = false })
     }
 }
 
@@ -242,4 +245,81 @@ fun LocationDisabledDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
             TextButton(onClick = onDismiss) { Text("Not now") }
         }
     )
+}
+
+@Composable
+fun BleScenariosModal(viewModel: DeviceScanViewModel, onDismiss: () -> Unit) {
+    val log by viewModel.scenarioLog.collectAsState()
+    val running by viewModel.scenarioRunning.collectAsState()
+
+    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        Surface(modifier = Modifier.fillMaxSize()) {
+            Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("BLE Test Scenarios", style = MaterialTheme.typography.headlineSmall)
+                    IconButton(onClick = onDismiss) {
+                        Icon(Icons.Default.Close, contentDescription = "Close")
+                    }
+                }
+
+                Spacer(Modifier.height(12.dp))
+
+                LazyColumn(modifier = Modifier.weight(1f)) {
+                    val scenarios = BleScenarios.ALL
+                    items(scenarios.size, key = { scenarios[it].id }) { scenarioId ->
+                        val scenario = scenarios[scenarioId]
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp)
+                                .clickable(enabled = !running) { viewModel.runScenario(scenario.id) },
+                            elevation = CardDefaults.cardElevation(2.dp)
+                        ) {
+                            Column(Modifier.padding(12.dp)) {
+                                Text(scenario.title, style = MaterialTheme.typography.titleSmall)
+                                Text(scenario.description, style = MaterialTheme.typography.bodySmall)
+                            }
+                        }
+                    }
+                }
+
+                Divider(Modifier.padding(vertical = 8.dp))
+                Text("Status", style = MaterialTheme.typography.titleMedium)
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 120.dp, max = 260.dp)
+                        .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp))
+                        .padding(8.dp)
+                ) {
+                    Column {
+                        if (running) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                                Spacer(Modifier.width(8.dp))
+                                Text("Running…", style = MaterialTheme.typography.bodySmall)
+                            }
+                            Spacer(Modifier.height(4.dp))
+                        }
+                        if (log.isEmpty() && !running) {
+                            Text("No steps run yet.", style = MaterialTheme.typography.bodySmall)
+                        }
+                        log.forEach { step ->
+                            Text(
+                                text = "${if (step.success) "✓" else "✗"} ${step.command} → ${step.result}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = if (step.success) MaterialTheme.colorScheme.onSurfaceVariant
+                                else MaterialTheme.colorScheme.error
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
 }

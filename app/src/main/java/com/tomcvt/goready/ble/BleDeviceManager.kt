@@ -128,6 +128,11 @@ class BleDeviceManager(
     private val pendingRpc = ConcurrentHashMap<Int, CompletableDeferred<String>>()
     private val rpcIdCounter = AtomicInteger(0)
 
+    // init tries to autoconnect on creation
+    init {
+
+    }
+
     private val scanCallback = object : ScanCallback() {
         private val seen = mutableMapOf<String, DiscoveredDevice>()
         @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
@@ -196,7 +201,7 @@ class BleDeviceManager(
         _savedDevice.value = saved
         intentionalDisconnect = false
         retryCount = 0
-        connect(device, autoConnect = true)
+        connect(device, autoConnect = false)
     }
 
     @SuppressLint("MissingPermission")
@@ -208,6 +213,7 @@ class BleDeviceManager(
             intentionalDisconnect = false
             retryCount = 0
             connect(it, autoConnect = false)
+            Log.d(TAG, "Auto-connecting to saved device ${saved.address}")
         }
     }
 
@@ -238,8 +244,10 @@ class BleDeviceManager(
     private fun scheduleReconnect(device: BluetoothDevice) {
         retryCount++
         if (retryCount <= maxDirectRetries) {
+            Log.d(TAG, "Reconnecting in ${2000L * retryCount}ms")
             scope.launch { delay(2000L * retryCount); connect(device, autoConnect = false) }
         } else {
+            Log.d(TAG, "Reconnecting passively")
             connect(device, autoConnect = true) // let the OS reconnect passively when back in range
         }
     }
@@ -258,6 +266,7 @@ class BleDeviceManager(
                 BluetoothProfile.STATE_CONNECTED -> {
                     retryCount = 0
                     g.requestMtu(185) // discoverServices() happens in onMtuChanged
+                    Log.d(TAG, "Connected to ${g.device.address}")
                 }
                 BluetoothProfile.STATE_DISCONNECTED -> {
                     val wasIntentional = intentionalDisconnect
@@ -269,9 +278,11 @@ class BleDeviceManager(
                     gatt = null
                     if (wasIntentional) {
                         notificationManager.cancelNotification()
+                        Log.d(TAG, "Disconnected intentionally from ${dcDevice.address}")
                     } else {
                         notificationManager.notifyDisconnected(dcDevice.address)
                         scheduleReconnect(dcDevice)
+                        Log.d(TAG, "Disconnected passively from ${dcDevice.address}")
                     }
                 }
             }
@@ -321,6 +332,12 @@ class BleDeviceManager(
 
     private fun onIncoming(raw: String) {
         val sep = raw.indexOf(':')
+        //we need to handle generic ACK instead of id and log it
+        val generic = raw.substring(0, sep)
+        if (generic == "ACK") {
+            Log.d(TAG, "ACK received: $raw")
+            return
+        }
         val id = if (sep > 0) raw.substring(0, sep).toIntOrNull() else null
         if (id != null) {
             val resolved = pendingRpc.remove(id)
@@ -364,8 +381,70 @@ class BleDeviceManager(
         }
     }
 
+
+    fun encodeAlarmPlayCommand(alarmId: Int): String { return "ALARM:PLAY:$alarmId" }
+    fun encodeAlarmStopCommand(alarmId: Int): String { return "ALARM:STOP:$alarmId" }
+    fun encodeAlarmSnoozeCommand(alarmId: Int, durationSeconds: Int): String { return "ALARM:SNOOZE:$alarmId:$durationSeconds" }
+
     companion object {
         private const val KEY_ADDRESS = "saved_device_address"
         private const val KEY_NAME = "saved_device_name"
     }
+    //TODO: add to activieties cancelNotification on ondestroy
 }
+
+/*
+### ALARM:STOP – Stop a ringing alarm
+
+```
+<id>:ALARM:STOP:<alarmId>
+```
+
+**Response:** `<id>:<alarmId>:OK`
+`<id>:<alarmId>:ERROR`
+
+---
+
+### ALARM:CLEAR – Delete an alarm
+
+```
+<id>:ALARM:CLEAR:<alarmId>
+<id>:ALARM:CLEAR:ALL
+```
+
+**Response:** `<id>:OK`
+
+---
+
+### ALARM:PLAY – Force-play an alarm immediately
+
+```
+<id>:ALARM:PLAY:<alarmId>
+```
+
+**Responses:**
+
+| Notification              | Meaning                                      |
+|---------------------------|----------------------------------------------|
+| `<id>:<alarmId>:OK`       | Alarm found and started                      |
+| `<id>:<alarmId>:NOT_FOUND_OK` | ID not in table; default sound played, ID tracked so STOP still works |
+| `<id>:<alarmId>:ERROR`    | Internal error                               |
+
+---
+
+### ALARM:SNOOZE – Snooze the currently playing alarm
+
+```
+<id>:ALARM:SNOOZE:<alarmId>:<durationSeconds>
+```
+
+Stops audio for `durationSeconds`, then resumes automatically.
+
+**Responses:**
+
+| Notification         | Meaning                                       |
+|----------------------|-----------------------------------------------|
+| `<id>:<alarmId>:OK`  | Alarm was playing and is now snoozed          |
+| `<id>:<alarmId>:ERROR` | Alarm with that ID is not currently playing |
+
+ */

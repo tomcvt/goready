@@ -60,6 +60,7 @@ fun SettingsView(
     modifier: Modifier = Modifier
 ) {
     var selectedTab by remember { mutableStateOf(SettingsTab.GENERAL) }
+    val showBleScenariosModal by remember { deviceScanViewModel.showBleScenariosModal }.collectAsState()
 
     Column(modifier = modifier) {
         Row(
