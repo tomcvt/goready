@@ -112,6 +112,10 @@ class BleDeviceManager(
     private val _events = MutableSharedFlow<BleEvent>(extraBufferCapacity = 8)
     val events: SharedFlow<BleEvent> = _events
 
+    private val _alarmActivityEvents = MutableSharedFlow<String>(extraBufferCapacity = 8)
+    val alarmActivityEvents: SharedFlow<String> = _alarmActivityEvents
+
+
     // Device-initiated pushes with no matching request id (e.g. spontaneous "RINGING")
     private val _deviceEvents = MutableSharedFlow<String>(extraBufferCapacity = 8)
     val deviceEvents: SharedFlow<String> = _deviceEvents
@@ -335,7 +339,7 @@ class BleDeviceManager(
         //we need to handle generic ACK instead of id and log it
         val generic = raw.substring(0, sep)
         if (generic == "ACK") {
-            Log.d(TAG, "ACK received: $raw")
+            Log.d(TAG, "ACK received: $raw ")
             return
         }
         val id = if (sep > 0) raw.substring(0, sep).toIntOrNull() else null
@@ -367,18 +371,66 @@ class BleDeviceManager(
         val id = rpcIdCounter.incrementAndGet() and 0xFF
         val deferred = CompletableDeferred<String>()
         pendingRpc[id] = deferred
-        return try {
+        //we need to change it a bit so we add an event to alarm activity events about success/failure
+        var result : Result<String>
+        try {
             Log.d(TAG, "Sending RPC $id: $command")
             withTimeout(timeoutMs) {
                 sendCommand("$id:$command")
-                Result.success(deferred.await())
+                val res = deferred.await()
+                result = Result.success(res)
+                //_alarmActivityEvents.tryEmit
             }
         } catch (e: TimeoutCancellationException) {
             Log.w(TAG, "RPC $id timed out")
-            Result.failure(e)
+            result = Result.failure(e)
         } finally {
             pendingRpc.remove(id)
         }
+        return result
+    }
+    // utility methods
+
+    suspend fun requestStartAlarm(alarmId: Int) : Result<String> {
+        val command = encodeAlarmPlayCommand(alarmId)
+        val res = request(command)
+        when (res) {
+            Result.success(command) -> {
+                //for now nothing
+            }
+            else -> {
+                _alarmActivityEvents.tryEmit("ERROR: $res")
+            }
+        }
+        return res
+    }
+
+    suspend fun requestStopAlarm(alarmId: Int) : Result<String> {
+        val command = encodeAlarmStopCommand(alarmId)
+        val res = request(command)
+        when (res) {
+            Result.success(command) -> {
+                //for now nothing
+            }
+            else -> {
+                _alarmActivityEvents.tryEmit("ERROR: $res")
+            }
+        }
+        return res
+    }
+
+    suspend fun requestSnoozeAlarm(alarmId: Int, durationSeconds: Int = 5) : Result<String> {
+        val command = encodeAlarmSnoozeCommand(alarmId, durationSeconds)
+        val res = request(command)
+        when (res) {
+            Result.success(command) -> {
+                //for now nothing
+            }
+            else -> {
+                _alarmActivityEvents.tryEmit("ERROR: $res")
+            }
+        }
+        return res
     }
 
 
@@ -386,6 +438,10 @@ class BleDeviceManager(
     fun encodeAlarmStopCommand(alarmId: Int): String { return "ALARM:STOP:$alarmId" }
     fun encodeAlarmSnoozeCommand(alarmId: Int, durationSeconds: Int): String { return "ALARM:SNOOZE:$alarmId:$durationSeconds" }
 
+
+    fun closeNotifications() {
+        notificationManager.cancelNotification()
+    }
     companion object {
         private const val KEY_ADDRESS = "saved_device_address"
         private const val KEY_NAME = "saved_device_name"

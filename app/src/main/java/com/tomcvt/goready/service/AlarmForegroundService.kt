@@ -18,6 +18,7 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.tomcvt.goready.R
 import com.tomcvt.goready.activities.AlarmActivity
+import com.tomcvt.goready.application.AlarmApp
 import com.tomcvt.goready.constants.ACTION_FINALIZE_ALARM
 import com.tomcvt.goready.constants.ACTION_STOP_ALARM_SOUND
 import com.tomcvt.goready.constants.ACTION_UI_HIDDEN
@@ -41,6 +42,7 @@ class AlarmForegroundService : Service() {
     // Only one alarm may be active at a time
     // Additional alarms are postponed
     // Service owns MediaPlayer check
+    private val ble by lazy { (application as AlarmApp).bleDeviceManager }
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private lateinit var repository: AlarmRepositoryImpl
 
@@ -77,6 +79,9 @@ class AlarmForegroundService : Service() {
             alarmStopped = true
             stopAlarmSound()
             serviceScope.launch {
+                ble.requestStopAlarm(alarmId.toInt()).onFailure {
+                    Log.w(TAG, "Failed to send stop alarm command to BLE device", it)
+                }
                 delay(15000)
                 finalizeAlarm()
                 return@launch
@@ -100,6 +105,11 @@ class AlarmForegroundService : Service() {
             muteUntil = System.currentTimeMillis() + 5000
             isTemporarilyMuted = true
             pauseAlarm()
+            serviceScope.launch{
+                ble.requestSnoozeAlarm(alarmId.toInt()).onFailure {
+                    Log.w(TAG, "Failed to send snooze alarm command to BLE device", it)
+                }
+            }
             //Log.d(TAG, "Alarm muted for 5 seconds")
             return START_STICKY
         }
@@ -184,6 +194,7 @@ class AlarmForegroundService : Service() {
         mediaPlayer?.release()
         serviceScope.cancel()
         isActive = false
+        ble.closeNotifications()
         super.onDestroy()
     }
 

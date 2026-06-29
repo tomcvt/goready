@@ -64,6 +64,10 @@ class DeviceScanViewModel(
         manager.connectAndSave(device)
     }
 
+    fun disconnect() { manager.disconnect() }
+
+    fun forgetDevice() { manager.forgetDevice() }
+
     override fun onCleared() = manager.stopScan()
 
     //TEST scenarios

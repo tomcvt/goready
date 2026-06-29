@@ -45,6 +45,8 @@ class AlarmActivity : ComponentActivity() {
 
         val routineRepository = app.routineRepository
 
+        val bleDeviceManager = app.bleDeviceManager
+
         WindowCompat.setDecorFitsSystemWindows(window, false)
         // Show over lock screen + turn screen on
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
@@ -68,11 +70,15 @@ class AlarmActivity : ComponentActivity() {
         val receivedRemainingSnooze = intent.getIntExtra(EXTRA_REMAINING_SNOOZE, -1)
         Log.d(TAG, "Alarm ID: $alarmId, snooze: $receivedRemainingSnooze")
 
+        var interactionDebouncedMillis = 0L
 
         val testAlarm = intent.getBooleanExtra("TestAlarm", false)
         var onInteraction = {
             //Log.d(TAG, "Sending interaction intent")
-            sendInteraction()
+            if (System.currentTimeMillis() - interactionDebouncedMillis > 4000) {
+                sendInteraction()
+                interactionDebouncedMillis = System.currentTimeMillis()
+            }
         }
         if (testAlarm) {
             onInteraction = {

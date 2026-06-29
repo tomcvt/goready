@@ -107,6 +107,7 @@ class AlarmApp : Application() {
         blueToothAdapter = appContext.getSystemService(BluetoothManager::class.java).adapter
 
         bleDeviceManager = BleDeviceManager(appContext, blueToothAdapter)
+        bleDeviceManager.tryAutoConnect()
 
     }
 }

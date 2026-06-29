@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -53,15 +54,14 @@ fun ScanScreen(viewModel: DeviceScanViewModel, onSelect: (BluetoothDevice) -> Un
     val context = LocalContext.current
     val devices by viewModel.devices.collectAsState()
     val isScanning by viewModel.isScanning.collectAsState()
-    val savedDevice: SavedDevice? by viewModel.savedDevice.collectAsState()
-    val connectionState: BleConnectionState by viewModel.connectionState.collectAsState()
+    val deviceConnection: DeviceConnection by viewModel.deviceConnectionState.collectAsState()
     val showScenarios by viewModel.showBleScenariosModal.collectAsState()
 
 
-    LaunchedEffect(savedDevice, connectionState) {
+    LaunchedEffect(deviceConnection) {
         Log.d(
             "ScanScreen",
-            "savedDevice=$savedDevice state=$connectionState"
+            "savedDevice=${deviceConnection.savedDevice} state=${deviceConnection.connectionState}"
         )
     }
 
@@ -92,8 +92,12 @@ fun ScanScreen(viewModel: DeviceScanViewModel, onSelect: (BluetoothDevice) -> Un
         }
     ) { padding ->
         Column(modifier = Modifier.padding(padding)) {
-            if (savedDevice != null) {
-                ConnectedRow(savedDevice!!, connectionState)
+            if (deviceConnection.savedDevice != null) {
+                DeviceConnectionTile(
+                    deviceConnection = deviceConnection,
+                    onDisconnect = { viewModel.disconnect() },
+                    onForget = { viewModel.forgetDevice() }
+                )
             }
             Button(onClick = { viewModel.startScan() }, enabled = !isScanning) {
                 Text(if (isScanning) "Scanning…" else "Scan")
@@ -118,7 +122,13 @@ fun ScanScreen(viewModel: DeviceScanViewModel, onSelect: (BluetoothDevice) -> Un
     }
 }
 
-@Composable fun ConnectedRow(device: SavedDevice, connectionState: BleConnectionState) {
+@Composable fun DeviceConnectionTile(
+    deviceConnection: DeviceConnection,
+    onDisconnect: () -> Unit,
+    onForget: () -> Unit,
+) {
+    val device = deviceConnection.savedDevice ?: return
+    val connectionState = deviceConnection.connectionState
     val cardColor = when (connectionState) {
         BleConnectionState.Connected -> MaterialTheme.colorScheme.primary
         BleConnectionState.Connecting -> MaterialTheme.colorScheme.secondary
@@ -134,24 +144,42 @@ fun ScanScreen(viewModel: DeviceScanViewModel, onSelect: (BluetoothDevice) -> Un
         BleConnectionState.Connecting -> "Connecting…"
         BleConnectionState.Disconnected -> "Disconnected"
     }
-    var deviceName = "Unknown"
-    try {
-        deviceName = device.name ?: "Unknown"
-    } catch (e: SecurityException) {
+    val deviceName = try { device.name ?: "Unknown" } catch (e: SecurityException) {
         Log.w(TAG, "Missing permission", e)
+        "Unknown"
     }
-    Box(modifier = Modifier.fillMaxWidth()) {
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = cardColor
-            ),
-            elevation = CardDefaults.cardElevation(4.dp)
+    var menuExpanded by remember { mutableStateOf(false) }
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = cardColor),
+        elevation = CardDefaults.cardElevation(4.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 16.dp, top = 8.dp, bottom = 8.dp, end = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(text = deviceName ?: "Unknown", style = MaterialTheme.typography.headlineSmall, color = textColor)
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = deviceName, style = MaterialTheme.typography.headlineSmall, color = textColor)
                 Text(text = device.address, style = MaterialTheme.typography.bodyMedium, color = textColor)
                 Text(text = statusText, style = MaterialTheme.typography.bodyMedium, color = textColor)
+            }
+            Box {
+                IconButton(onClick = { menuExpanded = true }) {
+                    Icon(Icons.Default.MoreVert, contentDescription = "Device options", tint = textColor)
+                }
+                DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                    DropdownMenuItem(
+                        text = { Text("Disconnect") },
+                        enabled = connectionState is BleConnectionState.Connected,
+                        onClick = { menuExpanded = false; onDisconnect() }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Forget device") },
+                        onClick = { menuExpanded = false; onForget() }
+                    )
+                }
             }
         }
     }
