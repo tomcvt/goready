@@ -208,6 +208,11 @@ class BleDeviceManager(
         connect(device, autoConnect = false)
     }
 
+    fun connectToSaved() {
+        val saved = _savedDevice.value ?: return
+        connectAndSave(bluetoothAdapter.getRemoteDevice(saved.address))
+    }
+
     @SuppressLint("MissingPermission")
     fun tryAutoConnect() {
         if (_connectionState.value !is BleConnectionState.Disconnected) return

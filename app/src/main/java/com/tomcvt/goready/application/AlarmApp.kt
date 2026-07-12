@@ -25,6 +25,7 @@ import com.tomcvt.goready.repository.StepDefinitionRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 
 class AlarmApp : Application() {
@@ -53,6 +54,8 @@ class AlarmApp : Application() {
 
     lateinit var blueToothAdapter: BluetoothAdapter
     lateinit var bleDeviceManager: BleDeviceManager
+
+    val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     override fun onCreate() {
         super.onCreate()
@@ -99,7 +102,7 @@ class AlarmApp : Application() {
 
         premiumRepository =
             if (BuildConfig.DEBUG) {
-                DevPremiumRepository()
+                DevPremiumRepository(appScope)
             } else {
                 ProdPremiumRepository()
             }
@@ -109,5 +112,11 @@ class AlarmApp : Application() {
         bleDeviceManager = BleDeviceManager(appContext, blueToothAdapter)
         bleDeviceManager.tryAutoConnect()
 
+    }
+
+    override fun onTerminate() {
+        super.onTerminate()
+        //bleDeviceManager.close() TODO close bluetooth adapter
+        appScope.cancel()
     }
 }

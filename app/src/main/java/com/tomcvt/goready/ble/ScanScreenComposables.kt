@@ -14,9 +14,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.activity.compose.BackHandler
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -55,8 +55,6 @@ fun ScanScreen(viewModel: DeviceScanViewModel, onSelect: (BluetoothDevice) -> Un
     val devices by viewModel.devices.collectAsState()
     val isScanning by viewModel.isScanning.collectAsState()
     val deviceConnection: DeviceConnection by viewModel.deviceConnectionState.collectAsState()
-    val showScenarios by viewModel.showBleScenariosModal.collectAsState()
-
 
     LaunchedEffect(deviceConnection) {
         Log.d(
@@ -84,19 +82,14 @@ fun ScanScreen(viewModel: DeviceScanViewModel, onSelect: (BluetoothDevice) -> Un
         )
     }
 
-    Scaffold(
-        floatingActionButton = {
-            FloatingActionButton(onClick = { viewModel.showBleScenariosModal.value = true }) {
-                Icon(Icons.Filled.PlayArrow, contentDescription = "Run test scenario")
-            }
-        }
-    ) { padding ->
+    Scaffold { padding ->
         Column(modifier = Modifier.padding(padding)) {
             if (deviceConnection.savedDevice != null) {
                 DeviceConnectionTile(
                     deviceConnection = deviceConnection,
                     onDisconnect = { viewModel.disconnect() },
-                    onForget = { viewModel.forgetDevice() }
+                    onForget = { viewModel.forgetDevice() },
+                    onClick = { viewModel.connectToSaved() }
                 )
             }
             Button(onClick = { viewModel.startScan() }, enabled = !isScanning) {
@@ -116,16 +109,18 @@ fun ScanScreen(viewModel: DeviceScanViewModel, onSelect: (BluetoothDevice) -> Un
             }
         }
     }
-
+    /*
     if (showScenarios) {
         BleScenariosModal(viewModel = viewModel, onDismiss = { viewModel.showBleScenariosModal.value = false })
     }
+     */
 }
 
 @Composable fun DeviceConnectionTile(
     deviceConnection: DeviceConnection,
     onDisconnect: () -> Unit,
     onForget: () -> Unit,
+    onClick: () -> Unit
 ) {
     val device = deviceConnection.savedDevice ?: return
     val connectionState = deviceConnection.connectionState
@@ -150,7 +145,7 @@ fun ScanScreen(viewModel: DeviceScanViewModel, onSelect: (BluetoothDevice) -> Un
     }
     var menuExpanded by remember { mutableStateOf(false) }
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
         colors = CardDefaults.cardColors(containerColor = cardColor),
         elevation = CardDefaults.cardElevation(4.dp)
     ) {
@@ -281,6 +276,7 @@ fun BleScenariosModal(viewModel: DeviceScanViewModel, onDismiss: () -> Unit) {
     val running by viewModel.scenarioRunning.collectAsState()
 
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        BackHandler(onBack = onDismiss)
         Surface(modifier = Modifier.fillMaxSize()) {
             Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
                 Row(

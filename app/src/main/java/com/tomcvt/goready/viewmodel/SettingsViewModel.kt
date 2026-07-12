@@ -10,10 +10,13 @@ class SettingsViewModel(
 ) : ViewModel() {
     val premiumState = premiumRepository.premiumState
 
+
     fun devTogglePremium() {
         val isPremium = premiumState.value.isPremium
         viewModelScope.launch {
             premiumRepository.setIsPremium(!isPremium)
         }
     }
+
+    //TODO add toggle for adds
 }

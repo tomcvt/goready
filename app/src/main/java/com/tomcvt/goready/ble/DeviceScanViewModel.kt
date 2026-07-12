@@ -68,6 +68,8 @@ class DeviceScanViewModel(
 
     fun forgetDevice() { manager.forgetDevice() }
 
+    fun connectToSaved() { manager.connectToSaved() }
+
     override fun onCleared() = manager.stopScan()
 
     //TEST scenarios

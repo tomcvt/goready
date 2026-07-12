@@ -102,7 +102,8 @@ class AlarmForegroundService : Service() {
         }
 
         if (intent?.action == ACTION_USER_INTERACTION) {
-            muteUntil = System.currentTimeMillis() + 5000
+            muteUntil = System.currentTimeMillis() + 5000 //magic number
+            val mutedForSeconds = 5 //magic number
             isTemporarilyMuted = true
             pauseAlarm()
             serviceScope.launch{
@@ -116,6 +117,11 @@ class AlarmForegroundService : Service() {
 
         if (intent?.action == ACTION_FINALIZE_ALARM) {
             finalizeAlarm()
+            serviceScope.launch {
+                ble.requestStopAlarm(alarmId.toInt()).onFailure {
+                    Log.w(TAG, "Failed to send stop alarm command to BLE device", it)
+                }
+            }
             return START_NOT_STICKY
         }
 
@@ -158,6 +164,10 @@ class AlarmForegroundService : Service() {
                 Log.d("AlarmService", "Audio focus granted, starting alarm sound")
             } else {
                 Log.w("AlarmService", "Audio focus denied, starting alarm sound anyway")
+            }
+
+            ble.requestStartAlarm(alarmId.toInt()).onFailure {
+                Log.w(TAG, "Failed to send start alarm command to BLE device", it)
             }
 
             startAlarmSound(alarm)

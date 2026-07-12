@@ -80,6 +80,7 @@ fun RoutineFlowContent(
                 } else {
                     RoutineFlowView(viewModel, Modifier.weight(1f), onClose)
                 }
+                //TODO add composition local from appobject premium state, migrate to dynamic banner
                 BottomBarBannerAdView(
                     adUnitId = ADMOB_ID_TEST_BANNER,
                     modifier = Modifier.fillMaxWidth()

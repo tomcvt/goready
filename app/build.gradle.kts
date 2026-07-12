@@ -58,6 +58,12 @@ android {
                 "IS_ALARM_TEST",
                 "false"
             )
+
+            buildConfigField(
+                "Boolean",
+                "IS_ADS_ON",
+                "true"
+            )
         }
 
         create("alarmTest1") {
@@ -70,6 +76,12 @@ android {
                 "IS_ALARM_TEST",
                 "true"
             )
+
+            buildConfigField(
+                "Boolean",
+                "IS_ADS_ON",
+                "false"
+            )
         }
 
         create("alarmTest2") {
@@ -81,6 +93,12 @@ android {
                 "Boolean",
                 "IS_ALARM_TEST",
                 "true"
+            )
+
+            buildConfigField(
+                "Boolean",
+                "IS_ADS_ON",
+                "false"
             )
         }
 
@@ -112,6 +130,7 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material3.adaptive.navigation.suite)
+    implementation("androidx.compose.material:material-icons-extended")
     implementation(libs.androidx.room.ktx)
     implementation(libs.androidx.room.runtime)
     implementation(libs.places)
@@ -120,12 +139,18 @@ dependencies {
     implementation(libs.androidx.compose.foundation.layout)
     implementation(libs.androidx.compose.ui.unit)
     implementation(libs.androidx.emoji2)
+    implementation(libs.androidx.compose.animation)
     kapt(libs.androidx.room.compiler)
     implementation("androidx.datastore:datastore:1.1.1")
     implementation("com.google.protobuf:protobuf-javalite:3.25.1")
     implementation("androidx.datastore:datastore-preferences:1.1.1")
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.play.services.ads)
+    implementation(libs.androidx.camera.core)
+    implementation(libs.androidx.camera.camera2)
+    implementation(libs.androidx.camera.lifecycle)
+    implementation(libs.androidx.camera.view)
+    implementation(libs.mlkit.barcode.scanning)
 
     testImplementation(libs.junit)
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")

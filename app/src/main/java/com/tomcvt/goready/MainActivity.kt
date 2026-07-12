@@ -208,6 +208,10 @@ val LocalPremiumState = staticCompositionLocalOf<PremiumState> {
     error("No PremiumState provided")
 }
 
+val LocalDisableAdds = staticCompositionLocalOf<Boolean> {
+    error("No DisableAdds provided")
+}
+
 @Composable
 fun GoReadyApp(
     alarmViewModelFactory: AlarmViewModelFactory,
@@ -218,7 +222,12 @@ fun GoReadyApp(
     alarmId: Long? = null
 ) {
     val premiumState by premiumRepository.premiumState.collectAsState()
-    CompositionLocalProvider(LocalPremiumState provides premiumState) {
+    val disableAdds by premiumRepository.addsDisabled.collectAsState()
+
+    CompositionLocalProvider(
+        LocalPremiumState provides premiumState,
+        LocalDisableAdds provides disableAdds
+    ) {
         GoReadyAppMain(
             alarmViewModelFactory,
             routinesViewModelFactory,
@@ -242,6 +251,8 @@ fun GoReadyAppMain(
     val navbackStackEntry by rootNavController.currentBackStackEntryAsState()
     val currentRoute = navbackStackEntry?.destination?.route
     var exitModalVisible by remember { mutableStateOf(false) }
+
+    val addsDisabled = LocalDisableAdds.current
 
     // Enable BackHandler only when at the root/start destination
     BackHandler(enabled = true) {
@@ -314,10 +325,12 @@ fun GoReadyAppMain(
                         AddAlarmView(vm, rootNavController, alarmId = alarmId)
                     }
                 }
-                BottomBarDynamicAdView(
-                    adUnitId = ADMOB_ID_DYNAMIC_BANNER,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                if (!addsDisabled) {
+                    BottomBarDynamicAdView(
+                        adUnitId = ADMOB_ID_DYNAMIC_BANNER,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
             }
             if (exitModalVisible) {
                 val activity = LocalContext.current as? Activity

@@ -20,6 +20,8 @@ class ProdPremiumRepository(
         Log.d(TAG, "Not supposed to be called")
         TODO("Not yet implemented")
     }
+    override val addsDisabled: StateFlow<Boolean> = MutableStateFlow(false)
+    //TODO implement
 
 
 
