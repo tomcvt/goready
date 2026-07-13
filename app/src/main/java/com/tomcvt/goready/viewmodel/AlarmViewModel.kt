@@ -326,12 +326,17 @@ class AlarmViewModel(
             TaskType.GAME -> {
                 return true
             }
+            TaskType.BARCODE -> {
+                return taskData.isNotBlank()
+            }
             else -> {return false}
         }
         return false
     }
 
 }
+
+//TODO add remember for scanned codes
 
 // UI observes `uiState` and reacts
 data class UiState(
@@ -381,9 +386,11 @@ fun parseData(taskType: TaskType, taskData: String) : String?  {
         TaskType.MATH -> {return taskData}
         TaskType.TARGET -> { return taskData }
         TaskType.GAME -> {return taskData}
-        else -> {return null}
+        TaskType.BARCODE -> {return taskData}
+        TaskType.TASK_CHAIN -> {return null}
     }
 }
+//TODO remove else and add unimplemented to the
 
 
 

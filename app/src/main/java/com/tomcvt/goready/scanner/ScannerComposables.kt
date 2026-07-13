@@ -210,7 +210,8 @@ fun BarcodeScannerView(
 fun SaveBarcodeScreen(
     //repository: BarcodeRepository,
     onSaved: (String) -> Unit,
-    onDismissed: () -> Unit
+    onDismissed: () -> Unit,
+    restrictedStrings: List<String> = listOf(":", "/", "?", "*", "\"",",")
 ) {
     val scope = rememberCoroutineScope()
     var scanAttempt by remember { mutableIntStateOf(0) }   // increment → resets BarcodeScannerView
@@ -301,12 +302,13 @@ fun SaveBarcodeScreen(
                     }
                 } else {
                     // ── Scanned state
+                    val restricted = restrictedStrings.any { value.contains(it) }
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 20.dp, vertical = 20.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(20.dp)
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Text(
                             text = value,
@@ -316,6 +318,28 @@ fun SaveBarcodeScreen(
                             overflow = TextOverflow.Ellipsis,
                             textAlign = TextAlign.Center
                         )
+                        if (restricted) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Warning,
+                                    contentDescription = null,
+                                    tint = Color(0xFFFFB300),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Text(
+                                    text = "Contains restricted characters: ${
+                                        restrictedStrings.filter { value.contains(it) }
+                                            .joinToString(", ") { "\"$it\"" }
+                                    }",
+                                    color = Color(0xFFFFB300),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        }
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                             verticalAlignment = Alignment.CenterVertically
@@ -336,19 +360,20 @@ fun SaveBarcodeScreen(
                                     contentDescription = "Scan again"
                                 )
                             }
-                            // Accept — persist and notify caller
-                            Button(
-                                onClick = {
-                                    scope.launch {
-                                        //repository.saveCode(value)
-                                        onSaved(value)
+                            // Accept — only if not restricted
+                            if (!restricted) {
+                                Button(
+                                    onClick = {
+                                        scope.launch {
+                                            onSaved(value)
+                                        }
                                     }
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Check,
+                                        contentDescription = "Accept"
+                                    )
                                 }
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Check,
-                                    contentDescription = "Accept"
-                                )
                             }
                         }
                     }
@@ -578,12 +603,55 @@ fun TipInputDialog(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Reusable: BarcodeValueInputDialog
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+fun BarcodeValueInputDialog(
+    initialValue: String = "",
+    onAccept: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var text by remember(initialValue) { mutableStateOf(initialValue) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Edit barcode value") },
+        text = {
+            OutlinedTextField(
+                value = text,
+                onValueChange = { text = it },
+                label = { Text("Barcode / QR value") },
+                modifier = Modifier.fillMaxWidth(),
+                maxLines = 3
+            )
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onAccept(text) },
+                enabled = text.isNotBlank()
+            ) {
+                Icon(Icons.Default.Check, contentDescription = null)
+                Spacer(Modifier.width(4.dp))
+                Text("Accept")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Reusable: ScanCodeItemCard
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
 fun ScanCodeItemCard(
     scanCode: ScanCode,
+    onEditBarcode: () -> Unit,
     onEditTip: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier
@@ -611,6 +679,14 @@ fun ScanCodeItemCard(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f)
                 )
+                // light-blue QR code button to manually edit the barcode value
+                IconButton(onClick = onEditBarcode) {
+                    Icon(
+                        imageVector = Icons.Default.QrCode2,
+                        contentDescription = "Edit barcode value",
+                        tint = Color(0xFF64B5F6)
+                    )
+                }
                 // icon toggles between Add and Edit depending on whether tip exists
                 IconButton(onClick = onEditTip) {
                     Icon(
@@ -647,11 +723,16 @@ fun ScanCodeItemCard(
 @Composable
 fun AddBarcodeCard(
     onClick: () -> Unit,
+    onLongClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     OutlinedCard(
-        onClick = onClick,
-        modifier = modifier.fillMaxWidth(),
+        //onClick = onClick,
+        modifier = modifier.fillMaxWidth()
+                .combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongClick
+            ),
         shape = RoundedCornerShape(16.dp),
         border = BorderStroke(
             width = 1.5.dp,
@@ -688,11 +769,13 @@ fun MultiBarcodesSaverView(
     //repository: BarcodeRepository,
     onDismiss: () -> Unit,
     onAccept: (List<ScanCode>) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    initialCodes: List<ScanCode> = emptyList(),
 ) {
-    var items by remember { mutableStateOf<List<ScanCode>>(emptyList()) }
+    var items by remember { mutableStateOf<List<ScanCode>>(initialCodes) }
     var showAddDialog by remember { mutableStateOf(false) }
     var tipDialogIndex by remember { mutableStateOf<Int?>(null) }
+    var barcodeDialogIndex by remember { mutableStateOf<Int?>(null) }
 
     // Full-screen camera dialog for capturing a new barcode
     if (showAddDialog) {
@@ -720,6 +803,18 @@ fun MultiBarcodesSaverView(
                 tipDialogIndex = null
             },
             onDismiss = { tipDialogIndex = null }
+        )
+    }
+
+    // Barcode value editor dialog
+    barcodeDialogIndex?.let { idx ->
+        BarcodeValueInputDialog(
+            initialValue = items.getOrNull(idx)?.barcode.orEmpty(),
+            onAccept = { value ->
+                items = items.toMutableList().also { it[idx] = it[idx].copy(barcode = value) }
+                barcodeDialogIndex = null
+            },
+            onDismiss = { barcodeDialogIndex = null }
         )
     }
 
@@ -771,6 +866,7 @@ fun MultiBarcodesSaverView(
             ) { index, scanCode ->
                 ScanCodeItemCard(
                     scanCode = scanCode,
+                    onEditBarcode = { barcodeDialogIndex = index },
                     onEditTip = { tipDialogIndex = index },
                     onDelete = {
                         items = items.toMutableList().also { it.removeAt(index) }
@@ -779,7 +875,10 @@ fun MultiBarcodesSaverView(
             }
 
             item {
-                AddBarcodeCard(onClick = { showAddDialog = true })
+                AddBarcodeCard(
+                    onClick = { showAddDialog = true },
+                    onLongClick = { items = items.toMutableList().also { it.add(ScanCode("","")) } }
+                )
             }
         }
     }

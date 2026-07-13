@@ -54,7 +54,10 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.core.text.isDigitsOnly
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
@@ -66,6 +69,8 @@ import com.tomcvt.goready.data.RoutineEntity
 import com.tomcvt.goready.domain.AlarmDraft
 import com.tomcvt.goready.domain.SimpleAlarmDraft
 import com.tomcvt.goready.games.GamesRegistry
+import com.tomcvt.goready.scanner.MultiBarcodesSaverView
+import com.tomcvt.goready.scanner.ScanCode
 import com.tomcvt.goready.viewmodel.AlarmViewModel
 import com.tomcvt.goready.viewmodel.RoutinesViewModel
 import com.tomcvt.goready.viewmodel.UiState
@@ -502,9 +507,76 @@ fun TaskDataInput(
                     )
                 }
 
+                TaskType.BARCODE -> {
+                    MultiBarcodesSaverViewDialogButton(
+                        value = value,
+                        onDismiss = { onTaskDataProvided("") },
+                        onBarcodesScanned = { onTaskDataProvided(it) }
+                    )
+                }
+
                 else -> {}
             }
         }
+    }
+}
+
+//private data class StringAndInt(val string: String, val int: Int)
+
+@Composable
+fun MultiBarcodesSaverViewDialogButton(
+    value: String,
+    onDismiss: () -> Unit,
+    onBarcodesScanned: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    //var scannedValue by remember { mutableStateOf<String?>(null) }
+    var numberOfSavedCodes by remember { mutableStateOf<Int?>(decodeScanCodes(value).size) }
+    var showDialog by remember { mutableStateOf(false) }
+    Button(onClick = { showDialog = true }) {
+        if (numberOfSavedCodes != null) Text("Scanned: $numberOfSavedCodes")
+        if (numberOfSavedCodes == 0 || numberOfSavedCodes == null) Text("Scan")
+    }
+    if (showDialog) {
+        MultiBarcodesSaverViewDialog(
+            value = value,
+            onDismiss = { showDialog = false; onDismiss() },
+            onBarcodesScanned = { str, n -> showDialog = false; onBarcodesScanned(str); numberOfSavedCodes = n }
+        )
+    }
+}
+
+//@Preview(showBackground = true)
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun MultiBarcodesSaverViewDialog(
+    value: String,
+    onDismiss: () -> Unit,
+    onBarcodesScanned: (String, Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+        MultiBarcodesSaverView(
+            initialCodes = decodeScanCodes(value),
+            onDismiss = onDismiss,
+            onAccept = { onBarcodesScanned(encodeScanCodes(it), it.size) }
+        )
+    }
+}
+
+fun encodeScanCodes(codes: List<ScanCode>): String {
+    if (codes.isEmpty()) return ""
+    return codes.joinToString(separator = ",") { "${it.barcode}:${it.tip}" }
+}
+
+fun decodeScanCodes(encoded: String): List<ScanCode> {
+    if (encoded.isEmpty()) return emptyList()
+    return encoded.split(",").map {
+        val (barcode, tip) = it.split(":")
+        ScanCode(barcode, tip)
     }
 }
 

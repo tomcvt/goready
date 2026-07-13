@@ -48,6 +48,7 @@ enum class TaskType(
     COUNTDOWN("Clicker", 2),
     TEXT("Text", 3),
     MATH("Math tasks", 4),
+    BARCODE("Barcode", 8),
     TARGET("Target Minigame", 5, true),
     TASK_CHAIN("Task Chain", 6, true),
     GAME("Game", 7, false);

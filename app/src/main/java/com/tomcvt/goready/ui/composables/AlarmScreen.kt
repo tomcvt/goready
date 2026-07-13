@@ -33,6 +33,9 @@ import com.tomcvt.goready.constants.TaskType
 import com.tomcvt.goready.data.AlarmEntity
 import com.tomcvt.goready.games.GamesRegistry
 import com.tomcvt.goready.games.WebviewGameAlarmScreen
+import com.tomcvt.goready.scanner.MultiBarcodeScannerView
+import com.tomcvt.goready.scanner.MultiBarcodesSaverView
+import com.tomcvt.goready.scanner.ScanCode
 import kotlin.math.sqrt
 
 
@@ -178,11 +181,75 @@ fun AlarmScreen(
                     dismissable = dismissable
                 )
             }
+            TaskType.BARCODE -> {
+                val decodedCodes = decodeScanCodes(taskData?: "")
+                BarcodeAlarmScreen(
+                    codes = decodedCodes,
+                    onSuccess = { /* Handle success */ },
+                    onFail = { /* Handle fail */ },
+                    onFinish = { onStopAlarm() },
+                    onDismissed = { onStopAlarm() },
+                    onInteraction = onInteraction,
+                    dismissable = dismissable
+                )
+            }
             else -> {}
         }
     }
 }
 
+@Composable
+fun InteractionDetectorWrapper(modifier: Modifier = Modifier, onInteraction: () -> Unit, content: @Composable () -> Unit) {
+    var interactionKey by remember { mutableLongStateOf(0L) }
+    var lastInteraction by remember { mutableLongStateOf(0L) }
+    LaunchedEffect(interactionKey) {
+        if (System.currentTimeMillis() - lastInteraction > 2000L) {
+            onInteraction()
+            lastInteraction = System.currentTimeMillis()
+        }
+    }
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .pointerInput(Unit) {
+                awaitPointerEventScope {
+                    while (true) {
+                        awaitPointerEvent(PointerEventPass.Initial)
+                        interactionKey++
+                    }
+                }
+            }
+    ) {
+        content()
+    }
+}
+
+@Composable
+fun BarcodeAlarmScreen(
+    modifier: Modifier = Modifier,
+    codes: List<ScanCode>,
+    onSuccess: (String) -> Unit,
+    onFail: (String) -> Unit,
+    onFinish: (String) -> Unit,
+    onDismissed: () -> Unit,
+    onInteraction: () -> Unit,
+    dismissable: Boolean = false
+) {
+    InteractionDetectorWrapper(
+        onInteraction = onInteraction,
+        modifier = modifier
+    ) {
+        MultiBarcodeScannerView(
+            codes = codes,
+            onSuccess = onSuccess,
+            onFail = onFail,
+            onFinish = onFinish,
+            onDismissed = onDismissed,
+            dismissable = dismissable
+        )
+    }
+
+}
 
 @Composable
 fun SimpleAlarmScreen(
