@@ -445,6 +445,24 @@ fun TestAlarmScreen(
 }
 
 @Composable
+fun DismissButtonWrapper(
+    modifier: Modifier = Modifier,
+    dismissable: Boolean,
+    onDismiss: () -> Unit,
+    content: @Composable () -> Unit
+) {
+    Box(modifier = modifier) {
+        content()
+        if (dismissable) {
+            SimpleDeleteButton(
+                onDelete = { onDismiss() },
+                modifier = Modifier.align(Alignment.TopEnd)
+            )
+        }
+    }
+}
+
+@Composable
 fun DebugTextAlarmScreen(
     text: String,
     onStopAlarm: () -> Unit,

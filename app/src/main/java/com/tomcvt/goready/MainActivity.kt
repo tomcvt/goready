@@ -38,6 +38,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.zIndex
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -66,6 +67,8 @@ import com.tomcvt.goready.preview.PreviewAlarms2
 import com.tomcvt.goready.repository.AlarmRepositoryImpl
 import com.tomcvt.goready.repository.RoutineRepository
 import com.tomcvt.goready.repository.RoutineStepRepository
+import com.tomcvt.goready.repository.ScanSetRepository
+import com.tomcvt.goready.repository.ScanSetRepositoryImpl
 import com.tomcvt.goready.repository.StepDefinitionRepository
 import com.tomcvt.goready.ui.composables.AddAlarmView
 import com.tomcvt.goready.ui.composables.AlarmList
@@ -73,6 +76,7 @@ import com.tomcvt.goready.ui.composables.AlarmsNavHost
 import com.tomcvt.goready.ui.composables.RoutineListRoute
 import com.tomcvt.goready.ui.composables.SettingsView
 import com.tomcvt.goready.ui.composables.StandardModal
+import com.tomcvt.goready.ui.overlay.OverlayHost
 import com.tomcvt.goready.ui.theme.GoReadyTheme
 import com.tomcvt.goready.ui.theme.VibrantTheme
 import com.tomcvt.goready.viewmodel.AlarmViewModel
@@ -84,6 +88,7 @@ import com.tomcvt.goready.viewmodel.SettingsViewModelFactory
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import java.util.Map.entry
 
 class MainActivity : ComponentActivity() {
 
@@ -102,6 +107,9 @@ class MainActivity : ComponentActivity() {
     lateinit var settingsViewModelFactory: SettingsViewModelFactory
         private set
     lateinit var deviceScanViewModelFactory: DeviceScanViewModelFactory
+
+    lateinit var scanSetRepository: ScanSetRepository
+        private set
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -122,6 +130,7 @@ class MainActivity : ComponentActivity() {
         routinesViewModelFactory = RoutinesViewModelFactory(appRoutinesManager)
         settingsViewModelFactory = SettingsViewModelFactory(appObject.premiumRepository)
         deviceScanViewModelFactory = DeviceScanViewModelFactory(appObject.blueToothAdapter, appObject.bleDeviceManager)
+        scanSetRepository = ScanSetRepositoryImpl(appObject.db.scanSetDao())
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             val permissionCheck = ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
@@ -188,6 +197,7 @@ class MainActivity : ComponentActivity() {
                         settingsViewModelFactory,
                         deviceScanViewModelFactory,
                         premiumRepository,
+                        scanSetRepository,
                         alarmId
                     )
                 } else {
@@ -196,7 +206,8 @@ class MainActivity : ComponentActivity() {
                         routinesViewModelFactory,
                         settingsViewModelFactory,
                         deviceScanViewModelFactory,
-                        premiumRepository
+                        premiumRepository,
+                        scanSetRepository
                     )
                 }
             }
@@ -212,6 +223,14 @@ val LocalDisableAdds = staticCompositionLocalOf<Boolean> {
     error("No DisableAdds provided")
 }
 
+val LocalOverlayHost = staticCompositionLocalOf<OverlayHost> {
+    error("No OverlayHost provided")
+}
+
+val LocalScanSetRepositoryProvider = staticCompositionLocalOf<ScanSetRepository> {
+    error("No ScanSetRepository provided")
+}
+
 @Composable
 fun GoReadyApp(
     alarmViewModelFactory: AlarmViewModelFactory,
@@ -219,14 +238,18 @@ fun GoReadyApp(
     settingsViewModelFactory: SettingsViewModelFactory,
     deviceScanViewModelFactory: DeviceScanViewModelFactory,
     premiumRepository: PremiumRepositoryI,
+    scanSetRepository: ScanSetRepository,
     alarmId: Long? = null
 ) {
     val premiumState by premiumRepository.premiumState.collectAsState()
     val disableAdds by premiumRepository.addsDisabled.collectAsState()
+    val overlayHost = remember { OverlayHost() }
 
     CompositionLocalProvider(
         LocalPremiumState provides premiumState,
-        LocalDisableAdds provides disableAdds
+        LocalDisableAdds provides disableAdds,
+        LocalOverlayHost provides overlayHost,
+        LocalScanSetRepositoryProvider provides scanSetRepository
     ) {
         GoReadyAppMain(
             alarmViewModelFactory,
@@ -251,6 +274,7 @@ fun GoReadyAppMain(
     val navbackStackEntry by rootNavController.currentBackStackEntryAsState()
     val currentRoute = navbackStackEntry?.destination?.route
     var exitModalVisible by remember { mutableStateOf(false) }
+    val overlayHost = LocalOverlayHost.current
 
     val addsDisabled = LocalDisableAdds.current
 
@@ -267,81 +291,92 @@ fun GoReadyAppMain(
         }
     }
 
+    //here we box with overlay host over navigation suite scaffold
 
-    NavigationSuiteScaffold(
-        navigationSuiteItems = {
-            RootTab.entries.forEach { tab ->
-                item(
-                    icon = { Icon(tab.icon, contentDescription = tab.label) },
-                    label = { Text(tab.label) },
-                    selected = currentRoute == tab.name, // NavController decides this
-                    onClick = {
-                        rootNavController.navigate(tab.name) {
-                            popUpTo(rootNavController.graph.startDestinationId) {
-                                saveState = false
+    Box(modifier = Modifier.fillMaxSize()) {
+        NavigationSuiteScaffold(
+            navigationSuiteItems = {
+                RootTab.entries.forEach { tab ->
+                    item(
+                        icon = { Icon(tab.icon, contentDescription = tab.label) },
+                        label = { Text(tab.label) },
+                        selected = currentRoute == tab.name, // NavController decides this
+                        onClick = {
+                            rootNavController.navigate(tab.name) {
+                                popUpTo(rootNavController.graph.startDestinationId) {
+                                    saveState = false
+                                }
+                                launchSingleTop = true
+                                restoreState = false
                             }
-                            launchSingleTop = true
-                            restoreState = false
                         }
-                    }
-                )
-            }
-        },
-        modifier = Modifier.fillMaxSize()
-    ){
-        Box(modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.statusBars)) {
-            Column(
-                modifier = Modifier.fillMaxSize()
-            ) {
-                NavHost(
-                    navController = rootNavController,
-                    startDestination = RootTab.ALARMS.name,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    composable(RootTab.HOME.name) {
-                        val vm = viewModel<RoutinesViewModel>(factory = routinesViewModelFactory)
-                        RoutineListRoute(vm, rootNavController)
-                    }
-                    composable(RootTab.ALARMS.name) {
-                        //val vm = viewModel<AlarmViewModel>(factory = alarmViewModelFactory)
-                        AlarmsNavHost(alarmViewModelFactory, rootNavController)
-                    }
-                    composable(RootTab.ADD_ALARM.name) {
-                        val vm = viewModel<AlarmViewModel>(factory = alarmViewModelFactory)
-                        AddAlarmView(vm, rootNavController)
-                        //AddAlarmRoute(vm, rootNavController) for now redundant
-                    }
-                    composable(RootTab.SETTINGS.name) {
-                        val vmsettings = viewModel<SettingsViewModel>(factory = settingsViewModelFactory)
-                        val wmScan = viewModel<DeviceScanViewModel>(factory = deviceScanViewModelFactory)
-                        SettingsView(vmsettings, wmScan)
-                    }
-                    composable(
-                        route = "edit_alarm/{alarmId}",
-                        arguments = listOf(navArgument("alarmId") { type = NavType.LongType })
-                    ) { backStackEntry ->
-                        val alarmId = backStackEntry.arguments?.getLong("alarmId")
-                        val vm = viewModel<AlarmViewModel>(factory = alarmViewModelFactory)
-                        AddAlarmView(vm, rootNavController, alarmId = alarmId)
-                    }
-                }
-                if (!addsDisabled) {
-                    BottomBarDynamicAdView(
-                        adUnitId = ADMOB_ID_DYNAMIC_BANNER,
-                        modifier = Modifier.fillMaxWidth()
                     )
                 }
-            }
-            if (exitModalVisible) {
-                val activity = LocalContext.current as? Activity
-                StandardModal(
-                    onDismiss = { exitModalVisible = false },
-                    onConfirm = { activity?.finish() }
+            },
+            modifier = Modifier.fillMaxSize()
+        ) {
+            Box(modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.statusBars)) {
+                Column(
+                    modifier = Modifier.fillMaxSize()
                 ) {
-                    Text("Do you want to exit?")
+                    NavHost(
+                        navController = rootNavController,
+                        startDestination = RootTab.ALARMS.name,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        composable(RootTab.HOME.name) {
+                            val vm =
+                                viewModel<RoutinesViewModel>(factory = routinesViewModelFactory)
+                            RoutineListRoute(vm, rootNavController)
+                        }
+                        composable(RootTab.ALARMS.name) {
+                            //val vm = viewModel<AlarmViewModel>(factory = alarmViewModelFactory)
+                            AlarmsNavHost(alarmViewModelFactory, rootNavController)
+                        }
+                        composable(RootTab.ADD_ALARM.name) {
+                            val vm = viewModel<AlarmViewModel>(factory = alarmViewModelFactory)
+                            AddAlarmView(vm, rootNavController)
+                            //AddAlarmRoute(vm, rootNavController) for now redundant
+                        }
+                        composable(RootTab.SETTINGS.name) {
+                            val vmsettings =
+                                viewModel<SettingsViewModel>(factory = settingsViewModelFactory)
+                            val wmScan =
+                                viewModel<DeviceScanViewModel>(factory = deviceScanViewModelFactory)
+                            SettingsView(vmsettings, wmScan)
+                        }
+                        composable(
+                            route = "edit_alarm/{alarmId}",
+                            arguments = listOf(navArgument("alarmId") { type = NavType.LongType })
+                        ) { backStackEntry ->
+                            val alarmId = backStackEntry.arguments?.getLong("alarmId")
+                            val vm = viewModel<AlarmViewModel>(factory = alarmViewModelFactory)
+                            AddAlarmView(vm, rootNavController, alarmId = alarmId)
+                        }
+                    }
+                    if (!addsDisabled) {
+                        BottomBarDynamicAdView(
+                            adUnitId = ADMOB_ID_DYNAMIC_BANNER,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
                 }
-            }
+                if (exitModalVisible) {
+                    val activity = LocalContext.current as? Activity
+                    StandardModal(
+                        onDismiss = { exitModalVisible = false },
+                        onConfirm = { activity?.finish() }
+                    ) {
+                        Text("Do you want to exit?")
+                    }
+                }
 
+            }
+        }
+        overlayHost.entries.forEach { entry ->
+            Box(Modifier.fillMaxSize().zIndex(Float.MAX_VALUE)) {
+                entry.content()
+            }
         }
     }
     LaunchedEffect(Unit) {

@@ -61,6 +61,7 @@ import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
+import com.tomcvt.goready.LocalScanSetRepositoryProvider
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -776,6 +777,7 @@ fun MultiBarcodesSaverView(
     var showAddDialog by remember { mutableStateOf(false) }
     var tipDialogIndex by remember { mutableStateOf<Int?>(null) }
     var barcodeDialogIndex by remember { mutableStateOf<Int?>(null) }
+    val ssRepository = LocalScanSetRepositoryProvider.current
 
     // Full-screen camera dialog for capturing a new barcode
     if (showAddDialog) {

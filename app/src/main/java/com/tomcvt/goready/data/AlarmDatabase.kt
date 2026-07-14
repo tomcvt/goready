@@ -6,14 +6,18 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 
-@Database(entities = [AlarmEntity::class, RoutineEntity::class, RoutineStepEntity::class, StepDefinitionEntity::class, RoutineSession::class], version = 1)
+@Database(entities = [AlarmEntity::class,
+    RoutineEntity::class,
+    RoutineStepEntity::class,
+    StepDefinitionEntity::class,
+    RoutineSession::class, ScanSetEntity::class], version = 2)
 @TypeConverters(Converters::class)
 abstract class AlarmDatabase: RoomDatabase() {
     abstract fun alarmDao(): AlarmDao
     abstract fun routineDao(): RoutineDao
     abstract fun routineStepDao(): RoutineStepDao
     abstract fun stepDefinitionDao(): StepDefinitionDao
-
+    abstract fun scanSetDao(): ScanSetDao
     abstract fun routineSessionDao(): RoutineSessionDao
 
     companion object {

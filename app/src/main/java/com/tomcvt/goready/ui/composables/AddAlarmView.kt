@@ -2,7 +2,6 @@ package com.tomcvt.goready.ui.composables
 
 import android.app.TimePickerDialog
 import android.util.Log
-import android.widget.ToggleButton
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -12,17 +11,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -31,11 +25,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.MenuItemColors
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -43,38 +33,27 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
-import androidx.core.text.isDigitsOnly
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import com.tomcvt.goready.LocalOverlayHost
 import com.tomcvt.goready.LocalPremiumState
 import com.tomcvt.goready.RootTab
 import com.tomcvt.goready.constants.TaskType
-import com.tomcvt.goready.constants.TaskTypeContext
-import com.tomcvt.goready.data.RoutineEntity
-import com.tomcvt.goready.domain.AlarmDraft
-import com.tomcvt.goready.domain.SimpleAlarmDraft
 import com.tomcvt.goready.games.GamesRegistry
 import com.tomcvt.goready.scanner.MultiBarcodesSaverView
 import com.tomcvt.goready.scanner.ScanCode
+import com.tomcvt.goready.scanner.decodeScanCodesR
+import com.tomcvt.goready.scanner.encodeScanCodesR
 import com.tomcvt.goready.viewmodel.AlarmViewModel
-import com.tomcvt.goready.viewmodel.RoutinesViewModel
-import com.tomcvt.goready.viewmodel.UiState
-import org.checkerframework.framework.qual.Unused
 import java.time.DayOfWeek
 
 
@@ -509,9 +488,9 @@ fun TaskDataInput(
 
                 TaskType.BARCODE -> {
                     MultiBarcodesSaverViewDialogButton(
-                        value = value,
+                        value = decodeScanCodesR(value),
                         onDismiss = { onTaskDataProvided("") },
-                        onBarcodesScanned = { onTaskDataProvided(it) }
+                        onBarcodesScanned = { onTaskDataProvided(encodeScanCodesR(it)) }
                     )
                 }
 
@@ -525,59 +504,63 @@ fun TaskDataInput(
 
 @Composable
 fun MultiBarcodesSaverViewDialogButton(
-    value: String,
+    value: List<ScanCode>,
     onDismiss: () -> Unit,
-    onBarcodesScanned: (String) -> Unit,
+    onBarcodesScanned: (List<ScanCode>) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    //var scannedValue by remember { mutableStateOf<String?>(null) }
-    var numberOfSavedCodes by remember { mutableStateOf<Int?>(decodeScanCodes(value).size) }
-    var showDialog by remember { mutableStateOf(false) }
-    Button(onClick = { showDialog = true }) {
-        if (numberOfSavedCodes != null) Text("Scanned: $numberOfSavedCodes")
-        if (numberOfSavedCodes == 0 || numberOfSavedCodes == null) Text("Scan")
+    var codes by remember { mutableStateOf(value) }
+    val overlayHost = LocalOverlayHost.current
+    //var showDialog by remember { mutableStateOf(false) }
+    Button(onClick = {
+        overlayHost.show { dismiss ->
+            MultiBarcodesSaverViewDialog(
+                value = codes,
+                onDismiss = { dismiss(); onDismiss() },
+                onBarcodesScanned = { dismiss(); onBarcodesScanned(it); codes = it }
+            )
+        }
+    }) {
+        if (codes.isNotEmpty()) Text("Scanned: ${codes.size}")
+        if (codes.isEmpty()) Text("Scan")
     }
+    /*
     if (showDialog) {
         MultiBarcodesSaverViewDialog(
-            value = value,
+            value = codes,
             onDismiss = { showDialog = false; onDismiss() },
-            onBarcodesScanned = { str, n -> showDialog = false; onBarcodesScanned(str); numberOfSavedCodes = n }
+            onBarcodesScanned = {showDialog = false; onBarcodesScanned(it); codes = it }
         )
     }
+
+     */
 }
 
 //@Preview(showBackground = true)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MultiBarcodesSaverViewDialog(
-    value: String,
+    value: List<ScanCode>,
     onDismiss: () -> Unit,
-    onBarcodesScanned: (String, Int) -> Unit,
+    onBarcodesScanned: (List<ScanCode>) -> Unit,
     modifier: Modifier = Modifier
-) {
+) { /*
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
         ) {
         MultiBarcodesSaverView(
-            initialCodes = decodeScanCodes(value),
+            initialCodes = value,
             onDismiss = onDismiss,
-            onAccept = { onBarcodesScanned(encodeScanCodes(it), it.size) }
+            onAccept = { onBarcodesScanned(it) }
         )
     }
-}
-
-fun encodeScanCodes(codes: List<ScanCode>): String {
-    if (codes.isEmpty()) return ""
-    return codes.joinToString(separator = ",") { "${it.barcode}:${it.tip}" }
-}
-
-fun decodeScanCodes(encoded: String): List<ScanCode> {
-    if (encoded.isEmpty()) return emptyList()
-    return encoded.split(",").map {
-        val (barcode, tip) = it.split(":")
-        ScanCode(barcode, tip)
-    }
+    */
+    MultiBarcodesSaverView(
+        initialCodes = value,
+        onDismiss = onDismiss,
+        onAccept = { onBarcodesScanned(it) }
+    )
 }
 
 @Composable
@@ -603,7 +586,7 @@ fun SnoozeInfoRow(
                 .padding(16.dp).padding(end = 16.dp)
                 .clickable { onClick() }
         ) {
-            Text("Snooze %d %s".format(snoozeTime, if (snoozeTime == 1) "minute" else "minutes"))
+            Text("Snooze %d x %d %s".format(snoozeCount,snoozeTime, if (snoozeTime == 1) "minute" else "minutes"))
             Switch(
                 checked = snoozeActive,
                 onCheckedChange = {
