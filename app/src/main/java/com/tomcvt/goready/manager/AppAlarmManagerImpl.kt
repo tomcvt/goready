@@ -57,10 +57,11 @@ open class AppAlarmManagerImpl(
             snoozeMaxCount = draft.snoozeMaxCount,
             routineId = draft.routineId
         )
-        //if (oldAlarm.hour != updatedAlarm.hour || oldAlarm.minute != updatedAlarm.minute) {
 
         systemScheduler.cancelAlarm(oldAlarm)
-        scheduleOrCancelBasedOnRepeatDays(updatedAlarm)
+        if (updatedAlarm.isEnabled) {
+            scheduleBasedOnRepeatDays(updatedAlarm)
+        }
 
         repository.updateAlarm(updatedAlarm)
     }
@@ -116,7 +117,9 @@ open class AppAlarmManagerImpl(
     }
 
     override suspend fun scheduleAllEnabledAlarms() {
-        repository.getAlarms().first().forEach { alarm ->
+        repository.getAlarms().first()
+            .filter { it.isEnabled }
+            .forEach { alarm ->
             scheduleBasedOnRepeatDays(alarm)
         }
     }

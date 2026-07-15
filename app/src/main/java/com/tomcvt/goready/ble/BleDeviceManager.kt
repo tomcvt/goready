@@ -102,18 +102,18 @@ sealed class ServiceMessages{
     data class Disconnected(val message: String) : ServiceMessages()
 }
 // ---- The manager ----
-class BleDeviceManager(
+open class BleDeviceManager(
     private val passedContext: Context,
-    private val bluetoothAdapter: BluetoothAdapter
+    private val bluetoothAdapter: BluetoothAdapter?
 ) {
-    private val context = passedContext.applicationContext
+    protected val context = passedContext.applicationContext
     private val prefs = context.getSharedPreferences("ble_prefs", Context.MODE_PRIVATE)
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    protected val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
     private val notificationManager = BleNotificationManager(context)
 
     // --- Public state ---
-    private val _connectionState = MutableStateFlow<BleConnectionState>(BleConnectionState.Disconnected)
+    protected val _connectionState = MutableStateFlow<BleConnectionState>(BleConnectionState.Disconnected)
     val connectionState: StateFlow<BleConnectionState> = _connectionState
 
     private val _savedDevice = MutableStateFlow(loadSavedDevice())
@@ -134,7 +134,7 @@ class BleDeviceManager(
     private val _events = MutableSharedFlow<BleEvent>(extraBufferCapacity = 8)
     val events: SharedFlow<BleEvent> = _events
 
-    private val _alarmActivityEvents = MutableSharedFlow<String>(extraBufferCapacity = 8)
+    protected val _alarmActivityEvents = MutableSharedFlow<String>(extraBufferCapacity = 8)
     val alarmActivityEvents: SharedFlow<String> = _alarmActivityEvents
 
 
@@ -142,7 +142,7 @@ class BleDeviceManager(
     private val _deviceEvents = MutableSharedFlow<String>(extraBufferCapacity = 8)
     val deviceEvents: SharedFlow<String> = _deviceEvents
 
-    private val _serviceMessages = MutableSharedFlow<ServiceMessages>(
+    protected val _serviceMessages = MutableSharedFlow<ServiceMessages>(
         replay = 0,
         extraBufferCapacity = 4,
         onBufferOverflow = BufferOverflow.DROP_OLDEST
@@ -200,8 +200,8 @@ class BleDeviceManager(
             return
         }
         if (_isScanning.value) return
-        val scanner = bluetoothAdapter.bluetoothLeScanner ?: run {
-            _events.tryEmit(BleEvent.Error("Bluetooth is off"))
+        val scanner = bluetoothAdapter?.bluetoothLeScanner ?: run {
+            _events.tryEmit(BleEvent.Error("Bluetooth is off or not supported"))
             return
         }
         scanCallback.reset()
@@ -218,7 +218,7 @@ class BleDeviceManager(
     @SuppressLint("MissingPermission")
     fun stopScan() {
         if (!_isScanning.value) return
-        bluetoothAdapter.bluetoothLeScanner?.stopScan(scanCallback)
+        bluetoothAdapter?.bluetoothLeScanner?.stopScan(scanCallback)
         _isScanning.value = false
     }
 
@@ -242,7 +242,9 @@ class BleDeviceManager(
 
     fun connectToSaved() {
         val saved = _savedDevice.value ?: return
-        connectAndSave(bluetoothAdapter.getRemoteDevice(saved.address))
+        bluetoothAdapter?.getRemoteDevice(saved.address)?.let {
+            connectAndSave(it)
+        }
     }
 
     @SuppressLint("MissingPermission")
@@ -250,7 +252,7 @@ class BleDeviceManager(
         if (_connectionState.value !is BleConnectionState.Disconnected) return
         val saved = _savedDevice.value ?: return
         if (!hasBlePermissions(context)) return
-        runCatching { bluetoothAdapter.getRemoteDevice(saved.address) }.getOrNull()?.let {
+        runCatching { bluetoothAdapter?.getRemoteDevice(saved.address) }.getOrNull()?.let {
             intentionalDisconnect = false
             retryCount = 0
             connect(it, autoConnect = false)
@@ -259,11 +261,11 @@ class BleDeviceManager(
     }
 
     @SuppressLint("MissingPermission")
-    suspend fun requestAndReturnAutoConnect() : Result<String> {
+    open suspend fun requestAndReturnAutoConnect() : Result<String> {
         if (_connectionState.value !is BleConnectionState.Disconnected) return Result.success("Already connected/connecting")
         val saved = _savedDevice.value ?: return Result.failure(Exception("No saved device"))
         if (!hasBlePermissions(context)) return Result.failure(Exception("Missing BLE permissions"))
-        runCatching { bluetoothAdapter.getRemoteDevice(saved.address) }.getOrNull()?.let {
+        runCatching { bluetoothAdapter?.getRemoteDevice(saved.address) }.getOrNull()?.let {
             intentionalDisconnect = false
             retryCount = 0
             connect(it, autoConnect = false)
@@ -433,7 +435,7 @@ class BleDeviceManager(
         }
     }
 
-    suspend fun request(command: String, timeoutMs: Long = 3000): Result<String> {
+    open suspend fun request(command: String, timeoutMs: Long = 3000): Result<String> {
         val id = rpcIdCounter.incrementAndGet() and 0xFF
         val deferred = CompletableDeferred<String>()
         pendingRpc[id] = deferred
@@ -464,7 +466,7 @@ class BleDeviceManager(
         return requestAndReturnAutoConnect()
     }
 
-    suspend fun requestStartAlarm(alarmId: Int) : Result<String> {
+    open suspend fun requestStartAlarm(alarmId: Int) : Result<String> {
         val command = encodeAlarmPlayCommand(alarmId)
         val res = request(command)
         when (res) {
@@ -478,7 +480,7 @@ class BleDeviceManager(
         return res
     }
 
-    suspend fun requestStopAlarm(alarmId: Int) : Result<String> {
+    open suspend fun requestStopAlarm(alarmId: Int) : Result<String> {
         val command = encodeAlarmStopCommand(alarmId)
         val res = request(command)
         when (res) {
@@ -492,7 +494,7 @@ class BleDeviceManager(
         return res
     }
 
-    suspend fun requestSnoozeAlarm(alarmId: Int, durationSeconds: Int = 5) : Result<String> {
+    open suspend fun requestSnoozeAlarm(alarmId: Int, durationSeconds: Int = 5) : Result<String> {
         val command = encodeAlarmSnoozeCommand(alarmId, durationSeconds)
         val res = request(command)
         when (res) {

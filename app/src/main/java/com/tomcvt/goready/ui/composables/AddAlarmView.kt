@@ -514,7 +514,7 @@ fun MultiBarcodesSaverViewDialogButton(
     //var showDialog by remember { mutableStateOf(false) }
     Button(onClick = {
         overlayHost.show { dismiss ->
-            MultiBarcodesSaverViewDialog(
+            MultiBarcodesSaverViewDialogModal(
                 value = codes,
                 onDismiss = { dismiss(); onDismiss() },
                 onBarcodesScanned = { dismiss(); onBarcodesScanned(it); codes = it }
@@ -539,7 +539,7 @@ fun MultiBarcodesSaverViewDialogButton(
 //@Preview(showBackground = true)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MultiBarcodesSaverViewDialog(
+fun MultiBarcodesSaverViewDialogModal(
     value: List<ScanCode>,
     onDismiss: () -> Unit,
     onBarcodesScanned: (List<ScanCode>) -> Unit,

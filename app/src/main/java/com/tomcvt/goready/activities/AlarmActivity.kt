@@ -11,10 +11,15 @@ import androidx.activity.addCallback
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
 import com.tomcvt.goready.application.AlarmApp
+import com.tomcvt.goready.ble.ServiceMessages
 import com.tomcvt.goready.constants.ACTION_RF_UI_LAUNCHER
 import com.tomcvt.goready.constants.ACTION_STOP_ALARM_SOUND
 import com.tomcvt.goready.constants.ACTION_UI_HIDDEN
@@ -28,6 +33,9 @@ import com.tomcvt.goready.manager.AppAlarmManagerImpl
 import com.tomcvt.goready.manager.SystemAlarmScheduler
 import com.tomcvt.goready.service.AlarmForegroundService
 import com.tomcvt.goready.ui.composables.*
+import com.tomcvt.goready.ui.overlay.OverlayToastWrapper
+import com.tomcvt.goready.ui.overlay.QueuedOverlay
+import com.tomcvt.goready.ui.overlay.QueuedOverlayHost
 import com.tomcvt.goready.ui.theme.VibrantLightTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -46,6 +54,8 @@ class AlarmActivity : ComponentActivity() {
         val routineRepository = app.routineRepository
 
         val bleDeviceManager = app.bleDeviceManager
+
+        val serviceMessages = bleDeviceManager.serviceMessages
 
         WindowCompat.setDecorFitsSystemWindows(window, false)
         // Show over lock screen + turn screen on
@@ -98,6 +108,8 @@ class AlarmActivity : ComponentActivity() {
         }
 
         val webviewHandler = Handler(mainLooper)
+
+        val queuedOverlayHost = QueuedOverlayHost()
 
         lifecycleScope.launch {
             val alarmEntity = withContext(Dispatchers.IO) {appAlarmManager.getAlarm(alarmId)}
@@ -154,20 +166,45 @@ class AlarmActivity : ComponentActivity() {
             enableEdgeToEdge()
             setContent {
                 VibrantLightTheme {
-                    AlarmScreen(
-                        alarmId = alarmId,
-                        alarmName = alarmEntity.label ?: "Alarm",
-                        taskType = taskType,
-                        taskData = data,
-                        onStopAlarm = stopAlarm,
-                        onInteraction = onInteraction,
-                        modifier = Modifier.fillMaxSize(),
-                        //TODO update later snooze,
-                        canSnooze = canSnooze,
-                        snoozeTime = snoozeTime,
-                        onSnooze = { onSnooze() },
-                        webViewHandler = webviewHandler
-                    )
+                    CompositionLocalProvider(
+                        LocalQueuedOverlayHost provides queuedOverlayHost
+                    ) {
+                        LaunchedEffect(Unit) {
+                            serviceMessages.collect { msg ->
+                                val text = when (msg) {
+                                    is ServiceMessages.Reconnected -> msg.message
+                                    is ServiceMessages.Disconnected -> msg.message
+                                }
+                                queuedOverlayHost.show(durationMillis = 3000L) { dismiss, enter, exit ->
+                                    OverlayToastWrapper(
+                                        message = text,
+                                        dismiss = dismiss,
+                                        enter = enter,
+                                        exit = exit
+                                    )
+                                }
+                            }
+                        }
+                        QueuedOverlay(
+                            host = queuedOverlayHost,
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            AlarmScreen(
+                                alarmId = alarmId,
+                                alarmName = alarmEntity.label ?: "Alarm",
+                                taskType = taskType,
+                                taskData = data,
+                                onStopAlarm = stopAlarm,
+                                onInteraction = onInteraction,
+                                modifier = Modifier.fillMaxSize(),
+                                //TODO update later snooze,
+                                canSnooze = canSnooze,
+                                snoozeTime = snoozeTime,
+                                onSnooze = { onSnooze() },
+                                webViewHandler = webviewHandler
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -214,3 +251,41 @@ class AlarmActivity : ComponentActivity() {
         startService(intent)
     }
 }
+
+val LocalQueuedOverlayHost = staticCompositionLocalOf<QueuedOverlayHost> {
+    error("No QueuedOverlayHost provided")
+}
+/*
+@Composable
+fun AlarmScreenWithOverlay(
+    alarmId: Long,
+    alarmName: String,
+    taskType: TaskType,
+    taskData: String?,
+    canSnooze: Boolean,
+    snoozeTime: Int,
+    onSnooze: () -> Unit,
+    onStopAlarm: () -> Unit,
+    onInteraction: () -> Unit,
+    webViewHandler: Handler,
+    modifier: Modifier = Modifier,
+    dismissable: Boolean = false
+) {
+
+    AlarmScreen(
+        alarmId = alarmId,
+        alarmName = alarmEntity.label ?: "Alarm",
+        taskType = taskType,
+        taskData = data,
+        onStopAlarm = stopAlarm,
+        onInteraction = onInteraction,
+        modifier = Modifier.fillMaxSize(),
+        //TODO update later snooze,
+        canSnooze = canSnooze,
+        snoozeTime = snoozeTime,
+        onSnooze = { onSnooze() },
+        webViewHandler = webviewHandler
+    )
+}
+
+ */

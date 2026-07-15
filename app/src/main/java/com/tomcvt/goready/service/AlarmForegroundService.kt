@@ -100,13 +100,16 @@ class AlarmForegroundService : Service() {
             Log.d(TAG, "UI hidden, pausing alarm")
             serviceScope.launch {
                 delay(3000)
+                if (alarmStopped) {
+                    return@launch
+                }
                 startAsForeground(currentAlarm!!, currentSnooze)
             }
             return START_STICKY
         }
 
         if (intent?.action == ACTION_USER_INTERACTION) {
-            muteUntil = System.currentTimeMillis() + 5000 //magic number
+            muteUntil = System.currentTimeMillis() + 5000 //magic number TODO
             val mutedForSeconds = 5 //magic number
             isTemporarilyMuted = true
             pauseAlarm()
@@ -115,7 +118,7 @@ class AlarmForegroundService : Service() {
                     Log.w(TAG, "Failed to send snooze alarm command to BLE device", it)
                     handleDisconnectedServiceMessage("Failed to mute alarm: disconnected")
                 }.onSuccess {
-                    handleReco
+                    handleReconnectedServiceMessage("Reconnected: Muting alarm")
                 }
             }
             //Log.d(TAG, "Alarm muted for 5 seconds")
@@ -161,6 +164,7 @@ class AlarmForegroundService : Service() {
             currentSnooze = remainingSnooze
 
             val audioManager = alarmContext.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+            //TODO add audiofocus listener and handle change
             val result = audioManager.requestAudioFocus(
                 { /* optional: handle focus changes */ },
                 AudioManager.STREAM_ALARM,
@@ -200,6 +204,8 @@ class AlarmForegroundService : Service() {
 
             startAlarmSound(alarm)
             startAsForeground(alarm, remainingSnooze)
+            delay(5000)
+            handleInitialServiceMessage()
         }
 
         serviceScope.launch {
@@ -244,6 +250,11 @@ class AlarmForegroundService : Service() {
         if (!disconnectedEsp) return
         disconnectedEsp = false
         ble.emitServiceMessage(ServiceMessages.Reconnected(message))
+    }
+
+    fun handleInitialServiceMessage() {
+        if (didConnectToEsp) ble.emitServiceMessage(ServiceMessages.Reconnected("Connected to device, playing alarm"))
+        else ble.emitServiceMessage(ServiceMessages.Disconnected("Not connected to alarm device"))
     }
 
 

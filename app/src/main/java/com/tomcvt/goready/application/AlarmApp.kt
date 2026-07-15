@@ -7,6 +7,7 @@ import android.util.Log
 import androidx.emoji2.text.EmojiCompat
 import com.tomcvt.goready.BuildConfig
 import com.tomcvt.goready.ble.BleDeviceManager
+import com.tomcvt.goready.ble.DebugBleDeviceManager
 import com.tomcvt.goready.data.AlarmDatabase
 import com.tomcvt.goready.data.seeding.SeedManager
 import com.tomcvt.goready.manager.AppAlarmManagerImpl
@@ -109,9 +110,17 @@ class AlarmApp : Application() {
 
         blueToothAdapter = appContext.getSystemService(BluetoothManager::class.java).adapter
 
-        bleDeviceManager = BleDeviceManager(appContext, blueToothAdapter)
-        bleDeviceManager.tryAutoConnect()
+        // Toggle this flag to use mock BLE interactions for testing
+        val useMockBle = true 
 
+        bleDeviceManager = if (useMockBle && BuildConfig.DEBUG) {
+            DebugBleDeviceManager(appContext)
+        } else {
+            BleDeviceManager(appContext, blueToothAdapter)
+        }
+        if (!useMockBle) {
+            bleDeviceManager.tryAutoConnect()
+        }
     }
 
     override fun onTerminate() {

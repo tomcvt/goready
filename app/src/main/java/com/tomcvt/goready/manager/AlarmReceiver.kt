@@ -38,14 +38,18 @@ class AlarmReceiver : BroadcastReceiver() {
         val alarmId = intent.getLongExtra(EXTRA_ALARM_ID, -1L)
         val remainingSnooze = intent.getIntExtra(EXTRA_REMAINING_SNOOZE, -1)
         if (action == Intent.ACTION_BOOT_COMPLETED) {
+            val pending = goAsync()
             CoroutineScope(Dispatchers.IO).launch {
-                appAlarmManager.scheduleAllEnabledAlarms()
+                try { appAlarmManager.scheduleAllEnabledAlarms() }
+                finally { pending.finish() }
             }
             return
         }
         if (action == ACTION_ALARM_TRIGGERED) {
+            val pending = goAsync()
             CoroutineScope(Dispatchers.IO).launch {
-                appAlarmManager.scheduleNextAlarmOrDisable(alarmId)
+                try { appAlarmManager.scheduleNextAlarmOrDisable(alarmId) }
+                finally { pending.finish() }
             }
         }
 

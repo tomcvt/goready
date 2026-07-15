@@ -25,8 +25,14 @@ class RepeatAlarmCalculatorTest {
         set(Calendar.MINUTE, 0)
     }.timeInMillis
 
+    private fun dateMillis(y: Int, m: Int, d: Int, h: Int, min: Int): Long =
+        Calendar.getInstance().apply {
+            set(y, m, d, h, min, 0); set(Calendar.MILLISECOND, 0)
+        }.timeInMillis
 
-
+    // Tuesday, Jan 7 2025 08:00 / Wednesday, Jan 8 2025 09:00
+    private val tuesday8am = dateMillis(2025, Calendar.JANUARY, 7, 8, 0)
+    private val wednesday9am = dateMillis(2025, Calendar.JANUARY, 8, 9, 0)
 
     @Test
     fun `test calculations`() {
@@ -59,5 +65,16 @@ class RepeatAlarmCalculatorTest {
         assertEquals(mondayAt23Millis, result1)
         assertEquals(wednesdayAt9Millis, result2)
         assertEquals(-1, result3)
+    }
+
+
+
+    @Test
+    fun `today not selected must not fire today even if time has not passed`() {
+        val calculator = RepeatAlarmCalculator(FakeTimeProvider(tuesday8am))
+        val alarm = AlarmEntity(hour = 9, minute = 0,
+            repeatDays = setOf(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY))
+        assertEquals(wednesday9am, calculator.calculateNextAlarmTime(alarm))
+        // pre-fix this returns Tuesday 9am
     }
 }

@@ -37,10 +37,18 @@ class RepeatAlarmCalculator(
         calendar.set(Calendar.MINUTE, minute)
         calendar.set(Calendar.SECOND, 0)
         calendar.set(Calendar.MILLISECOND, 0)
-        if (calendar.timeInMillis >= now) {
+        /*
+        if (calendar.timeInMillis > now) {
             return calendar.timeInMillis
         }
+
+         */
         val currentDay = calendarToIso(calendar.get(Calendar.DAY_OF_WEEK))
+        val todayIsSelected = alarm.repeatDays.any { it.value == currentDay }
+
+        if (todayIsSelected && calendar.timeInMillis > now) {
+            return calendar.timeInMillis
+        }
         val startIndex = helperDays.indexOf(currentDay)
 
         var dayIndex = startIndex + 1
