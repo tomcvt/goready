@@ -2,6 +2,7 @@ package com.tomcvt.goready.time
 
 import android.util.Log
 import com.tomcvt.goready.data.AlarmEntity
+import java.time.DateTimeException
 import java.time.DayOfWeek
 import java.util.Calendar
 
@@ -59,6 +60,22 @@ class RepeatAlarmCalculator(
         } else {
             calendarDay - 1
         }
+    }
+
+    fun dayofWeek(day: Int): DayOfWeek {
+        if (day < 1 || day > 7) {
+            throw DateTimeException("Invalid value for DayOfWeek: " + day);
+        }
+        when (day) {
+            1 -> return DayOfWeek.MONDAY
+            2 -> return DayOfWeek.TUESDAY
+            3 -> return DayOfWeek.WEDNESDAY
+            4 -> return DayOfWeek.THURSDAY
+            5 -> return DayOfWeek.FRIDAY
+            6 -> return DayOfWeek.SATURDAY
+            7 -> return DayOfWeek.SUNDAY
+        }
+        return DayOfWeek.MONDAY
     }
 
     companion object {

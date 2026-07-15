@@ -1,5 +1,6 @@
 package com.tomcvt.goready.manager
 
+import com.tomcvt.goready.constants.TaskType
 import com.tomcvt.goready.domain.AlarmDraft
 import com.tomcvt.goready.testutil.FakeAlarmRepository
 import com.tomcvt.goready.testutil.FakeAlarmScheduler
@@ -54,7 +55,7 @@ class AppAlarmManagerTest {
             minute = 0,
             label = "Test",
             repeatDays = setOf(DayOfWeek.MONDAY),
-            task = null,
+            task = TaskType.NONE,
             taskData = null,
             soundUri = null,
             snoozeEnabled = false,

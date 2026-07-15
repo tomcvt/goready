@@ -5,6 +5,7 @@ import com.tomcvt.goready.data.RoutineEntity
 import com.tomcvt.goready.data.RoutineStepEntity
 import com.tomcvt.goready.data.StepDefinitionEntity
 import com.tomcvt.goready.data.StepWithDefinition
+import com.tomcvt.goready.domain.OpResult
 import com.tomcvt.goready.domain.RoutineDraft
 import com.tomcvt.goready.domain.StepDefinitionDraft
 import com.tomcvt.goready.manager.AppRoutinesManager
@@ -72,6 +73,10 @@ class MockAppRoutinesManager : AppRoutinesManager {
 
     override suspend fun deleteRoutine(routine: RoutineEntity) {
         //TODO("Not yet implemented")
+    }
+
+    override suspend fun deleteStepDefinition(stepDefinition: StepDefinitionEntity): OpResult<Unit> {
+        TODO("Not yet implemented")
     }
 
 }

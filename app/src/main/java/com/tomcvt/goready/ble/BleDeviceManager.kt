@@ -25,6 +25,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -78,7 +79,28 @@ fun hasBlePermissions(context: Context): Boolean = if (Build.VERSION.SDK_INT >= 
 } else {
     ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PERMISSION_GRANTED
 }
+/*
+sealed class BleWarning {
+    data class RequestFailed(val action: String, val alarmId: Int, val message: String?) : BleWarning()
+}
 
+private val _warnings = MutableSharedFlow<BleWarning>(
+    replay = 0,
+    extraBufferCapacity = 4,
+    onBufferOverflow = BufferOverflow.DROP_OLDEST
+)
+val warnings: SharedFlow<BleWarning> = _warnings.asSharedFlow()
+
+fun emitWarning(warning: BleWarning) {
+    _warnings.tryEmit(warning)
+}
+ */
+
+sealed class ServiceMessages{
+    //data class Success(val message: String) : ServiceMessages()
+    data class Reconnected(val message: String) : ServiceMessages()
+    data class Disconnected(val message: String) : ServiceMessages()
+}
 // ---- The manager ----
 class BleDeviceManager(
     private val passedContext: Context,
@@ -119,6 +141,16 @@ class BleDeviceManager(
     // Device-initiated pushes with no matching request id (e.g. spontaneous "RINGING")
     private val _deviceEvents = MutableSharedFlow<String>(extraBufferCapacity = 8)
     val deviceEvents: SharedFlow<String> = _deviceEvents
+
+    private val _serviceMessages = MutableSharedFlow<ServiceMessages>(
+        replay = 0,
+        extraBufferCapacity = 4,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST
+    )
+    val serviceMessages: SharedFlow<ServiceMessages> = _serviceMessages
+    fun emitServiceMessage(message: ServiceMessages) {
+        _serviceMessages.tryEmit(message)
+    }
 
     // --- Internal connection state ---
     private var gatt: BluetoothGatt? = null
@@ -224,6 +256,35 @@ class BleDeviceManager(
             connect(it, autoConnect = false)
             Log.d(TAG, "Auto-connecting to saved device ${saved.address}")
         }
+    }
+
+    @SuppressLint("MissingPermission")
+    suspend fun requestAndReturnAutoConnect() : Result<String> {
+        if (_connectionState.value !is BleConnectionState.Disconnected) return Result.success("Already connected/connecting")
+        val saved = _savedDevice.value ?: return Result.failure(Exception("No saved device"))
+        if (!hasBlePermissions(context)) return Result.failure(Exception("Missing BLE permissions"))
+        runCatching { bluetoothAdapter.getRemoteDevice(saved.address) }.getOrNull()?.let {
+            intentionalDisconnect = false
+            retryCount = 0
+            connect(it, autoConnect = false)
+            Log.d(TAG, "Auto-connecting to saved device ${saved.address}")
+        }
+        var result = Result.failure<String>(Exception("Timed out waiting for auto-connect"))
+        val intervals = listOf(500L, 1000L, 2000L)
+        try {
+            withTimeout(5000L) {
+                for (interval in intervals) {
+                    delay(interval)
+                    if (connectionState.value is BleConnectionState.Connected) {
+                        result = Result.success("Auto-connected to saved device ${saved.address}")
+                        break
+                    }
+                }
+            }
+        } catch (e: TimeoutCancellationException) {
+            Log.w(TAG, "Timed out waiting for auto-connect")
+        }
+        return result
     }
 
     @SuppressLint("MissingPermission")
@@ -395,6 +456,13 @@ class BleDeviceManager(
         return result
     }
     // utility methods
+
+    suspend fun awaitTryAutoConnectIfNotConnected() : Result<String> {
+        if (connectionState.value is BleConnectionState.Connected) {
+            return Result.success("Already connected")
+        }
+        return requestAndReturnAutoConnect()
+    }
 
     suspend fun requestStartAlarm(alarmId: Int) : Result<String> {
         val command = encodeAlarmPlayCommand(alarmId)

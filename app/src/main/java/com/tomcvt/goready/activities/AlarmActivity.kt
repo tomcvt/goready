@@ -75,7 +75,8 @@ class AlarmActivity : ComponentActivity() {
         val testAlarm = intent.getBooleanExtra("TestAlarm", false)
         var onInteraction = {
             //Log.d(TAG, "Sending interaction intent")
-            if (System.currentTimeMillis() - interactionDebouncedMillis > 4000) {
+            //TODO think about debounce logic
+            if (System.currentTimeMillis() - interactionDebouncedMillis > 1000) {
                 sendInteraction()
                 interactionDebouncedMillis = System.currentTimeMillis()
             }

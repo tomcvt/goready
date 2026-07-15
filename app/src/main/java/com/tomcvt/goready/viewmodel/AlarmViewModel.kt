@@ -95,7 +95,7 @@ class AlarmViewModel(
 
         currentAlarmId = alarmId
 
-        if (alarmId == null) {
+        if (alarmId == null || alarmId == 0L) {
             _editorState.value = AlarmEditorState(mode = AlarmEditorState.Mode.CREATE)
         } else {
             viewModelScope.launch {

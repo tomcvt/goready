@@ -87,10 +87,16 @@ fun AlarmListRoute(
     var alarmDetailsRect by remember { mutableStateOf<Rect?>(null) }
     var previewAlarm by remember { mutableStateOf<AlarmEntity?>(null) }
 
+    /*
     val onAddAlarmClick = {
         val lastAlarmId = alarmList.lastOrNull()?.id ?: -1
         Log.d("AlarmListRoute", "Last alarm ID: $lastAlarmId")
         context.launchAlarmNow(lastAlarmId)
+    }
+    old debug code
+     */
+    val onAddAlarmClick = {
+        rootController.navigate("edit_alarm/0")
     }
     val onDeleteAlarm: (AlarmEntity) -> Unit = { alarm: AlarmEntity -> viewModel.deleteAlarm(alarm); alarmForDeletion = null }
     val onDeleteButton: (AlarmEntity) -> Unit = { alarm: AlarmEntity ->

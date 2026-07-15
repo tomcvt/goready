@@ -46,6 +46,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
@@ -53,15 +56,16 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
+import com.tomcvt.goready.LocalOverlayHost
 import com.tomcvt.goready.LocalScanSetRepositoryProvider
+import com.tomcvt.goready.data.ScanSetEntity
+import com.tomcvt.goready.ui.AlertDialogModal
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -576,7 +580,7 @@ fun TipInputDialog(
 ) {
     var text by remember(initialTip) { mutableStateOf(initialTip) }
 
-    AlertDialog(
+    AlertDialogModal(
         onDismissRequest = onDismiss,
         title = { Text("Scan tip") },
         text = {
@@ -615,7 +619,7 @@ fun BarcodeValueInputDialog(
 ) {
     var text by remember(initialValue) { mutableStateOf(initialValue) }
 
-    AlertDialog(
+    AlertDialogModal(
         onDismissRequest = onDismiss,
         title = { Text("Edit barcode value") },
         text = {
@@ -757,6 +761,142 @@ fun AddBarcodeCard(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// scanSetContentHash — stable hash for a decoded list + name, used to detect
+// unsaved changes relative to the last loaded/saved state.
+// ─────────────────────────────────────────────────────────────────────────────
+
+fun scanSetContentHash(codes: List<ScanCode>, name: String): Int =
+    (codes.joinToString(",") { "${it.barcode}:${it.tip}" } + "|" + name).hashCode()
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ScanSetToolbarRow — private toolbar composable for MultiBarcodesSaverView
+// ─────────────────────────────────────────────────────────────────────────────
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ScanSetToolbarRow(
+    loadedSet: ScanSetEntity?,
+    isEditingName: Boolean,
+    editingName: String,
+    focusRequester: FocusRequester,
+    onNameChange: (String) -> Unit,
+    onStartEditing: () -> Unit,
+    onStopEditing: () -> Unit,
+    onSave: () -> Unit,
+    onSaveAs: () -> Unit,
+    onLoad: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        // ── Name display / inline editor (only when a set is loaded) ──────────
+        if (loadedSet != null) {
+            // Both Card and TextField are always composed so the Box height stays
+            // constant regardless of which is visible (alpha keeps layout stable).
+            Box(modifier = Modifier.weight(1f),
+                contentAlignment = Alignment.CenterStart) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .alpha(if (!isEditingName) 1f else 0f)
+                        .combinedClickable(
+                            onClick = {},
+                            onLongClick = onStartEditing,
+                            enabled = !isEditingName
+                        ),
+                    shape = RoundedCornerShape(12.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                ) {
+                    Text(
+                        text = editingName,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 14.dp),
+                        style = MaterialTheme.typography.bodyMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                OutlinedTextField(
+                    value = editingName,
+                    onValueChange = onNameChange,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .alpha(if (isEditingName) 1f else 0f)
+                        .focusRequester(focusRequester)
+                        .onFocusChanged { if (!it.isFocused) onStopEditing() },
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    textStyle = MaterialTheme.typography.bodyMedium
+                )
+            }
+
+            // ── Save (update existing) ────────────────────────────────────────
+            Card(
+                onClick = onSave,
+                modifier = Modifier.size(48.dp),
+                shape = RoundedCornerShape(12.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Save,
+                        contentDescription = "Save set",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+        }
+
+        // ── Save As (always visible) ──────────────────────────────────────────
+        Card(
+            onClick = onSaveAs,
+            modifier = Modifier.size(48.dp),
+            shape = RoundedCornerShape(12.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        ) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.fillMaxSize()
+            ) {
+                Icon(
+                    imageVector = Icons.Default.SaveAs,
+                    contentDescription = "Save as new set",
+                    tint = MaterialTheme.colorScheme.secondary
+                )
+            }
+        }
+
+        // ── Load / Bookmark (always visible) ─────────────────────────────────
+        Card(
+            onClick = onLoad,
+            modifier = Modifier.size(48.dp),
+            shape = RoundedCornerShape(12.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        ) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.fillMaxSize()
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Bookmark,
+                    contentDescription = "Load set",
+                    tint = MaterialTheme.colorScheme.tertiary
+                )
+            }
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // MultiBarcodesSaverView
 // Note: passes through SaveBarcodeScreen which writes to DataStore as a
 // side effect — harmless here, refactor to a plain BarcodeScannerView dialog
@@ -772,52 +912,48 @@ fun MultiBarcodesSaverView(
     onAccept: (List<ScanCode>) -> Unit,
     modifier: Modifier = Modifier,
     initialCodes: List<ScanCode> = emptyList(),
+    loadedSet: ScanSetEntity? = null
 ) {
+
     var items by remember { mutableStateOf<List<ScanCode>>(initialCodes) }
-    var showAddDialog by remember { mutableStateOf(false) }
-    var tipDialogIndex by remember { mutableStateOf<Int?>(null) }
-    var barcodeDialogIndex by remember { mutableStateOf<Int?>(null) }
     val ssRepository = LocalScanSetRepositoryProvider.current
-
-    // Full-screen camera dialog for capturing a new barcode
-    if (showAddDialog) {
-        Dialog(
-            onDismissRequest = { showAddDialog = false },
-            properties = DialogProperties(usePlatformDefaultWidth = false)
-        ) {
-            SaveBarcodeScreen(
-                //repository = repository,
-                onSaved = { value ->
-                    items = items + ScanCode(barcode = value, tip = "")
-                    showAddDialog = false
-                },
-                onDismissed = { showAddDialog = false }
-            )
+    val overlayHost = LocalOverlayHost.current
+    var loadedSet by remember { mutableStateOf<ScanSetEntity?>(loadedSet) }
+    var loadedSetHash by remember { mutableStateOf<Int?>(null) }
+    // ── Name editing state (toolbar) ──────────────────────────────────────────
+    var isEditingSetName by remember { mutableStateOf(false) }
+    var editingSetName by remember { mutableStateOf("") }
+    LaunchedEffect(Unit) {
+        if (loadedSet != null) {
+            val decoded = ssRepository.decodeScanCodes(loadedSet!!.encodedCodes)
+            if (decoded.isNotEmpty()) {
+                items = decoded
+                loadedSetHash = scanSetContentHash(decoded, loadedSet!!.name)
+                editingSetName = loadedSet!!.name
+            }
+            if (initialCodes.isNotEmpty()) {
+                //we error because we shouldnt do that
+                throw IllegalStateException("initialCodes should be empty when providing a loaded set")
+                //TODO maybe switch to dialog for graceful handling
+            }
         }
+
+    }
+    val scope = rememberCoroutineScope()
+
+    val setNameFocusRequester = remember { FocusRequester() }
+
+    // Sync editing name when a set is loaded/changed
+    LaunchedEffect(loadedSet) {
+        editingSetName = loadedSet?.name ?: ""
+        isEditingSetName = false
     }
 
-    // Tip editor dialog
-    tipDialogIndex?.let { idx ->
-        TipInputDialog(
-            initialTip = items.getOrNull(idx)?.tip.orEmpty(),
-            onAccept = { tip ->
-                items = items.toMutableList().also { it[idx] = it[idx].copy(tip = tip) }
-                tipDialogIndex = null
-            },
-            onDismiss = { tipDialogIndex = null }
-        )
-    }
-
-    // Barcode value editor dialog
-    barcodeDialogIndex?.let { idx ->
-        BarcodeValueInputDialog(
-            initialValue = items.getOrNull(idx)?.barcode.orEmpty(),
-            onAccept = { value ->
-                items = items.toMutableList().also { it[idx] = it[idx].copy(barcode = value) }
-                barcodeDialogIndex = null
-            },
-            onDismiss = { barcodeDialogIndex = null }
-        )
+    // Auto-focus the TextField when editing starts
+    LaunchedEffect(isEditingSetName) {
+        if (isEditingSetName) {
+            try { setNameFocusRequester.requestFocus() } catch (e: Exception) { /* ignore */ }
+        }
     }
 
     Scaffold(
@@ -842,7 +978,8 @@ fun MultiBarcodesSaverView(
                 ) {
                     Button(
                         onClick = { onAccept(items) },
-                        enabled = items.isNotEmpty(),
+                        // Validation: list must not be empty and every barcode value must be non-blank
+                        enabled = items.isNotEmpty() && items.all { it.barcode.isNotBlank() },
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Icon(Icons.Default.Check, contentDescription = null)
@@ -861,6 +998,66 @@ fun MultiBarcodesSaverView(
             verticalArrangement = Arrangement.spacedBy(8.dp),
             contentPadding = PaddingValues(vertical = 16.dp)
         ) {
+            // ── Set toolbar row ───────────────────────────────────────────────
+            item {
+                ScanSetToolbarRow(
+                    loadedSet = loadedSet,
+                    isEditingName = isEditingSetName,
+                    editingName = editingSetName,
+                    focusRequester = setNameFocusRequester,
+                    onNameChange = { editingSetName = it },
+                    onStartEditing = { isEditingSetName = true },
+                    onStopEditing = { isEditingSetName = false },
+                    onSave = {
+                        loadedSet?.let { set ->
+                            scope.launch {
+                                val newName = editingSetName.trim().ifBlank { set.name }
+                                val encoded = ssRepository.encodeScanCodes(items)
+                                val updated = set.copy(
+                                    name = newName,
+                                    encodedCodes = encoded,
+                                    size = items.size
+                                )
+                                ssRepository.updateScanSet(updated)
+                                loadedSet = updated
+                                loadedSetHash = scanSetContentHash(items, newName)
+                            }
+                        }
+                    },
+                    onSaveAs = {
+                        overlayHost.show { dismiss ->
+                            SaveSetModal(
+                                currentCodes = items,
+                                initialName = editingSetName,
+                                onDone = { newSet ->
+                                    loadedSet = newSet
+                                    editingSetName = newSet.name
+                                    loadedSetHash = scanSetContentHash(items, newSet.name)
+                                    dismiss()
+                                },
+                                onDismiss = dismiss
+                            )
+                        }
+                    },
+                    onLoad = {
+                        overlayHost.show { dismiss ->
+                            LoadSetModal(
+                                onSelected = { set ->
+                                    val decoded = ssRepository.decodeScanCodes(set.encodedCodes)
+                                    items = decoded
+                                    loadedSet = set
+                                    editingSetName = set.name
+                                    loadedSetHash = scanSetContentHash(decoded, set.name)
+                                    dismiss()
+                                },
+                                onDismiss = dismiss
+                            )
+                        }
+                    }
+                )
+            }
+
+            // ── Code item cards ───────────────────────────────────────────────
             itemsIndexed(
                 items = items,
                 // barcode + index key: handles duplicate barcodes in the list safely
@@ -868,8 +1065,32 @@ fun MultiBarcodesSaverView(
             ) { index, scanCode ->
                 ScanCodeItemCard(
                     scanCode = scanCode,
-                    onEditBarcode = { barcodeDialogIndex = index },
-                    onEditTip = { tipDialogIndex = index },
+                    onEditBarcode = {
+                        val initial = scanCode.barcode
+                        overlayHost.show { dismiss ->
+                            BarcodeValueInputDialog(
+                                initialValue = initial,
+                                onAccept = { value ->
+                                    items = items.toMutableList().also { it[index] = it[index].copy(barcode = value) }
+                                    dismiss()
+                                },
+                                onDismiss = dismiss
+                            )
+                        }
+                    },
+                    onEditTip = {
+                        val initial = scanCode.tip
+                        overlayHost.show { dismiss ->
+                            TipInputDialog(
+                                initialTip = initial,
+                                onAccept = { tip ->
+                                    items = items.toMutableList().also { it[index] = it[index].copy(tip = tip) }
+                                    dismiss()
+                                },
+                                onDismiss = dismiss
+                            )
+                        }
+                    },
                     onDelete = {
                         items = items.toMutableList().also { it.removeAt(index) }
                     }
@@ -878,8 +1099,18 @@ fun MultiBarcodesSaverView(
 
             item {
                 AddBarcodeCard(
-                    onClick = { showAddDialog = true },
-                    onLongClick = { items = items.toMutableList().also { it.add(ScanCode("","")) } }
+                    onClick = {
+                        overlayHost.show { dismiss ->
+                            SaveBarcodeScreen(
+                                onSaved = { value ->
+                                    items = items + ScanCode(barcode = value, tip = "")
+                                    dismiss()
+                                },
+                                onDismissed = dismiss
+                            )
+                        }
+                    },
+                    onLongClick = { items = items.toMutableList().also { it.add(ScanCode("", "")) } }
                 )
             }
         }

@@ -19,8 +19,11 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddCircle
+import androidx.compose.material.icons.filled.Alarm
+import androidx.compose.material.icons.filled.BluetoothConnected
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.LastPage
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -37,6 +40,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.zIndex
 import androidx.core.app.ActivityCompat
@@ -50,12 +54,11 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.google.android.gms.ads.MobileAds
 import com.tomcvt.goready.ads.ADMOB_ID_DYNAMIC_BANNER
-import com.tomcvt.goready.ads.ADMOB_ID_TEST_BANNER
-import com.tomcvt.goready.ads.BottomBarBannerAdView
 import com.tomcvt.goready.ads.BottomBarDynamicAdView
 import com.tomcvt.goready.application.AlarmApp
 import com.tomcvt.goready.ble.DeviceScanViewModel
 import com.tomcvt.goready.ble.DeviceScanViewModelFactory
+import com.tomcvt.goready.ble.ScanScreen
 import com.tomcvt.goready.constants.EXTRA_ALARM_ID
 import com.tomcvt.goready.manager.AppAlarmManagerImpl
 import com.tomcvt.goready.manager.AppRoutinesManager
@@ -88,7 +91,6 @@ import com.tomcvt.goready.viewmodel.SettingsViewModelFactory
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import java.util.Map.entry
 
 class MainActivity : ComponentActivity() {
 
@@ -298,7 +300,10 @@ fun GoReadyAppMain(
             navigationSuiteItems = {
                 RootTab.entries.forEach { tab ->
                     item(
-                        icon = { Icon(tab.icon, contentDescription = tab.label) },
+                        icon = {
+                            if (tab != RootTab.HOME) Icon(tab.icon, contentDescription = tab.label)
+                            else Icon(painter = painterResource(id = R.drawable.list_alt_check), contentDescription = tab.label)
+                               },
                         label = { Text(tab.label) },
                         selected = currentRoute == tab.name, // NavController decides this
                         onClick = {
@@ -333,9 +338,13 @@ fun GoReadyAppMain(
                             //val vm = viewModel<AlarmViewModel>(factory = alarmViewModelFactory)
                             AlarmsNavHost(alarmViewModelFactory, rootNavController)
                         }
-                        composable(RootTab.ADD_ALARM.name) {
+                        composable(RootTab.ESP_BT.name) {
+                            /*
                             val vm = viewModel<AlarmViewModel>(factory = alarmViewModelFactory)
                             AddAlarmView(vm, rootNavController)
+                             */
+                            val vm = viewModel<DeviceScanViewModel>(factory = deviceScanViewModelFactory)
+                            ScanScreen(vm, onSelect = {})
                             //AddAlarmRoute(vm, rootNavController) for now redundant
                         }
                         composable(RootTab.SETTINGS.name) {
@@ -389,10 +398,10 @@ fun GoReadyAppMain(
 enum class RootTab(val label: String,
                    val icon: ImageVector,
 ) {
-    HOME("Home", Icons.Default.Home),
-    ALARMS("Alarms", Icons.Default.Home),
+    HOME("Routines", Icons.Filled.LastPage),
+    ALARMS("Alarms", Icons.Filled.Alarm),
     SETTINGS("Profile", Icons.Default.Settings),
-    ADD_ALARM("Add Alarm", Icons.Default.AddCircle);
+    ESP_BT("Bluetooth", Icons.Filled.BluetoothConnected);
 }
 
 @Composable
@@ -424,7 +433,8 @@ fun MainNavHost(
                     //val vm = viewModel<AlarmViewModel>(factory = alarmViewModelFactory)
                     AlarmsNavHost(alarmViewModelFactory, rootNavController)
                 }
-                composable(RootTab.ADD_ALARM.name) {
+                composable(RootTab.ESP_BT.name) {
+                    //TODO scanmodal
                     val vm = viewModel<AlarmViewModel>(factory = alarmViewModelFactory)
                     AddAlarmView(vm, rootNavController)
                     //AddAlarmRoute(vm, rootNavController) for now redundant

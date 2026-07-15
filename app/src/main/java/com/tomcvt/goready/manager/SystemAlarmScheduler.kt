@@ -103,8 +103,8 @@ class SystemAlarmScheduler(private val context: Context) : AlarmScheduler {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        Log.d(TAG, "ALARM DEBUG: now=${Date(System.currentTimeMillis())}," +
-                " alarm.hour=${alarm.hour}, alarm.minute=${alarm.minute}, " +
+        Log.d(TAG, "ALARM DEBUG: now=${Date(System.currentTimeMillis())},\n" +
+                " alarm.hour=${alarm.hour}, alarm.minute=${alarm.minute},\n " +
                 "calendar=${Date(triggerTime)}")
 
         try {

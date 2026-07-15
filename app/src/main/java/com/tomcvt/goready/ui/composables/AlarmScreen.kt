@@ -36,6 +36,7 @@ import com.tomcvt.goready.games.WebviewGameAlarmScreen
 import com.tomcvt.goready.scanner.MultiBarcodeScannerView
 import com.tomcvt.goready.scanner.MultiBarcodesSaverView
 import com.tomcvt.goready.scanner.ScanCode
+import com.tomcvt.goready.scanner.decodeScanCodesR
 import kotlin.math.sqrt
 
 
@@ -182,7 +183,7 @@ fun AlarmScreen(
                 )
             }
             TaskType.BARCODE -> {
-                val decodedCodes = decodeScanCodes(taskData?: "")
+                val decodedCodes = decodeScanCodesR(taskData?: "")
                 BarcodeAlarmScreen(
                     codes = decodedCodes,
                     onSuccess = { /* Handle success */ },
@@ -199,11 +200,15 @@ fun AlarmScreen(
 }
 
 @Composable
-fun InteractionDetectorWrapper(modifier: Modifier = Modifier, onInteraction: () -> Unit, content: @Composable () -> Unit) {
+fun InteractionDetectorWrapper(
+    modifier: Modifier = Modifier,
+    debounceTime: Long = 0L,
+    onInteraction: () -> Unit,
+    content: @Composable () -> Unit) {
     var interactionKey by remember { mutableLongStateOf(0L) }
     var lastInteraction by remember { mutableLongStateOf(0L) }
     LaunchedEffect(interactionKey) {
-        if (System.currentTimeMillis() - lastInteraction > 2000L) {
+        if (System.currentTimeMillis() - lastInteraction > debounceTime) {
             onInteraction()
             lastInteraction = System.currentTimeMillis()
         }

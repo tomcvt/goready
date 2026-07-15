@@ -19,6 +19,7 @@ import androidx.core.app.NotificationCompat
 import com.tomcvt.goready.R
 import com.tomcvt.goready.activities.AlarmActivity
 import com.tomcvt.goready.application.AlarmApp
+import com.tomcvt.goready.ble.ServiceMessages
 import com.tomcvt.goready.constants.ACTION_FINALIZE_ALARM
 import com.tomcvt.goready.constants.ACTION_STOP_ALARM_SOUND
 import com.tomcvt.goready.constants.ACTION_UI_HIDDEN
@@ -44,6 +45,7 @@ class AlarmForegroundService : Service() {
     // Service owns MediaPlayer check
     private val ble by lazy { (application as AlarmApp).bleDeviceManager }
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private val thisContext = this
     private lateinit var repository: AlarmRepositoryImpl
 
     private lateinit var alarmContext: Context
@@ -52,6 +54,8 @@ class AlarmForegroundService : Service() {
     var isTemporarilyMuted = false
     var muteUntil: Long = 0L
     var isActive: Boolean = false
+    var didConnectToEsp: Boolean = false
+    var disconnectedEsp: Boolean = false
 
     private var currentAlarm: AlarmEntity? = null
     private var currentSnooze: Int = 0
@@ -109,6 +113,9 @@ class AlarmForegroundService : Service() {
             serviceScope.launch{
                 ble.requestSnoozeAlarm(alarmId.toInt()).onFailure {
                     Log.w(TAG, "Failed to send snooze alarm command to BLE device", it)
+                    handleDisconnectedServiceMessage("Failed to mute alarm: disconnected")
+                }.onSuccess {
+                    handleReco
                 }
             }
             //Log.d(TAG, "Alarm muted for 5 seconds")
@@ -120,6 +127,7 @@ class AlarmForegroundService : Service() {
             serviceScope.launch {
                 ble.requestStopAlarm(alarmId.toInt()).onFailure {
                     Log.w(TAG, "Failed to send stop alarm command to BLE device", it)
+                    handleDisconnectedServiceMessage("Failed to stop alarm: disconnected")
                 }
             }
             return START_NOT_STICKY
@@ -166,6 +174,26 @@ class AlarmForegroundService : Service() {
                 Log.w("AlarmService", "Audio focus denied, starting alarm sound anyway")
             }
 
+            val connectResult = ble.requestAndReturnAutoConnect()
+            val didSucceed: Boolean = connectResult.isSuccess
+            val message = if (didSucceed) {
+                connectResult.getOrNull() ?: "No BLE device connected"
+            } else {
+                connectResult.exceptionOrNull()?.message ?: "Unknown error"
+            }
+            if (didSucceed) {
+                didConnectToEsp = true
+            }
+            /*
+            if (!didConnect.isSuccess) {
+                val message = didConnect.exceptionOrNull()?.message ?: "Unknown error"
+                val notificationIntent = alarmActivityNotifyPendingIntent(false, message)
+
+            }
+
+             */
+
+
             ble.requestStartAlarm(alarmId.toInt()).onFailure {
                 Log.w(TAG, "Failed to send start alarm command to BLE device", it)
             }
@@ -190,6 +218,34 @@ class AlarmForegroundService : Service() {
 
         return START_STICKY
     }
+
+    fun alarmActivityNotifyPendingIntent(alarmId: Long, success: Boolean, message: String): PendingIntent {
+        val intent = Intent(this, AlarmActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+                    Intent.FLAG_ACTIVITY_NO_HISTORY
+        }
+        val alarmActivityNotifyPendingIntent = PendingIntent.getActivity(
+            alarmContext,
+            alarmId.toInt(),
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        return alarmActivityNotifyPendingIntent
+    }
+
+    fun handleDisconnectedServiceMessage(message: String) {
+        if (!didConnectToEsp) return
+        if (disconnectedEsp) return
+        disconnectedEsp = true
+        ble.emitServiceMessage(ServiceMessages.Disconnected(message))
+    }
+    fun handleReconnectedServiceMessage(message: String) {
+        if (!didConnectToEsp) return
+        if (!disconnectedEsp) return
+        disconnectedEsp = false
+        ble.emitServiceMessage(ServiceMessages.Reconnected(message))
+    }
+
 
     fun finalizeAlarm() {
         stopAlarmSound()
