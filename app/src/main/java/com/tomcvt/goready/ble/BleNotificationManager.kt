@@ -19,8 +19,11 @@ class BleNotificationManager(
     private val context = passedContext.applicationContext
     private val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
+    var lastNotificationStatus: LastBtNotificationStatus = LastBtNotificationStatus.NONE
+
 
     fun notifyConnected(address: String) {
+        if (lastNotificationStatus == LastBtNotificationStatus.CONNECTED) return
         createNotificationChannel()
 
         val navIntent = null //for now
@@ -39,6 +42,7 @@ class BleNotificationManager(
             //.setFullScreenIntent(fullScreenIntent, true)
             .build()
 
+        lastNotificationStatus = LastBtNotificationStatus.CONNECTED
         notificationManager.notify(BLE_NOTIFICATION_ID, notification)
     }
 
@@ -47,6 +51,7 @@ class BleNotificationManager(
     }
 
     fun notifyDisconnected(address: String) {
+        if (lastNotificationStatus == LastBtNotificationStatus.DISCONNECTED) return
         createNotificationChannel()
 
         val navIntent = null //for now
@@ -65,6 +70,7 @@ class BleNotificationManager(
             //.setFullScreenIntent(fullScreenIntent, true)
             .build()
 
+        lastNotificationStatus = LastBtNotificationStatus.DISCONNECTED
         notificationManager.notify(BLE_NOTIFICATION_ID, notification)
     }
 

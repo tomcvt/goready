@@ -31,6 +31,7 @@ class AlarmViewModel(
     private val appAlarmManager: AppAlarmManager,
     private val routinesManager: AppRoutinesManager
 ) : ViewModel() {
+    //private val syncPrefs =
     private val _uiState = MutableStateFlow<UiState>(UiState())
     val uiState: StateFlow<UiState> = _uiState
 

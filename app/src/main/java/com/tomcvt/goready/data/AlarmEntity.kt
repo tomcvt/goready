@@ -21,5 +21,7 @@ data class AlarmEntity(
     val snoozeDurationMinutes: Int? = 0,
     val snoozeMaxCount: Int? = 0,
     val routineId: Long? = null,
-    val systemHookId: Int? = null
+    val systemHookId: Int? = null,
+    val espEnabled: Boolean = false,
+    val lastUpdate: Long = System.currentTimeMillis()
 )

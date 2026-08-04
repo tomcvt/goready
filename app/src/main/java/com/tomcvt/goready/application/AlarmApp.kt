@@ -111,7 +111,7 @@ class AlarmApp : Application() {
         blueToothAdapter = appContext.getSystemService(BluetoothManager::class.java).adapter
 
         // Toggle this flag to use mock BLE interactions for testing
-        val useMockBle = true 
+        val useMockBle = false
 
         bleDeviceManager = if (useMockBle && BuildConfig.DEBUG) {
             DebugBleDeviceManager(appContext)

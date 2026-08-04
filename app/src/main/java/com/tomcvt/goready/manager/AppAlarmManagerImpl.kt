@@ -1,22 +1,33 @@
 package com.tomcvt.goready.manager
 
+import android.content.Context
 import android.util.Log
 import com.tomcvt.goready.data.AlarmEntity
 import com.tomcvt.goready.domain.AlarmDraft
 import com.tomcvt.goready.repository.AlarmRepository
 import com.tomcvt.goready.time.RealTimeProvider
 import com.tomcvt.goready.time.RepeatAlarmCalculator
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import java.time.DayOfWeek
 import java.util.Date
 
 open class AppAlarmManagerImpl(
+    private val passedContext: Context?,
     private val repository: AlarmRepository,
     private val systemScheduler: AlarmScheduler,
     private val repeatAlarmCalculator: RepeatAlarmCalculator = RepeatAlarmCalculator(
         RealTimeProvider()
     )
 ) : AppAlarmManager {
+
+    private val context = passedContext?.applicationContext
+        ?: throw IllegalStateException("Context cannot be null")
+    private val syncPrefs = context.getSharedPreferences("sync", Context.MODE_PRIVATE)
+
+    private val _lastSyncEpochSeconds = MutableStateFlow<Long?>(syncPrefs.getLong("last_sync", -1L))
+    val lastSyncEpochSeconds = _lastSyncEpochSeconds
+
     override fun getAlarmsFlow() = repository.getAlarms()
     override suspend fun createAlarm(draft: AlarmDraft) {
         // 1. Convert draft → entity

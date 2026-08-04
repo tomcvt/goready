@@ -131,6 +131,8 @@ class AlarmForegroundService : Service() {
                 ble.requestStopAlarm(alarmId.toInt()).onFailure {
                     Log.w(TAG, "Failed to send stop alarm command to BLE device", it)
                     handleDisconnectedServiceMessage("Failed to stop alarm: disconnected")
+                }.onSuccess {
+                    handleReconnectedServiceMessage("Reconnected: Stopping alarm")
                 }
             }
             return START_NOT_STICKY

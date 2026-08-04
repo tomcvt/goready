@@ -37,6 +37,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
 import java.io.IOException
+import java.util.TimeZone
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -418,6 +419,7 @@ open class BleDeviceManager(
                 return
             }
         }
+        Log.d(TAG, "Unhandled message: $raw")
         _deviceEvents.tryEmit(raw) // no matching request — unsolicited push
     }
 
@@ -430,8 +432,10 @@ open class BleDeviceManager(
         if (Build.VERSION.SDK_INT >= 33) {
             g.writeCharacteristic(char, command.toByteArray(Charsets.UTF_8), BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT)
         } else {
-            @Suppress("DEPRECATION") char.value = command.toByteArray(Charsets.UTF_8)
-            @Suppress("DEPRECATION") g.writeCharacteristic(char)
+            @Suppress("DEPRECATION")
+            char.value = command.toByteArray(Charsets.UTF_8)
+            @Suppress("DEPRECATION")
+            g.writeCharacteristic(char)
         }
     }
 
@@ -469,13 +473,8 @@ open class BleDeviceManager(
     open suspend fun requestStartAlarm(alarmId: Int) : Result<String> {
         val command = encodeAlarmPlayCommand(alarmId)
         val res = request(command)
-        when (res) {
-            Result.success(command) -> {
-                //for now nothing
-            }
-            else -> {
-                _alarmActivityEvents.tryEmit("ERROR: $res")
-            }
+        if (res.isFailure) {
+            _alarmActivityEvents.tryEmit("ERROR: $res")
         }
         return res
     }
@@ -483,13 +482,8 @@ open class BleDeviceManager(
     open suspend fun requestStopAlarm(alarmId: Int) : Result<String> {
         val command = encodeAlarmStopCommand(alarmId)
         val res = request(command)
-        when (res) {
-            Result.success(command) -> {
-                //for now nothing
-            }
-            else -> {
-                _alarmActivityEvents.tryEmit("ERROR: $res")
-            }
+        if (res.isFailure) {
+            _alarmActivityEvents.tryEmit("ERROR: $res")
         }
         return res
     }
@@ -497,26 +491,112 @@ open class BleDeviceManager(
     open suspend fun requestSnoozeAlarm(alarmId: Int, durationSeconds: Int = 5) : Result<String> {
         val command = encodeAlarmSnoozeCommand(alarmId, durationSeconds)
         val res = request(command)
-        when (res) {
-            Result.success(command) -> {
-                //for now nothing
-            }
-            else -> {
-                _alarmActivityEvents.tryEmit("ERROR: $res")
-            }
+        if (res.isFailure) {
+            _alarmActivityEvents.tryEmit("ERROR: $res")
         }
         return res
     }
+
+
+    /**
+    |-------------------------------------|--------------------------------------|
+| `ALARM:SET:<alarmId>:OK`            | Alarm created                        |
+| `ALARM:SET:<alarmId>:UPDATED`       | Existing alarm with same ID replaced |
+| `ALARM:SET:<alarmId>:DUPLICATE_TIME`| Another alarm already at that time   |
+| `ALARM:SET:<alarmId>:NO_SPACE`      | Alarm table full                     |
+     */
+    open suspend fun requestSetAlarmInSync(alarmId: Int, hour: Int, minute: Int, message: String, daysOfWeek: String) : SingleSyncResult {
+        val command = encodeAlarmSetCommand(alarmId, hour, minute, message, daysOfWeek)
+        val res = request(command)
+        if (res.isFailure) {
+            return SingleSyncResult.ConError(-1, "ERROR: $res")
+        }
+        val raw = res.getOrNull()
+        val resStatus = raw?.split(":")?.get(3) // 3 is the status? TODO: check
+        Log.d(TAG, "Sync alarm $alarmId response: $resStatus")
+        return when (resStatus) {
+            "OK" -> SingleSyncResult.Ok(alarmId, raw)
+            "UPDATED" -> SingleSyncResult.Updated(alarmId, raw)
+            "DUPLICATE_TIME" -> SingleSyncResult.DuplicateTime(alarmId, raw)
+            "NO_SPACE" -> SingleSyncResult.NoSpace(alarmId, raw)
+            else -> SingleSyncResult.Error(alarmId, "Unknown response: $raw")
+        }
+    }
+
+    /**
+     *
+     */
+    open suspend fun requestSyncFresh(epochSeconds: Long) : SyncRequestResult {
+        val command = encodeSyncFreshCommand(epochSeconds)
+        val res = request(command)
+        if (res.isFailure) {
+            return SyncRequestResult.ConError("ERROR: $res")
+        }
+        val raw = res.getOrNull()
+        val resStatus = raw?.split(":")?.get(1)
+        Log.d(TAG, "Sync fresh response: $resStatus")
+        return when (resStatus) {
+            "OPEN" -> SyncRequestResult.Open(raw)
+            "BUSY" -> SyncRequestResult.Busy(raw)
+            else -> SyncRequestResult.Error("Unknown response: $raw")
+        }
+    }
+
+
+
+
 
 
     fun encodeAlarmPlayCommand(alarmId: Int): String { return "ALARM:PLAY:$alarmId" }
     fun encodeAlarmStopCommand(alarmId: Int): String { return "ALARM:STOP:$alarmId" }
     fun encodeAlarmSnoozeCommand(alarmId: Int, durationSeconds: Int): String { return "ALARM:SNOOZE:$alarmId:$durationSeconds" }
 
+    fun encodeAlarmSetCommand(alarmId: Int, hour: Int, minute: Int, message: String, daysOfWeek: String): String {
+        return "ALARM:SET:$alarmId:$hour:$minute:$message:$daysOfWeek"
+    }
+    fun encodeSyncSingleCommand(epochSeconds: Long): String { return "SYNC:SINGLE:$epochSeconds" }
+    fun encodeSyncFreshCommand(epochSeconds: Long): String { return "SYNC:FRESH:$epochSeconds" }
+    fun encodeSyncEndCommand(): String { return "SYNC:END" }
+
+    open suspend fun requestTimeSync(): Result<String> {
+        val command = "TIME:${epochSeconds()}:${localOffsetSeconds()}"
+        return request(command)
+    }
+
 
     fun closeNotifications() {
         notificationManager.cancelNotification()
     }
+
+    private fun epochSeconds() {
+        System.currentTimeMillis() / 1000
+    }
+
+    private fun localOffsetSeconds() {
+        TimeZone.getDefault().getOffset(System.currentTimeMillis()) / 1000
+    }
+
+    sealed class SingleSyncResult(val id: Int, val response: String) {
+        class Ok(id: Int, response: String) : SingleSyncResult(id, response)
+        class Updated(id: Int, response: String) : SingleSyncResult(id, response)
+        class DuplicateTime(id: Int, response: String) : SingleSyncResult(id, response)
+        class NoSpace(id: Int, response: String) : SingleSyncResult(id, response)
+        class Error(id: Int, response: String) : SingleSyncResult(id, response)
+        class ConError(id: Int, response: String) : SingleSyncResult(id, response)
+    }
+
+    sealed class SyncRequestResult(val response: String) {
+        class Open(response: String) : SyncRequestResult(response)
+        class Busy(response: String) : SyncRequestResult(response)
+        class Error(response: String) : SyncRequestResult(response)
+        class ConError(response: String) : SyncRequestResult(response)
+    }
+
+    sealed class SyncEndResult(val response: String, val epochSeconds: Long = 0L) {
+        class Ok(response: String, epochSeconds: Long) : SyncEndResult(response, epochSeconds)
+        class Error(response: String) : SyncEndResult(response)
+    }
+
     companion object {
         private const val KEY_ADDRESS = "saved_device_address"
         private const val KEY_NAME = "saved_device_name"
@@ -577,5 +657,128 @@ Stops audio for `durationSeconds`, then resumes automatically.
 |----------------------|-----------------------------------------------|
 | `<id>:<alarmId>:OK`  | Alarm was playing and is now snoozed          |
 | `<id>:<alarmId>:ERROR` | Alarm with that ID is not currently playing |
+
+-----------------------------
+
+### ALARM:SET – Create / update an alarm
+
+```
+<id>:ALARM:SET:<alarmId>:<hour>:<minute>:<message>:<daysOfWeek>
+```
+
+| Field        | Description                                                        |
+|--------------|--------------------------------------------------------------------|
+| `alarmId`    | Unique alarm identifier (uint32, > 0)                              |
+| `hour`       | 0–23                                                               |
+| `minute`     | 0–59                                                               |
+| `message`    | Display label (no colons)                                          |
+| `daysOfWeek` | 7-char string `MTWTFSS` order, `1` = active (parsed but currently not used – stored for future use) |
+
+> **Note:** The firmware currently schedules alarms as one-time events regardless of `daysOfWeek`.
+
+**Responses** (sent as a *separate* notification, not the generic ack):
+
+| Notification                        | Meaning                              |
+|-------------------------------------|--------------------------------------|
+| `ALARM:SET:<alarmId>:OK`            | Alarm created                        |
+| `ALARM:SET:<alarmId>:UPDATED`       | Existing alarm with same ID replaced |
+| `ALARM:SET:<alarmId>:DUPLICATE_TIME`| Another alarm already at that time   |
+| `ALARM:SET:<alarmId>:NO_SPACE`      | Alarm table full                     |
+
+**Example:**
+```
+1:ALARM:SET:3:7:30:Wake up:1111100
+```
+
+For use during sync
+
+---
+
+### SYNC:FRESH – Begin a full alarm sync
+
+```
+<id>:SYNC:FRESH:<timestamp>
+```
+
+Starts a sync session and clears all existing alarms; the client is then expected to send its full alarm set via `ALARM:SET` commands, finishing with `SYNC:END`.
+
+| Field       | Description                                  |
+|-------------|-----------------------------------------------|
+| `timestamp` | Client-chosen sync start time (unix epoch)   |
+
+**Responses:**
+
+| Notification  | Meaning                                   |
+|---------------|--------------------------------------------|
+| `<id>:SYNC:OPEN`  | Sync session started, alarms cleared     |
+| `<id>:SYNC:BUSY`  | A sync is already in progress             |
+| `<id>:SYNC:ERROR` | Missing/invalid `timestamp`               |
+
+---
+
+### SYNC:SINGLE – Begin a single-alarm sync
+
+```
+<id>:SYNC:SINGLE:<timestamp>
+```
+
+Starts a sync session without clearing existing alarms; used when the client only needs to push one or a few `ALARM:SET` updates, finishing with `SYNC:END`.
+
+**Responses:**
+
+| Notification  | Meaning                                   |
+|---------------|--------------------------------------------|
+| `<id>:SYNC:OPEN`  | Sync session started                       |
+| `<id>:SYNC:BUSY`  | A sync is already in progress             |
+| `<id>:SYNC:ERROR` | Missing/invalid `timestamp`               |
+
+---
+
+### SYNC:END – Close the current sync session
+
+```
+<id>:SYNC:END
+```
+
+Persists all alarms set during the session and clears the in-progress state.
+
+**Responses:**
+
+| Notification              | Meaning                                     |
+|---------------------------|----------------------------------------------|
+| `<id>:SYNC:OK:<timestamp>`| Sync finished; `timestamp` is the value passed to the opening `SYNC:FRESH`/`SYNC:SINGLE` |
+| `<id>:SYNC:ERROR`         | No sync was in progress                     |
+
+---
+
+### SYNC:CHECK – Query the last successful sync
+
+```
+<id>:SYNC:CHECK
+```
+
+**Response:** `<id>:SYNC:CHECK:<timestamp>` – `timestamp` is the value from the last completed `SYNC:END` (`0` if none yet).
+
+---
+
+### TIME – Set clock
+
+```
+<id>:TIME:<epochSeconds>:<utcOffsetSeconds>
+```
+
+| Field              | Description                                     |
+|--------------------|-------------------------------------------------|
+| `epochSeconds`     | Unix timestamp (UTC)                            |
+| `utcOffsetSeconds` | Local UTC offset in seconds (e.g. `3600` = +1h) |
+
+**Responses:**
+- `ACK:TIME` – sent immediately after the clock is updated *(no requestId prefix on this one)* (removed)
+- `<id>:OK` – generic ack that follows
+
+**Example:**
+```
+42:TIME:1751000000:7200
+```
 
  */
