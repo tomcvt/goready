@@ -226,6 +226,13 @@ fun AddAlarmContent(
                 )
             }
             item {
+                FilterChip(
+                    selected = state.espEnabled,
+                    onClick = { viewModel.setEspEnabled(!state.espEnabled) },
+                    label = { Text("ESP Enabled") }
+                )
+            }
+            item {
             state.routineId?.let {
                 Text("Routine ID: $it")
                 //SelectedRoutineRow

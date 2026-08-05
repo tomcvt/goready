@@ -21,6 +21,7 @@ import com.tomcvt.goready.activities.AlarmActivity
 import com.tomcvt.goready.application.AlarmApp
 import com.tomcvt.goready.ble.ServiceMessages
 import com.tomcvt.goready.constants.ACTION_FINALIZE_ALARM
+import com.tomcvt.goready.constants.ACTION_STOP_ALARM_SERVICE
 import com.tomcvt.goready.constants.ACTION_STOP_ALARM_SOUND
 import com.tomcvt.goready.constants.ACTION_UI_HIDDEN
 import com.tomcvt.goready.constants.ACTION_USER_INTERACTION
@@ -58,6 +59,7 @@ class AlarmForegroundService : Service() {
     var disconnectedEsp: Boolean = false
 
     private var currentAlarm: AlarmEntity? = null
+    private var currentAlarmId: Long = 0L
     private var currentSnooze: Int = 0
 
     private var alarmStopped: Boolean = true
@@ -79,14 +81,30 @@ class AlarmForegroundService : Service() {
         val remainingSnooze = intent?.getIntExtra(EXTRA_REMAINING_SNOOZE, -1) ?: -1
         //Log.d("AlarmForegroundService", "intent ID: $alarmId snooze: $remainingSnooze intent: $intent")
 
-        if (intent?.action == ACTION_STOP_ALARM_SOUND) {
+        if (intent?.action == ACTION_STOP_ALARM_SERVICE) {
+            Log.d(TAG, "--- ${intent.action} ---")
             alarmStopped = true
             stopAlarmSound()
             serviceScope.launch {
-                ble.requestStopAlarm(alarmId.toInt()).onFailure {
-                    Log.w(TAG, "Failed to send stop alarm command to BLE device", it)
+                ble.requestStopAlarm(currentAlarmId.toInt()).onFailure {
+                    Log.e(TAG, "Failed to stop ble ${intent.action}:", it)
                 }
-                delay(15000)
+                delay(5000) //was 15, maybe crucial for activity changing ownership
+                finalizeAlarm()
+                return@launch
+            }
+            return START_NOT_STICKY
+        }
+
+        if (intent?.action == ACTION_STOP_ALARM_SOUND) {
+            Log.d(TAG, "--- ${intent.action} ---")
+            alarmStopped = true
+            stopAlarmSound()
+            serviceScope.launch {
+                ble.requestStopAlarm(currentAlarmId.toInt()).onFailure {
+                    Log.e(TAG, "Failed to stop ble ${intent.action}:", it)
+                }
+                delay(5000) //was 15, maybe crucial for activity changing ownership
                 finalizeAlarm()
                 return@launch
             }
@@ -114,7 +132,7 @@ class AlarmForegroundService : Service() {
             isTemporarilyMuted = true
             pauseAlarm()
             serviceScope.launch{
-                ble.requestSnoozeAlarm(alarmId.toInt()).onFailure {
+                ble.requestSnoozeAlarm(currentAlarmId.toInt()).onFailure {
                     Log.w(TAG, "Failed to send snooze alarm command to BLE device", it)
                     handleDisconnectedServiceMessage("Failed to mute alarm: disconnected")
                 }.onSuccess {
@@ -126,9 +144,10 @@ class AlarmForegroundService : Service() {
         }
 
         if (intent?.action == ACTION_FINALIZE_ALARM) {
+            Log.d(TAG, "--- ${intent.action} ---")
             finalizeAlarm()
             serviceScope.launch {
-                ble.requestStopAlarm(alarmId.toInt()).onFailure {
+                ble.requestStopAlarm(currentAlarmId.toInt()).onFailure {
                     Log.w(TAG, "Failed to send stop alarm command to BLE device", it)
                     handleDisconnectedServiceMessage("Failed to stop alarm: disconnected")
                 }.onSuccess {
@@ -163,6 +182,7 @@ class AlarmForegroundService : Service() {
             */
             isActive = true
             currentAlarm = alarm
+            currentAlarmId = alarm.id
             currentSnooze = remainingSnooze
 
             val audioManager = alarmContext.getSystemService(Context.AUDIO_SERVICE) as AudioManager
@@ -187,8 +207,10 @@ class AlarmForegroundService : Service() {
             } else {
                 connectResult.exceptionOrNull()?.message ?: "Unknown error"
             }
+            Log.e("AlarmService", "BLE connection attempt: $message")
             if (didSucceed) {
                 didConnectToEsp = true
+                disconnectedEsp = false
             }
             /*
             if (!didConnect.isSuccess) {
@@ -200,18 +222,18 @@ class AlarmForegroundService : Service() {
              */
 
 
-            ble.requestStartAlarm(alarmId.toInt()).onFailure {
+            ble.requestStartAlarm(currentAlarmId.toInt()).onFailure {
                 Log.w(TAG, "Failed to send start alarm command to BLE device", it)
             }
 
             startAlarmSound(alarm)
             startAsForeground(alarm, remainingSnooze)
-            delay(5000)
+            delay(3000)
             handleInitialServiceMessage()
         }
 
         serviceScope.launch {
-            while (isActive) {
+            while (isActive) { //maybe while true if is active
                 delay(2000)
                 if (isTemporarilyMuted && System.currentTimeMillis() >= muteUntil) {
                     try {
@@ -254,7 +276,7 @@ class AlarmForegroundService : Service() {
         ble.emitServiceMessage(ServiceMessages.Reconnected(message))
     }
 
-    fun handleInitialServiceMessage() {
+    fun handleInitialServiceMessage(message: String? = null) {
         if (didConnectToEsp) ble.emitServiceMessage(ServiceMessages.Reconnected("Connected to device, playing alarm"))
         else ble.emitServiceMessage(ServiceMessages.Disconnected("Not connected to alarm device"))
     }
@@ -264,6 +286,7 @@ class AlarmForegroundService : Service() {
         stopAlarmSound()
         isActive = false
         currentAlarm = null
+        currentAlarmId = 0L
         currentSnooze = 0
         stopSelf()
     }

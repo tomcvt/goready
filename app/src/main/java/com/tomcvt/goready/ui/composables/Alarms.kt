@@ -90,6 +90,7 @@ fun AlarmListRoute(
     val alarmList by viewModel.alarmsStateFlow.collectAsState()
     val isSyncing by viewModel.isSyncing.collectAsState()
     val syncStatus by viewModel.syncStatus.collectAsState()
+    val lastSyncTime by viewModel.lastSyncTime.collectAsState()
     var alarmForDeletion by remember { mutableStateOf<AlarmEntity?>(null) }
     var alarmForDetails by remember { mutableStateOf<AlarmEntity?>(null) }
     var alarmDetailsRect by remember { mutableStateOf<Rect?>(null) }
@@ -140,6 +141,7 @@ fun AlarmListRoute(
             onDetailsClick = onDetailsClick,
             onSyncClick = onSyncClick,
             isSyncing = isSyncing,
+            lastSyncTime = lastSyncTime,
             modifier = modifier
         )
         if (isSyncing || syncStatus != null) {
@@ -184,6 +186,11 @@ fun AlarmListRoute(
             }
         }
     }
+}
+
+fun isSynced(lastUpdate: Long, lastSync: Long?): Boolean {
+    if (lastSync == null) return false
+    return lastUpdate < lastSync * 1000
 }
 
 @Composable
@@ -242,6 +249,7 @@ fun AlarmList(
     onDetailsClick: (Rect, AlarmEntity) -> Unit,
     onSyncClick: () -> Unit,
     isSyncing: Boolean,
+    lastSyncTime: Long?,
     modifier: Modifier = Modifier
 ) {
     var alarmDetails by remember { mutableStateOf<AlarmEntity?>(null) }
@@ -266,11 +274,14 @@ fun AlarmList(
                         ),
                         onDelete = { onDeleteClick(alarm) },
                         enabled = alarm.isEnabled,
+                        espEnabled = alarm.espEnabled,
                         onToggleEnabled = {onAlarmSwitchChange(alarm, it)},
                         repeatDays = alarm.repeatDays,
                         onCardClick = { onCardClick(alarm) },
                         onDebugClick = { onDebugClick(alarm) },
                         onDetailsClick = { onDetailsClick(it, alarm) },
+                        onSyncClick = { onSyncClick() },
+                        synced = isSynced(alarm.lastUpdate, lastSyncTime),
                         modifier = Modifier.padding(8.dp)
                     )
                 }
@@ -319,12 +330,15 @@ fun AlarmCard(
     alarmName: String,
     alarmTime: String,
     enabled: Boolean,
+    espEnabled: Boolean,
     onDelete: () -> Unit,
     onToggleEnabled: (Boolean) -> Unit,
     repeatDays: Set<DayOfWeek>,
     onCardClick: () -> Unit,
     onDebugClick: () -> Unit,
     onDetailsClick: (Rect) -> Unit,
+    onSyncClick: () -> Unit,
+    synced: Boolean,
     modifier: Modifier = Modifier
 ) {
     var detailsRect by remember { mutableStateOf<Rect?>(null) }
@@ -353,6 +367,12 @@ fun AlarmCard(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
+            if (espEnabled) {
+                SimpleSyncButton(
+                    onSync = onSyncClick,
+                    synced = synced
+                )
+            }
             if (BuildConfig.DEBUG) {
                 SimpleStartButton(
                     onStart = onDebugClick,

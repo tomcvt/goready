@@ -508,6 +508,7 @@ fun AlarmListPreview() {
             onDetailsClick = { _, _ -> },
             onSyncClick = {},
             isSyncing = false,
+            lastSyncTime = null,
             modifier = Modifier)
     }
 }

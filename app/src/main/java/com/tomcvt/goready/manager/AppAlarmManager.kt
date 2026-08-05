@@ -12,6 +12,10 @@ interface AppAlarmManager {
     fun getAlarmsFlow() : Flow<List<AlarmEntity>>
     fun getEspEnabledAlarmsFlow() : Flow<List<AlarmEntity>>
 
+    val lastSyncEpochSeconds: Flow<Long?>
+
+    fun setLastSyncEpochSeconds(epochSeconds: Long)
+
     suspend fun createAlarm(draft: AlarmDraft)
 
     fun scheduleSnoozeById(alarmId: Long, remainingSnooze: Int, snoozeTimeMinutes: Int)

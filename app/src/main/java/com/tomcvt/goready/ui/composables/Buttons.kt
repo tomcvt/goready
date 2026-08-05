@@ -9,6 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -124,6 +125,36 @@ fun FlexDeleteButton(
             imageVector = Icons.Default.Close,
             contentDescription = contentDescription,
             tint = MaterialTheme.colorScheme.onErrorContainer,
+            modifier = Modifier.size(iconSize)
+        )
+    }
+}
+
+@Composable
+fun SimpleSyncButton(
+    onSync: () -> Unit,
+    modifier: Modifier = Modifier,
+    size: Dp = 32.dp,
+    contentDescription: String = "Sync",
+    synced: Boolean = false
+) {
+    val iconSize = size * 3 / 4
+    val roundedSize = size / 4
+    IconButton(
+        onClick = onSync,
+        modifier = modifier
+            .padding(4.dp)
+            .background(
+                color = if (synced) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                shape = RoundedCornerShape(roundedSize)
+            )
+            .layoutId("sync_button")
+            .size(size)
+    ) {
+        Icon(
+            imageVector = Icons.Filled.Sync,
+            contentDescription = contentDescription,
+            tint = if (synced) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onError,
             modifier = Modifier.size(iconSize)
         )
     }

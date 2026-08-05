@@ -29,10 +29,10 @@ open class AppAlarmManagerImpl(
     private val syncPrefs = context.getSharedPreferences("sync", Context.MODE_PRIVATE)
 
     private val _lastSyncEpochSeconds = MutableStateFlow<Long?>(syncPrefs.getLong("last_sync", -1L))
-    val lastSyncEpochSeconds = _lastSyncEpochSeconds
+    override val lastSyncEpochSeconds = bleDeviceManager.lastSyncEsp
 
-    fun setLastSyncEpochSeconds(epochSeconds: Long) {
-        _lastSyncEpochSeconds.value = epochSeconds
+    override fun setLastSyncEpochSeconds(epochSeconds: Long) {
+        bleDeviceManager.setLastSyncEsp(epochSeconds)
         syncPrefs.edit().putLong("last_sync", epochSeconds).apply()
     }
 
@@ -41,8 +41,11 @@ open class AppAlarmManagerImpl(
         //for now we just force sync all
         val epochSeconds = forTime?: epochSeconds()
         val alarms = repository.getEspEnabledAlarms().first()
-        return bleDeviceManager.requestFullFreshSync(epochSeconds, alarms)
-
+        val res = bleDeviceManager.requestFullFreshSync(epochSeconds, alarms)
+        if (res is BleDeviceManager.SyncResult.Ok) {
+            setLastSyncEpochSeconds(epochSeconds)
+        }
+        return res
     }
 
     override fun getEspEnabledAlarmsFlow() = repository.getEspEnabledAlarms()
@@ -62,7 +65,9 @@ open class AppAlarmManagerImpl(
             snoozeEnabled = draft.snoozeEnabled,
             snoozeDurationMinutes = draft.snoozeDurationMinutes,
             snoozeMaxCount = draft.snoozeMaxCount,
-            routineId = draft.routineId
+            routineId = draft.routineId,
+            espEnabled = draft.espEnabled,
+            lastUpdate = System.currentTimeMillis()
         )
         val newAlarmId = repository.insertAlarm(entity)
         scheduleOrCancelBasedOnRepeatDays(entity.copy(id = newAlarmId))
@@ -85,7 +90,9 @@ open class AppAlarmManagerImpl(
             snoozeEnabled = draft.snoozeEnabled,
             snoozeDurationMinutes = draft.snoozeDurationMinutes,
             snoozeMaxCount = draft.snoozeMaxCount,
-            routineId = draft.routineId
+            routineId = draft.routineId,
+            espEnabled = draft.espEnabled,
+            lastUpdate = System.currentTimeMillis()
         )
 
         systemScheduler.cancelAlarm(oldAlarm)
@@ -98,7 +105,7 @@ open class AppAlarmManagerImpl(
 
 
     override suspend fun toggleAlarm(alarm: AlarmEntity, enabled: Boolean) {
-        val updatedAlarm = alarm.copy(isEnabled = enabled)
+        val updatedAlarm = alarm.copy(isEnabled = enabled, lastUpdate = System.currentTimeMillis())
         Log.d("AppAlarmManagerImpl", "Alarm toggled: $updatedAlarm")
         repository.updateAlarm(updatedAlarm)
         scheduleOrCancelBasedOnRepeatDays(updatedAlarm)

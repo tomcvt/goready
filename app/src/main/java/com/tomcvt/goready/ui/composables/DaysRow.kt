@@ -27,8 +27,8 @@ fun DaysRow(
             val isSelected = repeatDays.contains(day)
             Box(
                 modifier = Modifier
-                    .padding(4.dp)
-                    .size(32.dp)
+                    .padding(end = 4.dp)
+                    .size(24.dp)
                     .background(
                         //TODO: change to MaterialTheme color scheme when migrating to Material3, learning how to use color schemes
                         //color = if (isSelected) MaterialTheme.colors.primary else Color.LightGray,
@@ -38,7 +38,7 @@ fun DaysRow(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = day.name.take(3),
+                    text = day.name.take(1),
                     color = if (isSelected) Color.White else Color.Black,
                     style = MaterialTheme.typography.bodySmall
                     //style = MaterialTheme.typography.body2 TODO: change to MaterialTheme typography when migrating to Material3, learning how to use typography

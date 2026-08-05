@@ -21,6 +21,7 @@ import androidx.lifecycle.lifecycleScope
 import com.tomcvt.goready.application.AlarmApp
 import com.tomcvt.goready.ble.ServiceMessages
 import com.tomcvt.goready.constants.ACTION_RF_UI_LAUNCHER
+import com.tomcvt.goready.constants.ACTION_STOP_ALARM_SERVICE
 import com.tomcvt.goready.constants.ACTION_STOP_ALARM_SOUND
 import com.tomcvt.goready.constants.ACTION_UI_HIDDEN
 import com.tomcvt.goready.constants.ACTION_USER_INTERACTION
@@ -133,7 +134,7 @@ class AlarmActivity : ComponentActivity() {
             val routineId = alarmEntity.routineId
             if (routineId != null) {
                 val routine = withContext(Dispatchers.IO) {routineRepository.getRoutineById(routineId)}
-                if (routine == null) {
+                if (routine == null ) {
                     //TODO handle error somewhere (not existing id)
                     Log.w(TAG, "Routine with id $routineId does not exist")
                 } else {
@@ -225,7 +226,7 @@ class AlarmActivity : ComponentActivity() {
 
     private fun stopAlarmService() {
         val intent = Intent(this, AlarmForegroundService::class.java)
-        intent.action = "STOP_ALARM"
+        intent.action = ACTION_STOP_ALARM_SERVICE
         startService(intent)
         //stopService(intent)
     }

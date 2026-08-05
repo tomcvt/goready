@@ -154,6 +154,14 @@ open class BleDeviceManager(
         _serviceMessages.tryEmit(message)
     }
 
+    private val _lastSyncEsp: MutableStateFlow<Long> = MutableStateFlow(prefs.getLong("last_sync_esp", 0L))
+    val lastSyncEsp: StateFlow<Long> = _lastSyncEsp
+
+    fun setLastSyncEsp(epochSeconds: Long) {
+        _lastSyncEsp.value = epochSeconds
+        prefs.edit().putLong("last_sync_esp", epochSeconds).apply()
+    }
+
     // --- Internal connection state ---
     private var gatt: BluetoothGatt? = null
     private var rxChar: BluetoothGattCharacteristic? = null
@@ -414,6 +422,7 @@ open class BleDeviceManager(
             } else {
                 Log.d(TAG, "Synced time: $res")
             }
+            val res2 = getAndUpdateLastSync()
         }
     }
 
@@ -646,6 +655,22 @@ open class BleDeviceManager(
     open suspend fun requestTimeSync(): Result<String> {
         val command = "TIME:${epochSeconds()}:${localOffsetSeconds()}"
         return request(command)
+    }
+
+    open suspend fun requestSyncCheck(): Result<String> {
+        val command = "SYNC:CHECK"
+        return request(command)
+    }
+
+    suspend fun getAndUpdateLastSync() {
+        val res = requestSyncCheck()
+        if (res.isSuccess) {
+            val split = res.getOrNull()?.split(":")
+            val lastSync = split?.get(2)?.toLongOrNull() ?: 0L
+            _lastSyncEsp.value = lastSync
+            prefs.edit().putLong("last_sync_esp", lastSync).apply()
+            Log.d(TAG, "Last sync esp: $lastSync")
+        }
     }
 
     fun closeNotifications() {

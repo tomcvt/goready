@@ -98,6 +98,13 @@ class AlarmViewModel(
     private val _syncStatus: MutableStateFlow<BleDeviceManager.SyncResult?> = MutableStateFlow(null)
     val syncStatus: StateFlow<BleDeviceManager.SyncResult?> = _syncStatus.asStateFlow()
 
+    val lastSyncTime: StateFlow<Long?> = appAlarmManager.lastSyncEpochSeconds.stateIn(
+        viewModelScope,
+        started = kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(1000),
+        initialValue = null
+    )
+
+
     /**
      * Pushes a fresh full sync of all ESP-enabled alarms to the connected BLE device.
      * Progress/result is exposed via [isSyncing] and [syncStatus] for the UI to render.
@@ -142,7 +149,8 @@ class AlarmViewModel(
                     snoozeTime = alarm.snoozeDurationMinutes?: 0,
                     snoozeCount = alarm.snoozeMaxCount?: 0,
                     snoozeActive = alarm.snoozeEnabled,
-                    routineId = alarm.routineId
+                    routineId = alarm.routineId,
+                    espEnabled = alarm.espEnabled
                 )
                 TaskType.values().forEach {
                     if (it.name == alarm.task.name) {
@@ -161,6 +169,8 @@ class AlarmViewModel(
             try {
                 appAlarmManager.toggleAlarm(alarm, enabled)
                 _uiState.update { it.copy(successMessage = "Alarm toggled") }
+                // TODO later add singular sync push if didn't disconnect since last sync
+                forceFullSync()
             } catch (e: Exception) {
                 _uiState.update { it.copy(errorMessage = e.message ?: "Unknown error") }
             }
@@ -215,12 +225,14 @@ class AlarmViewModel(
                     snoozeDurationMinutes = s.snoozeTime,
                     snoozeMaxCount = s.snoozeCount,
                     snoozeEnabled = s.snoozeActive,
-                    routineId = s.routineId
+                    routineId = s.routineId,
+                    espEnabled = s.espEnabled
                 )
                 Log.d(TAG, "Saving alarmDraft: $draft")
                 appAlarmManager.createAlarm(draft)
                 _uiState.update { it.copy(successMessage = "Alarm created") }
-                //TODO later add singular sync push if didnt disconnect since last sync
+                // TODO later add singular sync push if didn't disconnect since last sync
+                forceFullSync()
             } else {
                 appAlarmManager.updateAlarm(AlarmDraft(
                     hour = s.hour,
@@ -231,10 +243,12 @@ class AlarmViewModel(
                     snoozeDurationMinutes = s.snoozeTime,
                     snoozeMaxCount = s.snoozeCount,
                     snoozeEnabled = s.snoozeActive,
-                    routineId = s.routineId
+                    routineId = s.routineId,
+                    espEnabled = s.espEnabled
                 ), currentAlarmId?: return@launch)
                 _uiState.update { it.copy(successMessage = "Alarm updated") }
-                //TODO later add singular sync push if didnt disconnect since last sync
+                // TODO later add singular sync push if didn't disconnect since last sync
+                forceFullSync()
             }
         }
     }
@@ -286,6 +300,12 @@ class AlarmViewModel(
     fun setSnoozeCount(count: Int) {
         _editorState.update {
             it.copy(snoozeCount = count)
+        }
+    }
+
+    fun setEspEnabled(enabled: Boolean) {
+        _editorState.update {
+            it.copy(espEnabled = enabled)
         }
     }
 
@@ -392,7 +412,8 @@ data class AlarmEditorState(
     val snoozeTime: Int = 5,
     val snoozeActive: Boolean = false,
     val snoozeCount: Int = 1,
-    val routineId: Long? = null
+    val routineId: Long? = null,
+    val espEnabled: Boolean = true
 ) {
     enum class Mode { CREATE, EDIT }
 }
