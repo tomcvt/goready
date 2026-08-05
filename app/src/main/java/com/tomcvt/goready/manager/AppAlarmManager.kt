@@ -1,6 +1,7 @@
 package com.tomcvt.goready.manager
 
 import android.util.Log
+import com.tomcvt.goready.ble.BleDeviceManager
 import com.tomcvt.goready.data.AlarmEntity
 import com.tomcvt.goready.domain.AlarmDraft
 import kotlinx.coroutines.flow.Flow
@@ -9,6 +10,8 @@ import java.util.Date
 
 interface AppAlarmManager {
     fun getAlarmsFlow() : Flow<List<AlarmEntity>>
+    fun getEspEnabledAlarmsFlow() : Flow<List<AlarmEntity>>
+
     suspend fun createAlarm(draft: AlarmDraft)
 
     fun scheduleSnoozeById(alarmId: Long, remainingSnooze: Int, snoozeTimeMinutes: Int)
@@ -24,4 +27,5 @@ interface AppAlarmManager {
     suspend fun scheduleNextAlarmOrDisable(alarmId: Long)
 
     suspend fun scheduleAllEnabledAlarms()
+    suspend fun syncAllEspEnabledAlarms(forTime: Long? = null): BleDeviceManager.SyncResult
 }

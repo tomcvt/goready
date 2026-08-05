@@ -48,12 +48,16 @@ class AlarmActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         val app = (application as AlarmApp)
+        val appContext = applicationContext
+
+        val bleDeviceManager = app.bleDeviceManager
+
         val repository = app.alarmRepository
-        val appAlarmManager = AppAlarmManagerImpl(repository, SystemAlarmScheduler(this))
+        val appAlarmManager = app.appAlarmManager
 
         val routineRepository = app.routineRepository
 
-        val bleDeviceManager = app.bleDeviceManager
+
 
         val serviceMessages = bleDeviceManager.serviceMessages
 

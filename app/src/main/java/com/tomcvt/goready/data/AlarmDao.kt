@@ -13,6 +13,9 @@ interface AlarmDao {
     @Query("SELECT * FROM alarms")
     fun getAlarms(): Flow<List<AlarmEntity>>
 
+    @Query("SELECT * FROM alarms WHERE espEnabled = 1")
+    fun getEspEnabledAlarms(): Flow<List<AlarmEntity>>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAlarm(alarm: AlarmEntity) : Long
 

@@ -44,14 +44,19 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Sync
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.layoutId
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -65,6 +70,7 @@ import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupPositionProvider
 import androidx.compose.ui.window.PopupProperties
 import com.tomcvt.goready.BuildConfig
+import com.tomcvt.goready.ble.BleDeviceManager
 import com.tomcvt.goready.constants.EXTRA_ALARM_ID
 import com.tomcvt.goready.constants.EXTRA_REMAINING_SNOOZE
 import com.tomcvt.goready.manager.AlarmReceiver
@@ -82,6 +88,8 @@ fun AlarmListRoute(
 ) {
     val context = LocalContext.current
     val alarmList by viewModel.alarmsStateFlow.collectAsState()
+    val isSyncing by viewModel.isSyncing.collectAsState()
+    val syncStatus by viewModel.syncStatus.collectAsState()
     var alarmForDeletion by remember { mutableStateOf<AlarmEntity?>(null) }
     var alarmForDetails by remember { mutableStateOf<AlarmEntity?>(null) }
     var alarmDetailsRect by remember { mutableStateOf<Rect?>(null) }
@@ -119,6 +127,7 @@ fun AlarmListRoute(
     val onDetailsClick: (Rect, AlarmEntity) -> Unit = {
         rect, alarm -> alarmDetailsRect = rect; alarmForDetails = alarm
     }
+    val onSyncClick = { viewModel.forceFullSync() }
 
     Box(modifier = Modifier.background(MaterialTheme.colorScheme.background)) {
         AlarmList(
@@ -129,8 +138,17 @@ fun AlarmListRoute(
             onCardClick = onCardClick,
             onDebugClick = onBroadcastAlarmClick,
             onDetailsClick = onDetailsClick,
+            onSyncClick = onSyncClick,
+            isSyncing = isSyncing,
             modifier = modifier
         )
+        if (isSyncing || syncStatus != null) {
+            BleSyncStatusModal(
+                isSyncing = isSyncing,
+                result = syncStatus,
+                onDismiss = { viewModel.dismissSyncStatus() }
+            )
+        }
         if (alarmForDeletion != null) {
             val alarm = alarmForDeletion!!
             DeleteAlarmModal(
@@ -222,6 +240,8 @@ fun AlarmList(
     onCardClick: (AlarmEntity) -> Unit,
     onDebugClick: (AlarmEntity) -> Unit,
     onDetailsClick: (Rect, AlarmEntity) -> Unit,
+    onSyncClick: () -> Unit,
+    isSyncing: Boolean,
     modifier: Modifier = Modifier
 ) {
     var alarmDetails by remember { mutableStateOf<AlarmEntity?>(null) }
@@ -268,6 +288,27 @@ fun AlarmList(
                 contentDescription = "Add Alarm",
                 tint = MaterialTheme.colorScheme.onPrimary
             )
+        }
+
+        //here the button to sync ESP-enabled alarms over BLE (regular button, not a FAB)
+        Button(
+            onClick = onSyncClick,
+            enabled = !isSyncing,
+            modifier = Modifier.align(Alignment.BottomStart).padding(16.dp)
+        ) {
+            if (isSyncing) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(18.dp),
+                    strokeWidth = 2.dp
+                )
+            } else {
+                Icon(
+                    imageVector = Icons.Filled.Sync,
+                    contentDescription = "Sync ESP Alarms"
+                )
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(if (isSyncing) "Syncing..." else "Sync")
         }
     }
 }
@@ -350,6 +391,76 @@ fun AlarmCard(
                 .size(32.dp)
 
         )
+    }
+}
+
+@Composable
+fun BleSyncStatusModal(
+    isSyncing: Boolean,
+    result: BleDeviceManager.SyncResult?,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.5f))
+            .clickable(enabled = !isSyncing) { onDismiss() },
+        contentAlignment = Alignment.Center
+    ) {
+        Card(
+            modifier = Modifier
+                .padding(horizontal = 32.dp)
+                .clickable(enabled = false) {},
+            elevation = CardDefaults.cardElevation(8.dp)
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier.padding(24.dp)
+            ) {
+                Text(
+                    text = "ESP Alarm Sync",
+                    style = MaterialTheme.typography.titleMedium
+                )
+                when {
+                    isSyncing -> {
+                        CircularProgressIndicator()
+                        Text("Syncing alarms with device...")
+                    }
+                    result is BleDeviceManager.SyncResult.Ok -> {
+                        Icon(
+                            imageVector = Icons.Filled.Check,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Text("Sync completed successfully")
+                    }
+                    result is BleDeviceManager.SyncResult.Error -> {
+                        Icon(
+                            imageVector = Icons.Filled.Close,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                        Text(result.response)
+                    }
+                    result is BleDeviceManager.SyncResult.ConError -> {
+                        Icon(
+                            imageVector = Icons.Filled.Close,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                        Text(result.response)
+                    }
+                    else -> {
+                        Text("No sync in progress")
+                    }
+                }
+                if (!isSyncing) {
+                    Button(onClick = onDismiss) { Text("Close") }
+                }
+            }
+        }
     }
 }
 

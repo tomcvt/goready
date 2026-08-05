@@ -6,6 +6,7 @@ import android.util.Log
 import androidx.core.text.isDigitsOnly
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.tomcvt.goready.ble.BleDeviceManager
 import com.tomcvt.goready.constants.MathType
 import com.tomcvt.goready.constants.TaskType
 import com.tomcvt.goready.data.AlarmEntity
@@ -90,6 +91,36 @@ class AlarmViewModel(
         )
 
     private var currentAlarmId: Long? = null
+
+    private val _isSyncing = MutableStateFlow(false)
+    val isSyncing: StateFlow<Boolean> = _isSyncing.asStateFlow()
+
+    private val _syncStatus: MutableStateFlow<BleDeviceManager.SyncResult?> = MutableStateFlow(null)
+    val syncStatus: StateFlow<BleDeviceManager.SyncResult?> = _syncStatus.asStateFlow()
+
+    /**
+     * Pushes a fresh full sync of all ESP-enabled alarms to the connected BLE device.
+     * Progress/result is exposed via [isSyncing] and [syncStatus] for the UI to render.
+     */
+    fun forceFullSync() {
+        if (_isSyncing.value) return
+        _isSyncing.value = true
+        _syncStatus.value = null
+        viewModelScope.launch {
+            try {
+                _syncStatus.value = appAlarmManager.syncAllEspEnabledAlarms()
+            } catch (e: Exception) {
+                Log.e(TAG, "ESP alarm sync failed", e)
+                _syncStatus.value = BleDeviceManager.SyncResult.Error(e.message ?: "Unknown error")
+            } finally {
+                _isSyncing.value = false
+            }
+        }
+    }
+
+    fun dismissSyncStatus() {
+        _syncStatus.value = null
+    }
 
     fun initEditor(alarmId: Long?) {
         //if (currentAlarmId == alarmId) return
@@ -189,6 +220,7 @@ class AlarmViewModel(
                 Log.d(TAG, "Saving alarmDraft: $draft")
                 appAlarmManager.createAlarm(draft)
                 _uiState.update { it.copy(successMessage = "Alarm created") }
+                //TODO later add singular sync push if didnt disconnect since last sync
             } else {
                 appAlarmManager.updateAlarm(AlarmDraft(
                     hour = s.hour,
@@ -202,6 +234,7 @@ class AlarmViewModel(
                     routineId = s.routineId
                 ), currentAlarmId?: return@launch)
                 _uiState.update { it.copy(successMessage = "Alarm updated") }
+                //TODO later add singular sync push if didnt disconnect since last sync
             }
         }
     }

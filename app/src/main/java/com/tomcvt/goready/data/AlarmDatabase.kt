@@ -10,7 +10,7 @@ import androidx.room.TypeConverters
     RoutineEntity::class,
     RoutineStepEntity::class,
     StepDefinitionEntity::class,
-    RoutineSession::class, ScanSetEntity::class], version = 2)
+    RoutineSession::class, ScanSetEntity::class], version = 3)
 @TypeConverters(Converters::class)
 abstract class AlarmDatabase: RoomDatabase() {
     abstract fun alarmDao(): AlarmDao

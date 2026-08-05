@@ -7,7 +7,7 @@ data class AlarmDraft(
     val hour : Int,
     val minute : Int,
     val repeatDays: Set<DayOfWeek>,
-
+    val isEnabled : Boolean = true,
     var label : String? = "Alarm",
     var task: TaskType = TaskType.NONE,
     var taskData: String? = null,
@@ -16,4 +16,6 @@ data class AlarmDraft(
     var snoozeDurationMinutes: Int? = null,
     var snoozeMaxCount: Int? = null,
     var routineId: Long? = null,
+    var espEnabled: Boolean = true,
+    var lastUpdate: Long = System.currentTimeMillis()
 )

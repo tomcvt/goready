@@ -78,11 +78,30 @@ class AlarmApp : Application() {
             Log.d("SeedManager", "Steps seeds applied")
         }
 
+        blueToothAdapter = appContext.getSystemService(BluetoothManager::class.java).adapter
+
+        // Toggle this flag to use mock BLE interactions for testing
+        val useMockBle = false
+
+        bleDeviceManager = if (useMockBle && BuildConfig.DEBUG) {
+            DebugBleDeviceManager(appContext)
+        } else {
+            BleDeviceManager(appContext, blueToothAdapter)
+        }
+        if (!useMockBle) {
+            bleDeviceManager.tryAutoConnect()
+        }
+
         alarmRepository = AlarmRepositoryImpl(db.alarmDao())
 
         systemAlarmScheduler = SystemAlarmScheduler(this)
 
-        appAlarmManager = AppAlarmManagerImpl(alarmRepository, systemAlarmScheduler)
+        appAlarmManager = AppAlarmManagerImpl(
+            appContext,
+            alarmRepository,
+            systemAlarmScheduler,
+            bleDeviceManager
+        )
 
 
         routineRepository = RoutineRepository(db.routineDao())
@@ -108,19 +127,7 @@ class AlarmApp : Application() {
                 ProdPremiumRepository()
             }
 
-        blueToothAdapter = appContext.getSystemService(BluetoothManager::class.java).adapter
 
-        // Toggle this flag to use mock BLE interactions for testing
-        val useMockBle = false
-
-        bleDeviceManager = if (useMockBle && BuildConfig.DEBUG) {
-            DebugBleDeviceManager(appContext)
-        } else {
-            BleDeviceManager(appContext, blueToothAdapter)
-        }
-        if (!useMockBle) {
-            bleDeviceManager.tryAutoConnect()
-        }
     }
 
     override fun onTerminate() {

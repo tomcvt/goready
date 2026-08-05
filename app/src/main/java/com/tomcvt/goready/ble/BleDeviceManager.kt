@@ -20,6 +20,7 @@ import android.util.Log
 import androidx.annotation.RequiresPermission
 import androidx.core.content.ContextCompat
 import androidx.core.content.PermissionChecker.PERMISSION_GRANTED
+import com.tomcvt.goready.data.AlarmEntity
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -339,6 +340,7 @@ open class BleDeviceManager(
                 BluetoothProfile.STATE_CONNECTED -> {
                     retryCount = 0
                     g.requestMtu(185) // discoverServices() happens in onMtuChanged
+                    initDevice()
                     Log.d(TAG, "Connected to ${g.device.address}")
                 }
                 BluetoothProfile.STATE_DISCONNECTED -> {
@@ -399,6 +401,18 @@ open class BleDeviceManager(
         override fun onCharacteristicChanged(g: BluetoothGatt, characteristic: BluetoothGattCharacteristic, value: ByteArray) {
             if (characteristic.uuid == BleConstants.CHAR_TX) {
                 onIncoming(value.toString(Charsets.UTF_8))
+            }
+        }
+    }
+
+    private fun initDevice() {
+        scope.launch {
+            delay(1000)
+            val res = requestTimeSync()
+            if (res.isFailure) {
+                Log.w(TAG, "Failed to sync time: $res")
+            } else {
+                Log.d(TAG, "Synced time: $res")
             }
         }
     }
@@ -542,6 +556,77 @@ open class BleDeviceManager(
         }
     }
 
+    open suspend fun requestSyncEnd() : SyncEndResult {
+        val command = encodeSyncEndCommand()
+        val res = request(command)
+        if (res.isFailure) {
+            return SyncEndResult.ConError("ERROR: $res")
+        }
+        val raw = res.getOrNull()
+        val split = raw?.split(":")
+        val resStatus = split?.get(1)
+        val epochSecondsRes = split?.get(2)?.toLongOrNull()
+        Log.d(TAG, "Sync end response: $resStatus")
+        return when (resStatus) {
+            "OK" -> SyncEndResult.Ok(raw, epochSecondsRes ?: 0L)
+            else -> SyncEndResult.Error("Unknown response: $raw")
+        }
+    }
+
+    open suspend fun requestFullFreshSync(epochSeconds: Long, alarms: List<AlarmEntity>) : SyncResult {
+        val res = requestSyncFresh(epochSeconds)
+        var toReturn: SyncResult? = when (res) {
+            is SyncRequestResult.Error -> SyncResult.Error(res.response)
+            is SyncRequestResult.Busy -> SyncResult.Error("Sync already in progress")
+            is SyncRequestResult.ConError -> SyncResult.Error(res.response)
+            is SyncRequestResult.Open -> null
+        }
+        if (toReturn != null) return toReturn
+        var alarmIssues : List<Pair<Long, SingleSyncResult>> = emptyList()
+        for (alarm in alarms) {
+            //TODO: add dayOfWeek encoding later
+            val daysOfWeek = "1111111"
+            val res = requestSetAlarmInSync(
+                alarm.id.toInt(),
+                alarm.hour,
+                alarm.minute,
+                alarm.label ?: "",
+                daysOfWeek
+            )
+            toReturn = when (res) {
+                is SingleSyncResult.ConError -> SyncResult.Error(res.response)
+                is SingleSyncResult.DuplicateTime -> SyncResult.Error("Duplicate time: ${res.response}")
+                is SingleSyncResult.Error -> SyncResult.Error(res.response)
+                is SingleSyncResult.NoSpace -> SyncResult.Error("No space: ${res.response}")
+                is SingleSyncResult.Ok -> null
+                is SingleSyncResult.Updated -> null
+            }
+            if (toReturn != null) {
+                alarmIssues = alarmIssues + (alarm.id to res)
+            }
+        }
+        val res2 = requestSyncEnd()
+        toReturn = when (res2) {
+            is SyncEndResult.ConError -> SyncResult.Error(res2.response)
+            is SyncEndResult.Error -> SyncResult.Error(res2.response)
+            is SyncEndResult.Ok -> SyncResult.Ok(res2.response, res2.epochSeconds)
+        }
+        if (alarmIssues.isNotEmpty()) {
+            val sb = StringBuilder()
+            sb.append("Alarm issues: ")
+            for ((alarmId, res) in alarmIssues) {
+                sb.append("$alarmId: $res, ")
+            }
+            toReturn = SyncResult.Error(sb.toString())
+        }
+        if (toReturn is SyncResult.Ok) {
+            if (epochSeconds != toReturn.epochSeconds) {
+                return SyncResult.Error("Epoch seconds mismatch")
+            }
+        }
+        return toReturn
+    }
+
 
 
 
@@ -563,38 +648,35 @@ open class BleDeviceManager(
         return request(command)
     }
 
-
     fun closeNotifications() {
         notificationManager.cancelNotification()
-    }
-
-    private fun epochSeconds() {
-        System.currentTimeMillis() / 1000
-    }
-
-    private fun localOffsetSeconds() {
-        TimeZone.getDefault().getOffset(System.currentTimeMillis()) / 1000
     }
 
     sealed class SingleSyncResult(val id: Int, val response: String) {
         class Ok(id: Int, response: String) : SingleSyncResult(id, response)
         class Updated(id: Int, response: String) : SingleSyncResult(id, response)
-        class DuplicateTime(id: Int, response: String) : SingleSyncResult(id, response)
-        class NoSpace(id: Int, response: String) : SingleSyncResult(id, response)
-        class Error(id: Int, response: String) : SingleSyncResult(id, response)
+        class DuplicateTime(id: Int, response: String) : SingleSyncResult(id, "Duplicate time: $response")
+        class NoSpace(id: Int, response: String) : SingleSyncResult(id, "No space: $response")
+        class Error(id: Int, response: String) : SingleSyncResult(id, "Error: $response")
         class ConError(id: Int, response: String) : SingleSyncResult(id, response)
     }
 
     sealed class SyncRequestResult(val response: String) {
         class Open(response: String) : SyncRequestResult(response)
-        class Busy(response: String) : SyncRequestResult(response)
-        class Error(response: String) : SyncRequestResult(response)
+        class Busy(response: String) : SyncRequestResult("Busy: $response")
+        class Error(response: String) : SyncRequestResult("Error: $response")
         class ConError(response: String) : SyncRequestResult(response)
     }
 
     sealed class SyncEndResult(val response: String, val epochSeconds: Long = 0L) {
         class Ok(response: String, epochSeconds: Long) : SyncEndResult(response, epochSeconds)
         class Error(response: String) : SyncEndResult(response)
+        class ConError(response: String) : SyncEndResult(response)
+    }
+    sealed class SyncResult(val response: String, val epochSeconds: Long = 0L) {
+        class Ok(response: String, epochSeconds: Long) : SyncResult(response, epochSeconds)
+        class Error(response: String) : SyncResult(response)
+        class ConError(response: String) : SyncResult(response)
     }
 
     companion object {
@@ -602,6 +684,14 @@ open class BleDeviceManager(
         private const val KEY_NAME = "saved_device_name"
     }
     //TODO: add to activieties cancelNotification on ondestroy
+}
+
+fun epochSeconds(): Long {
+    return System.currentTimeMillis() / 1000
+}
+
+fun localOffsetSeconds(): Long {
+     return (TimeZone.getDefault().getOffset(System.currentTimeMillis()) / 1000).toLong()
 }
 
 /*

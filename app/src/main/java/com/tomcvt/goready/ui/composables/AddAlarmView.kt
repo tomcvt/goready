@@ -137,7 +137,7 @@ fun AddAlarmView(viewModel: AlarmViewModel,
             onDismiss = { showExit = false },
             onConfirm = { rootNavController?.popBackStack() }
         ) {
-            Text("Do you want to exit?")
+            Text("Dismiss changes?")
         }
     }
 }

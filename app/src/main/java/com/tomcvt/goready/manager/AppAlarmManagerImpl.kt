@@ -2,6 +2,8 @@ package com.tomcvt.goready.manager
 
 import android.content.Context
 import android.util.Log
+import com.tomcvt.goready.ble.BleDeviceManager
+import com.tomcvt.goready.ble.epochSeconds
 import com.tomcvt.goready.data.AlarmEntity
 import com.tomcvt.goready.domain.AlarmDraft
 import com.tomcvt.goready.repository.AlarmRepository
@@ -16,6 +18,7 @@ open class AppAlarmManagerImpl(
     private val passedContext: Context?,
     private val repository: AlarmRepository,
     private val systemScheduler: AlarmScheduler,
+    private val bleDeviceManager: BleDeviceManager,
     private val repeatAlarmCalculator: RepeatAlarmCalculator = RepeatAlarmCalculator(
         RealTimeProvider()
     )
@@ -27,6 +30,22 @@ open class AppAlarmManagerImpl(
 
     private val _lastSyncEpochSeconds = MutableStateFlow<Long?>(syncPrefs.getLong("last_sync", -1L))
     val lastSyncEpochSeconds = _lastSyncEpochSeconds
+
+    fun setLastSyncEpochSeconds(epochSeconds: Long) {
+        _lastSyncEpochSeconds.value = epochSeconds
+        syncPrefs.edit().putLong("last_sync", epochSeconds).apply()
+    }
+
+
+    override suspend fun syncAllEspEnabledAlarms(forTime: Long?): BleDeviceManager.SyncResult {
+        //for now we just force sync all
+        val epochSeconds = forTime?: epochSeconds()
+        val alarms = repository.getEspEnabledAlarms().first()
+        return bleDeviceManager.requestFullFreshSync(epochSeconds, alarms)
+
+    }
+
+    override fun getEspEnabledAlarmsFlow() = repository.getEspEnabledAlarms()
 
     override fun getAlarmsFlow() = repository.getAlarms()
     override suspend fun createAlarm(draft: AlarmDraft) {

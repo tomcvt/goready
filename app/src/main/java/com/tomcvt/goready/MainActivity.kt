@@ -118,10 +118,8 @@ class MainActivity : ComponentActivity() {
 
         appObject = (application as AlarmApp)
 
-        appAlarmManager = AppAlarmManagerImpl(
-            repository = AlarmRepositoryImpl(appObject.db.alarmDao()),
-            systemScheduler = SystemAlarmScheduler(this)
-        )
+        appAlarmManager = appObject.appAlarmManager
+
         appRoutinesManager = AppRoutinesManagerImpl(
             RoutineRepository(appObject.db.routineDao()),
             RoutineStepRepository(appObject.db.routineStepDao()),
@@ -508,6 +506,8 @@ fun AlarmListPreview() {
             onCardClick = {},
             onDebugClick = {},
             onDetailsClick = { _, _ -> },
+            onSyncClick = {},
+            isSyncing = false,
             modifier = Modifier)
     }
 }
