@@ -17,6 +17,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.Alarm
@@ -25,9 +27,15 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LastPage
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
+import androidx.compose.material3.pulltorefresh.pullToRefresh
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -37,6 +45,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -45,6 +54,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.zIndex
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -56,6 +66,7 @@ import com.google.android.gms.ads.MobileAds
 import com.tomcvt.goready.ads.ADMOB_ID_DYNAMIC_BANNER
 import com.tomcvt.goready.ads.BottomBarDynamicAdView
 import com.tomcvt.goready.application.AlarmApp
+import com.tomcvt.goready.ble.BleUiConnectionState
 import com.tomcvt.goready.ble.DeviceScanViewModel
 import com.tomcvt.goready.ble.DeviceScanViewModelFactory
 import com.tomcvt.goready.ble.ScanScreen
@@ -73,6 +84,7 @@ import com.tomcvt.goready.repository.RoutineStepRepository
 import com.tomcvt.goready.repository.ScanSetRepository
 import com.tomcvt.goready.repository.ScanSetRepositoryImpl
 import com.tomcvt.goready.repository.StepDefinitionRepository
+import com.tomcvt.goready.ui.ble.BleStatusBar
 import com.tomcvt.goready.ui.composables.AddAlarmView
 import com.tomcvt.goready.ui.composables.AlarmList
 import com.tomcvt.goready.ui.composables.AlarmsNavHost
@@ -262,6 +274,7 @@ fun GoReadyApp(
 }
 
 //@PreviewScreenSizes
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GoReadyAppMain(
     alarmViewModelFactory: AlarmViewModelFactory,
@@ -275,8 +288,20 @@ fun GoReadyAppMain(
     val currentRoute = navbackStackEntry?.destination?.route
     var exitModalVisible by remember { mutableStateOf(false) }
     val overlayHost = LocalOverlayHost.current
-
+    val context = LocalContext.current
     val addsDisabled = LocalDisableAdds.current
+
+    val bleDeviceManager = (context.applicationContext as AlarmApp).bleDeviceManager
+
+    val connectionState by bleDeviceManager.bleUiConnectionState.collectAsStateWithLifecycle()
+    val isRefreshing = connectionState is BleUiConnectionState.Connecting
+    val pullToRefreshState = rememberPullToRefreshState()
+    var showNoSavedDeviceDialog by remember { mutableStateOf(false) }
+
+    val onRefresh: () -> Unit = {
+        val started = bleDeviceManager.connectToSaved() // your Boolean-returning version
+        if (!started) showNoSavedDeviceDialog = true
+    }
 
     // Enable BackHandler only when at the root/start destination
     BackHandler(enabled = true) {
@@ -322,52 +347,77 @@ fun GoReadyAppMain(
                 Column(
                     modifier = Modifier.fillMaxSize()
                 ) {
-                    NavHost(
-                        navController = rootNavController,
-                        startDestination = RootTab.ALARMS.name,
-                        modifier = Modifier.weight(1f)
+                    Box {
+                        BleStatusBar(state = connectionState)
+                    }
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .pullToRefresh(
+                                isRefreshing = isRefreshing,
+                                state = pullToRefreshState,
+                                enabled =
+                                    //connectionState is BleUiConnectionState.Disconnected,
+                                    true,
+                                onRefresh = onRefresh
+                            )
                     ) {
-                        composable(RootTab.HOME.name) {
-                            val vm =
-                                viewModel<RoutinesViewModel>(factory = routinesViewModelFactory)
-                            RoutineListRoute(vm, rootNavController)
-                        }
-                        composable(RootTab.ALARMS.name) {
-                            //val vm = viewModel<AlarmViewModel>(factory = alarmViewModelFactory)
-                            AlarmsNavHost(alarmViewModelFactory, rootNavController)
-                        }
-                        composable(RootTab.ESP_BT.name) {
-                            /*
+                        NavHost(
+                            navController = rootNavController,
+                            startDestination = RootTab.ALARMS.name,
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            composable(RootTab.HOME.name) {
+                                val vm =
+                                    viewModel<RoutinesViewModel>(factory = routinesViewModelFactory)
+                                RoutineListRoute(vm, rootNavController)
+                            }
+                            composable(RootTab.ALARMS.name) {
+                                //val vm = viewModel<AlarmViewModel>(factory = alarmViewModelFactory)
+                                AlarmsNavHost(alarmViewModelFactory, rootNavController)
+                            }
+                            composable(RootTab.ESP_BT.name) {
+                                /*
                             val vm = viewModel<AlarmViewModel>(factory = alarmViewModelFactory)
                             AddAlarmView(vm, rootNavController)
                              */
-                            val vm = viewModel<DeviceScanViewModel>(factory = deviceScanViewModelFactory)
-                            ScanScreen(vm, onSelect = {})
-                            //AddAlarmRoute(vm, rootNavController) for now redundant
+                                val vm =
+                                    viewModel<DeviceScanViewModel>(factory = deviceScanViewModelFactory)
+                                ScanScreen(vm, onSelect = {})
+                                //AddAlarmRoute(vm, rootNavController) for now redundant
+                            }
+                            composable(RootTab.SETTINGS.name) {
+                                val vmsettings =
+                                    viewModel<SettingsViewModel>(factory = settingsViewModelFactory)
+                                val wmScan =
+                                    viewModel<DeviceScanViewModel>(factory = deviceScanViewModelFactory)
+                                SettingsView(vmsettings, wmScan)
+                            }
+                            composable(
+                                route = "edit_alarm/{alarmId}",
+                                arguments = listOf(navArgument("alarmId") {
+                                    type = NavType.LongType
+                                })
+                            ) { backStackEntry ->
+                                val alarmId = backStackEntry.arguments?.getLong("alarmId")
+                                val vm = viewModel<AlarmViewModel>(factory = alarmViewModelFactory)
+                                AddAlarmView(vm, rootNavController, alarmId = alarmId)
+                            }
                         }
-                        composable(RootTab.SETTINGS.name) {
-                            val vmsettings =
-                                viewModel<SettingsViewModel>(factory = settingsViewModelFactory)
-                            val wmScan =
-                                viewModel<DeviceScanViewModel>(factory = deviceScanViewModelFactory)
-                            SettingsView(vmsettings, wmScan)
+                        if (!addsDisabled) {
+                            BottomBarDynamicAdView(
+                                adUnitId = ADMOB_ID_DYNAMIC_BANNER,
+                                modifier = Modifier.fillMaxWidth()
+                                    .align(Alignment.BottomCenter)
+                            )
                         }
-                        composable(
-                            route = "edit_alarm/{alarmId}",
-                            arguments = listOf(navArgument("alarmId") { type = NavType.LongType })
-                        ) { backStackEntry ->
-                            val alarmId = backStackEntry.arguments?.getLong("alarmId")
-                            val vm = viewModel<AlarmViewModel>(factory = alarmViewModelFactory)
-                            AddAlarmView(vm, rootNavController, alarmId = alarmId)
-                        }
-                    }
-                    if (!addsDisabled) {
-                        BottomBarDynamicAdView(
-                            adUnitId = ADMOB_ID_DYNAMIC_BANNER,
-                            modifier = Modifier.fillMaxWidth()
-                        )
                     }
                 }
+                PullToRefreshDefaults.Indicator(
+                    state = pullToRefreshState,
+                    isRefreshing = isRefreshing,
+                    modifier = Modifier.align(Alignment.TopCenter)
+                )
                 if (exitModalVisible) {
                     val activity = LocalContext.current as? Activity
                     StandardModal(
@@ -377,7 +427,14 @@ fun GoReadyAppMain(
                         Text("Do you want to exit?")
                     }
                 }
-
+                if (showNoSavedDeviceDialog) {
+                    AlertDialog(
+                        onDismissRequest = { showNoSavedDeviceDialog = false },
+                        confirmButton = { TextButton(onClick = { showNoSavedDeviceDialog = false }) { Text("OK") } },
+                        title = { Text("No saved device") },
+                        text = { Text("Pair a device first before you can reconnect.") }
+                    )
+                }
             }
         }
         overlayHost.entries.forEach { entry ->
@@ -398,7 +455,7 @@ enum class RootTab(val label: String,
 ) {
     HOME("Routines", Icons.Filled.LastPage),
     ALARMS("Alarms", Icons.Filled.Alarm),
-    SETTINGS("Profile", Icons.Default.Settings),
+    SETTINGS("Settings", Icons.Default.Settings),
     ESP_BT("Bluetooth", Icons.Filled.BluetoothConnected);
 }
 

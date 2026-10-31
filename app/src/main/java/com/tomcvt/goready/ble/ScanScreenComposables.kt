@@ -82,33 +82,37 @@ fun ScanScreen(viewModel: DeviceScanViewModel, onSelect: (BluetoothDevice) -> Un
         )
     }
 
-    Scaffold { padding ->
-        Column(modifier = Modifier.padding(padding)) {
+    //Scaffold { padding ->
+
+        LazyColumn {
             if (deviceConnection.savedDevice != null) {
-                DeviceConnectionTile(
-                    deviceConnection = deviceConnection,
-                    onDisconnect = { viewModel.disconnect() },
-                    onForget = { viewModel.forgetDevice() },
-                    onClick = { viewModel.connectToSaved() }
-                )
-            }
-            Button(onClick = { viewModel.startScan() }, enabled = !isScanning) {
-                Text(if (isScanning) "Scanning…" else "Scan")
-            }
-            LazyColumn {
-                items(devices.size, key = { devices[it].device.address }) { d ->
-                    val deviced = devices[d]
-                    DeviceRow(deviced, onClick = {
-                        viewModel.stopScan()
-                        if (!hasBlePermissionsC(context)) {
-                            Log.w("ScanScreen", "Missing BLE permissions")
-                        }
-                        viewModel.saveDeviceAndConnect(deviced.device)
-                    })
+                item {
+                    DeviceConnectionTile(
+                        deviceConnection = deviceConnection,
+                        onDisconnect = { viewModel.disconnect() },
+                        onForget = { viewModel.forgetDevice() },
+                        onClick = { viewModel.connectToSaved() }
+                    )
                 }
             }
+            item {
+                Button(onClick = { viewModel.startScan() }, enabled = !isScanning) {
+                    Text(if (isScanning) "Scanning…" else "Scan")
+                }
+            }
+            items(devices.size, key = { devices[it].device.address }) { d ->
+                val deviced = devices[d]
+                DeviceRow(deviced, onClick = {
+                    viewModel.stopScan()
+                    if (!hasBlePermissionsC(context)) {
+                        Log.w("ScanScreen", "Missing BLE permissions")
+                    }
+                    viewModel.saveDeviceAndConnect(deviced.device)
+                })
+            }
+
         }
-    }
+    //}
     /*
     if (showScenarios) {
         BleScenariosModal(viewModel = viewModel, onDismiss = { viewModel.showBleScenariosModal.value = false })

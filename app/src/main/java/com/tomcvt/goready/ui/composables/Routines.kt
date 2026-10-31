@@ -167,27 +167,28 @@ fun RoutinesList(
     modifier: Modifier = Modifier
 ) {
     Box(modifier = modifier.fillMaxSize()) {
-        Column(modifier = modifier.fillMaxSize()) {
-            Text(
-                text = "Routines",
-                style = MaterialTheme.typography.headlineSmall,
-                modifier = Modifier.padding(16.dp)
-            )
-            LazyColumn {
-                items(routineList.size) { index ->
-                    val routine = routineList[index]
-                    RoutineCard(
-                        name = routine.name,
-                        description = routine.description,
-                        icon = routine.icon,
-                        onDelete = { onDeleteClick(routine) },
-                        onCardClick = { onCardClick(routine) },
-                        onStartClick = { onStartClick(routine) },
-                        modifier = Modifier.padding(8.dp)
-                    )
-                }
+        LazyColumn(modifier = Modifier.fillMaxSize()) {
+            stickyHeader {
+                Text(
+                    text = "Routines",
+                    style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier.padding(16.dp)
+                )
+            }
+            items(routineList.size) { index ->
+                val routine = routineList[index]
+                RoutineCard(
+                    name = routine.name,
+                    description = routine.description,
+                    icon = routine.icon,
+                    onDelete = { onDeleteClick(routine) },
+                    onCardClick = { onCardClick(routine) },
+                    onStartClick = { onStartClick(routine) },
+                    modifier = Modifier.padding(8.dp)
+                )
             }
         }
+
         //here the button to add alarm
         FloatingActionButton(
             onClick = onAddClick,

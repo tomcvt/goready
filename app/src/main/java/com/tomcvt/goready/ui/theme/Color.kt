@@ -31,3 +31,21 @@ val Background90 = Color(0xFFFFFBF7)
 val Surface90 = Color(0xFFFFFFFF)
 val OnLight = Color(0xFF1E1E1E)
 val OnDark = Color(0xFFFFFFFF)
+
+// Light mode
+val StatusOkLight = Color(0xFFC8E6C9)       // Light green
+val StatusWorkingLight = Color(0xFFBBDEFB)  // Light blue
+val StatusErrorLight = Color(0xFFFFCDD2)    // Light red
+
+// Dark mode
+val StatusOkDark = Color(0xFF2E7D32)        // Dark green
+val StatusWorkingDark = Color(0xFF1565C0)   // Dark blue
+val StatusErrorDark = Color(0xFFC62828)     // Dark red
+
+val OnStatusOkLight = Color(0xFF1B5E20)
+val OnStatusWorkingLight = Color(0xFF0D47A1)
+val OnStatusErrorLight = Color(0xFFB71C1C)
+
+val OnStatusOkDark = Color(0xFFE8F5E9)
+val OnStatusWorkingDark = Color(0xFFE3F2FD)
+val OnStatusErrorDark = Color(0xFFFFEBEE)

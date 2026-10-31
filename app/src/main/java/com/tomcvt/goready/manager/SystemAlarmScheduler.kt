@@ -249,6 +249,7 @@ class SystemAlarmScheduler(private val context: Context) : AlarmScheduler {
         alarmId: Long,
         pendingIntent: PendingIntent
     ) {
+        Log.d("AlarmScheduler", "-------------")
         Log.d("AlarmScheduler", "Intent context name: ${context}")
         Log.d("AlarmScheduler", "Intent package name: ${intent.component?.packageName.toString()}")
         Log.d("AlarmScheduler", "Intent action: ${intent.action.toString()}")
@@ -256,6 +257,7 @@ class SystemAlarmScheduler(private val context: Context) : AlarmScheduler {
         Log.d("AlarmScheduler", "Intent extras: ${intent.extras.toString()}")
         Log.d("AlarmScheduler", "Scheduling alarm with ID: $alarmId and PendingIntent: $pendingIntent")
         Log.d("AlarmScheduler", "Scheduling alarm with ID: $alarmId and intent: $intent")
+        Log.d("AlarmScheduler", "-------------")
     }
 
     companion object {

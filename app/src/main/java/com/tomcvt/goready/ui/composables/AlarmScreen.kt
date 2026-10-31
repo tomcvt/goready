@@ -27,6 +27,7 @@ import androidx.compose.ui.text.toLowerCase
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.room.PrimaryKey
 import com.tomcvt.goready.BuildConfig
 import com.tomcvt.goready.constants.MathType
 import com.tomcvt.goready.constants.TaskType
@@ -37,6 +38,7 @@ import com.tomcvt.goready.scanner.MultiBarcodeScannerView
 import com.tomcvt.goready.scanner.MultiBarcodesSaverView
 import com.tomcvt.goready.scanner.ScanCode
 import com.tomcvt.goready.scanner.decodeScanCodesR
+import java.time.DayOfWeek
 import kotlin.math.sqrt
 
 
@@ -67,6 +69,94 @@ fun AlarmScreen(
         dismissable = dismissable
     )
 }
+
+data class RingingAlarm(
+    val id: Long = 0,
+    val hour : Int = 7,
+    val minute : Int = 0,
+    val isEnabled : Boolean = true,
+    val label : String? = null,
+    val task: TaskType = TaskType.NONE,
+    val taskData: String? = null,
+    val repeatDays: Set<DayOfWeek> = emptySet(),
+    val soundUri: String? = null,
+    val snoozeEnabled: Boolean = false,
+    val snoozeDurationMinutes: Int? = 0,
+    val snoozeMaxCount: Int? = 0,
+    val routineId: Long? = null,
+    val systemHookId: Int? = null,
+    val espEnabled: Boolean = true,
+    val lastUpdate: Long = System.currentTimeMillis()
+)
+
+@Composable
+fun AlarmScreenPort(
+    alarm: RingingAlarm,
+    canSnooze: Boolean,
+    snoozeTime: Int,
+    onSnooze: () -> Unit,
+    onStopAlarm: () -> Unit,
+    onInteraction: () -> Unit,
+    modifier: Modifier = Modifier,
+    webViewHandler: Handler? = null,
+    dismissable: Boolean = false
+) {
+    var passedGate by remember { mutableStateOf(false) }
+    val alarmName = alarm.label ?: "Alarm"
+    val taskType = alarm.task
+    val taskData = alarm.taskData
+    if (!passedGate) {
+        SimpleAlarmScreen(
+            alarmName = alarmName,
+            onSwiped = {passedGate = true},
+            onSnooze = onSnooze,
+            canSnooze = canSnooze,
+            snoozeTime = snoozeTime,
+            modifier = Modifier.fillMaxSize()
+        )
+    } else {
+        when (taskType) {
+            TaskType.NONE -> {
+                TestAlarmScreen(
+                    alarmLabel = alarmName,
+                    onStopAlarm = onStopAlarm,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+            TaskType.TEXT -> {
+                if (dismissable) {
+                    DebugTextAlarmScreen(
+                        text = taskData?: "Fallback",
+                        onStopAlarm = onStopAlarm,
+                        onInteraction = onInteraction,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    TextAlarmScreen(
+                        text = taskData?: "Fallback",
+                        onStopAlarm = onStopAlarm,
+                        onInteraction = onInteraction,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+            }
+            TaskType.BARCODE -> {
+                val decodedCodes = decodeScanCodesR(taskData?: "")
+                BarcodeAlarmScreen(
+                    codes = decodedCodes,
+                    onSuccess = { /* Handle success */ },
+                    onFail = { /* Handle fail */ },
+                    onFinish = { onStopAlarm() },
+                    onDismissed = { onStopAlarm() },
+                    onInteraction = onInteraction,
+                    dismissable = dismissable
+                )
+            }
+            else -> {}
+        }
+    }
+}
+
 
 @Composable
 fun AlarmScreen(

@@ -261,7 +261,9 @@ fun AlarmList(
                 style = MaterialTheme.typography.headlineSmall,
                 modifier = Modifier.padding(16.dp)
             )
-            LazyColumn {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize()
+            ) {
                 items(alarmList.size) { alarm ->
                     val alarm = alarmList[alarm]
                     AlarmCard(
