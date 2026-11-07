@@ -11,6 +11,16 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+import com.tomcvt.goready.ui.overlay.SystemPaddingWrapper
+import com.tomcvt.goready.data.TaskChainRecord
+import com.tomcvt.goready.data.decodeTaskChain
+import com.tomcvt.goready.data.encodeTaskChain
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -214,7 +224,8 @@ fun AddAlarmContent(
                 value = rememberedData[state.taskType.name] ?: "",
                 taskType = state.taskType,
                 onPremiumRequest = { Log.d("AddAlarmContent", "Premium request") },
-                onTaskDataProvided = { viewModel.setTaskData(it) }
+                onTaskDataProvided = { viewModel.setTaskData(it) },
+                validate = viewModel::validateData
             ) }
             item {
                 SnoozeInfoRow(
@@ -411,7 +422,8 @@ fun TaskDataInput(
     taskType: TaskType,
     onPremiumRequest: () -> Unit,
     onTaskDataProvided: (String) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    validate: (TaskType, String) -> Boolean = { _, _ -> true }
 ) {
     val premiumState = LocalPremiumState.current
     val gamesRegistry = GamesRegistry()
@@ -485,6 +497,18 @@ fun TaskDataInput(
                     )
                 }
 
+                TaskType.SHAKE -> {
+                    NumbersInput(
+                        value = value,
+                        onValueChange = {
+                            onTaskDataProvided(it)
+                        },
+                        onFocusLost = { onTaskDataProvided(it) },
+                        placeholder = "   ",
+                        modifier = Modifier.widthIn(min = 100.dp, max = 150.dp)
+                    )
+                }
+
                 TaskType.GAME -> {
                     GameDropdownSelector(
                         value = gamesRegistry.games[value] ?: gamesRegistry.games["spikes"]!!,
@@ -501,9 +525,204 @@ fun TaskDataInput(
                     )
                 }
 
+                TaskType.TASK_CHAIN -> {
+                    TaskChainInput(
+                        value = value,
+                        validate = validate,
+                        onTaskDataProvided = onTaskDataProvided
+                    )
+                }
+
                 else -> {}
             }
         }
+    }
+}
+
+private const val CHAIN_MIN_TILES = 4
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun TaskChainInput(
+    value: String,
+    validate: (TaskType, String) -> Boolean,
+    onTaskDataProvided: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val overlayHost = LocalOverlayHost.current
+    val records = decodeTaskChain(value)
+    var infoIndex by remember { mutableStateOf<Int?>(null) }
+    var removeIndex by remember { mutableStateOf<Int?>(null) }
+
+    FlowRow(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        val tileCount = maxOf(CHAIN_MIN_TILES, records.size + 1)
+        for (i in 0 until tileCount) {
+            val record = records.getOrNull(i)
+            val tileModifier = Modifier.size(72.dp)
+            when {
+                record != null -> TaskChainTile(
+                    text = record.taskType.label,
+                    modifier = tileModifier,
+                    onClick = { infoIndex = i },
+                    onLongClick = { removeIndex = i }
+                )
+                i == records.size -> TaskChainTile(
+                    text = "+",
+                    modifier = tileModifier,
+                    onClick = {
+                        overlayHost.show { dismiss ->
+                            SystemPaddingWrapper {
+                                ChainTaskPickerModal(
+                                    validate = validate,
+                                    onDismiss = dismiss,
+                                    onAdd = {
+                                        dismiss()
+                                        onTaskDataProvided(encodeTaskChain(records + it))
+                                    }
+                                )
+                            }
+                        }
+                    }
+                )
+                else -> TaskChainTile(
+                    text = "+",
+                    modifier = tileModifier.alpha(0.3f),
+                    onClick = {}
+                )
+            }
+        }
+    }
+
+    infoIndex?.let { index ->
+        val record = records.getOrNull(index)
+        AlertDialog(
+            onDismissRequest = { infoIndex = null },
+            confirmButton = { TextButton(onClick = { infoIndex = null }) { Text("Close") } },
+            title = { Text(record?.taskType?.label ?: "") },
+            text = { Text(record?.taskData ?: "") }
+        )
+    }
+    removeIndex?.let { index ->
+        AlertDialog(
+            onDismissRequest = { removeIndex = null },
+            confirmButton = {
+                TextButton(onClick = {
+                    removeIndex = null
+                    onTaskDataProvided(encodeTaskChain(records.filterIndexed { i, _ -> i != index }))
+                }) { Text("Remove") }
+            },
+            dismissButton = { TextButton(onClick = { removeIndex = null }) { Text("Cancel") } },
+            text = { Text("Remove this task from the chain?") }
+        )
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun TaskChainTile(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    onLongClick: (() -> Unit)? = null
+) {
+    Box(
+        modifier = modifier
+            .border(2.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.medium)
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text,
+            textAlign = TextAlign.Center,
+            style = MaterialTheme.typography.labelLarge,
+            modifier = Modifier.padding(4.dp)
+        )
+    }
+}
+
+@Composable
+fun ChainTaskPickerModal(
+    validate: (TaskType, String) -> Boolean,
+    onDismiss: () -> Unit,
+    onAdd: (TaskChainRecord) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val premiumState = LocalPremiumState.current
+    var selectedType by remember { mutableStateOf<TaskType?>(null) }
+    var data by remember { mutableStateOf("") }
+
+    BackHandler(enabled = true) {
+        if (selectedType != null) selectedType = null else onDismiss()
+    }
+
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .clickable(enabled = false) {}
+    ) {
+        val type = selectedType
+        Column(
+            modifier = Modifier.fillMaxSize().padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = type?.label ?: "Choose task",
+                style = MaterialTheme.typography.headlineSmall,
+                modifier = Modifier.padding(16.dp)
+            )
+            if (type == null) {
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth().weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(TaskType.getTaskTypes()) { option ->
+                        val shouldDim = !premiumState.isPremium && option.premium
+                        Card(
+                            elevation = CardDefaults.cardElevation(4.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .alpha(if (shouldDim) 0.5f else 1f)
+                                .clickable {
+                                    selectedType = option
+                                    data = if (option == TaskType.GAME) "spikes" else ""
+                                }
+                        ) {
+                            Text(
+                                option.label,
+                                style = MaterialTheme.typography.titleMedium,
+                                modifier = Modifier.padding(16.dp)
+                            )
+                        }
+                    }
+                }
+            } else {
+                Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.TopCenter) {
+                    TaskDataInput(
+                        value = data,
+                        taskType = type,
+                        onPremiumRequest = { Log.d("ChainTaskPickerModal", "Premium request") },
+                        onTaskDataProvided = { data = it },
+                        validate = validate
+                    )
+                }
+                Button(
+                    enabled = (premiumState.isPremium || !type.premium) && validate(type, data),
+                    onClick = { onAdd(TaskChainRecord(type, data)) }
+                ) {
+                    Text("Add")
+                }
+            }
+        }
+        FlexCloseButton(
+            onClose = onDismiss,
+            modifier = Modifier.align(Alignment.TopEnd).padding(16.dp)
+        )
     }
 }
 

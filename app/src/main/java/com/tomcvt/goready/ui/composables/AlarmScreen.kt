@@ -32,6 +32,8 @@ import com.tomcvt.goready.BuildConfig
 import com.tomcvt.goready.constants.MathType
 import com.tomcvt.goready.constants.TaskType
 import com.tomcvt.goready.data.AlarmEntity
+import com.tomcvt.goready.data.TaskChainRecord
+import com.tomcvt.goready.data.taskToRecords
 import com.tomcvt.goready.games.GamesRegistry
 import com.tomcvt.goready.games.WebviewGameAlarmScreen
 import com.tomcvt.goready.scanner.MultiBarcodeScannerView
@@ -103,8 +105,7 @@ fun AlarmScreenPort(
 ) {
     var passedGate by remember { mutableStateOf(false) }
     val alarmName = alarm.label ?: "Alarm"
-    val taskType = alarm.task
-    val taskData = alarm.taskData
+    val records = remember(alarm.task, alarm.taskData) { taskToRecords(alarm.task, alarm.taskData) }
     if (!passedGate) {
         SimpleAlarmScreen(
             alarmName = alarmName,
@@ -115,44 +116,48 @@ fun AlarmScreenPort(
             modifier = Modifier.fillMaxSize()
         )
     } else {
-        when (taskType) {
-            TaskType.NONE -> {
-                TestAlarmScreen(
-                    alarmLabel = alarmName,
-                    onStopAlarm = onStopAlarm,
-                    modifier = Modifier.fillMaxSize()
-                )
-            }
-            TaskType.TEXT -> {
-                if (dismissable) {
-                    DebugTextAlarmScreen(
-                        text = taskData?: "Fallback",
+        TaskChainRunner(records = records, onFinished = onStopAlarm) { record, onStopAlarm ->
+            val taskType = record.taskType
+            val taskData: String? = record.taskData
+            when (taskType) {
+                TaskType.NONE -> {
+                    TestAlarmScreen(
+                        alarmLabel = alarmName,
                         onStopAlarm = onStopAlarm,
-                        onInteraction = onInteraction,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                } else {
-                    TextAlarmScreen(
-                        text = taskData?: "Fallback",
-                        onStopAlarm = onStopAlarm,
-                        onInteraction = onInteraction,
                         modifier = Modifier.fillMaxSize()
                     )
                 }
+                TaskType.TEXT -> {
+                    if (dismissable) {
+                        DebugTextAlarmScreen(
+                            text = taskData?: "Fallback",
+                            onStopAlarm = onStopAlarm,
+                            onInteraction = onInteraction,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    } else {
+                        TextAlarmScreen(
+                            text = taskData?: "Fallback",
+                            onStopAlarm = onStopAlarm,
+                            onInteraction = onInteraction,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
+                }
+                TaskType.BARCODE -> {
+                    val decodedCodes = decodeScanCodesR(taskData?: "")
+                    BarcodeAlarmScreen(
+                        codes = decodedCodes,
+                        onSuccess = { /* Handle success */ },
+                        onFail = { /* Handle fail */ },
+                        onFinish = { onStopAlarm() },
+                        onDismissed = { onStopAlarm() },
+                        onInteraction = onInteraction,
+                        dismissable = dismissable
+                    )
+                }
+                else -> {}
             }
-            TaskType.BARCODE -> {
-                val decodedCodes = decodeScanCodesR(taskData?: "")
-                BarcodeAlarmScreen(
-                    codes = decodedCodes,
-                    onSuccess = { /* Handle success */ },
-                    onFail = { /* Handle fail */ },
-                    onFinish = { onStopAlarm() },
-                    onDismissed = { onStopAlarm() },
-                    onInteraction = onInteraction,
-                    dismissable = dismissable
-                )
-            }
-            else -> {}
         }
     }
 }
@@ -174,6 +179,7 @@ fun AlarmScreen(
     dismissable: Boolean = false
 ) {
     var passedGate by remember { mutableStateOf(false) }
+    val records = remember(taskType, taskData) { taskToRecords(taskType, taskData) }
     if (!passedGate) {
         SimpleAlarmScreen(
             alarmName = alarmName,
@@ -184,6 +190,9 @@ fun AlarmScreen(
             modifier = Modifier.fillMaxSize()
         )
     } else {
+        TaskChainRunner(records = records, onFinished = onStopAlarm) { record, onStopAlarm ->
+        val taskType = record.taskType
+        val taskData: String? = record.taskData
         when (taskType) {
             TaskType.NONE -> {
                 TestAlarmScreen(
@@ -284,38 +293,36 @@ fun AlarmScreen(
                     dismissable = dismissable
                 )
             }
+            TaskType.SHAKE -> {
+                ShakeTaskScreen(
+                    target = taskData?.toIntOrNull() ?: 10,
+                    onFinish = onStopAlarm,
+                    onInteraction = onInteraction,
+                    dismissable = dismissable,
+                )
+            }
             else -> {}
+        }
         }
     }
 }
 
+/**
+ * Shows the records one by one, advancing an index on each completion;
+ * [onFinished] fires once all records are done.
+ */
 @Composable
-fun InteractionDetectorWrapper(
-    modifier: Modifier = Modifier,
-    debounceTime: Long = 0L,
-    onInteraction: () -> Unit,
-    content: @Composable () -> Unit) {
-    var interactionKey by remember { mutableLongStateOf(0L) }
-    var lastInteraction by remember { mutableLongStateOf(0L) }
-    LaunchedEffect(interactionKey) {
-        if (System.currentTimeMillis() - lastInteraction > debounceTime) {
-            onInteraction()
-            lastInteraction = System.currentTimeMillis()
-        }
-    }
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .pointerInput(Unit) {
-                awaitPointerEventScope {
-                    while (true) {
-                        awaitPointerEvent(PointerEventPass.Initial)
-                        interactionKey++
-                    }
-                }
-            }
-    ) {
-        content()
+fun TaskChainRunner(
+    records: List<TaskChainRecord>,
+    onFinished: () -> Unit,
+    content: @Composable (record: TaskChainRecord, onDone: () -> Unit) -> Unit
+) {
+    var index by remember(records) { mutableIntStateOf(0) }
+    val current = records.getOrNull(index)
+    if (current == null) {
+        LaunchedEffect(Unit) { onFinished() }
+    } else {
+        key(index) { content(current) { index++ } }
     }
 }
 
@@ -546,7 +553,7 @@ fun DismissButtonWrapper(
     onDismiss: () -> Unit,
     content: @Composable () -> Unit
 ) {
-    Box(modifier = modifier) {
+    Box(modifier = modifier.fillMaxSize()) {
         content()
         if (dismissable) {
             SimpleDeleteButton(

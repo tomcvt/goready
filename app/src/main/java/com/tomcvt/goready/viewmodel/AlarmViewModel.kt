@@ -11,6 +11,7 @@ import com.tomcvt.goready.constants.MathType
 import com.tomcvt.goready.constants.TaskType
 import com.tomcvt.goready.data.AlarmEntity
 import com.tomcvt.goready.data.RoutineEntity
+import com.tomcvt.goready.data.decodeTaskChain
 import com.tomcvt.goready.data.StepWithDefinition
 import com.tomcvt.goready.domain.AlarmDraft
 import com.tomcvt.goready.manager.AppAlarmManager
@@ -383,6 +384,17 @@ class AlarmViewModel(
             TaskType.BARCODE -> {
                 return taskData.isNotBlank()
             }
+            TaskType.SHAKE -> {
+                return taskData.toIntOrNull()?.let { it > 0 } == true
+            }
+            TaskType.TASK_CHAIN -> {
+                val records = decodeTaskChain(taskData)
+                return records.isNotEmpty() && records.all {
+                    it.taskType != TaskType.NONE &&
+                        it.taskType != TaskType.TASK_CHAIN &&
+                        validateData(it.taskType, it.taskData)
+                }
+            }
             else -> {return false}
         }
         return false
@@ -442,7 +454,8 @@ fun parseData(taskType: TaskType, taskData: String) : String?  {
         TaskType.TARGET -> { return taskData }
         TaskType.GAME -> {return taskData}
         TaskType.BARCODE -> {return taskData}
-        TaskType.TASK_CHAIN -> {return null}
+        TaskType.SHAKE -> {return taskData}
+        TaskType.TASK_CHAIN -> {return taskData}
     }
 }
 

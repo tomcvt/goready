@@ -121,7 +121,7 @@ class AlarmForegroundService : Service() {
                 if (alarmStopped) {
                     return@launch
                 }
-                startAsForeground(currentAlarm!!, currentSnooze)
+                startAsForeground(currentAlarmId, currentSnooze)
             }
             return START_STICKY
         }
@@ -134,9 +134,9 @@ class AlarmForegroundService : Service() {
             serviceScope.launch{
                 ble.requestSnoozeAlarm(currentAlarmId.toInt()).onFailure {
                     Log.w(TAG, "Failed to send snooze alarm command to BLE device", it)
-                    handleDisconnectedServiceMessage("Failed to mute alarm: disconnected")
+                    handleDisconnectedWithServiceMessage("Failed to mute alarm: disconnected")
                 }.onSuccess {
-                    handleReconnectedServiceMessage("Reconnected: Muting alarm")
+                    handleReconnectedWithServiceMessage("Reconnected: Muting alarm")
                 }
             }
             //Log.d(TAG, "Alarm muted for 5 seconds")
@@ -149,9 +149,9 @@ class AlarmForegroundService : Service() {
             serviceScope.launch {
                 ble.requestStopAlarm(currentAlarmId.toInt()).onFailure {
                     Log.w(TAG, "Failed to send stop alarm command to BLE device", it)
-                    handleDisconnectedServiceMessage("Failed to stop alarm: disconnected")
+                    handleDisconnectedWithServiceMessage("Failed to stop alarm: disconnected")
                 }.onSuccess {
-                    handleReconnectedServiceMessage("Reconnected: Stopping alarm")
+                    handleReconnectedWithServiceMessage("Reconnected: Stopping alarm")
                 }
             }
             return START_NOT_STICKY
@@ -165,9 +165,14 @@ class AlarmForegroundService : Service() {
         isActive = true
         alarmStopped = false
 
+        startAsForeground(alarmId, remainingSnooze)
+
         serviceScope.launch {
             val alarm = withContext(Dispatchers.IO) {repository.getAlarmById(alarmId)}
             if (alarm == null) {
+                Log.d("AlarmForegroundService", "Alarm not found")
+                //activity kill
+                finalizeAlarm()
                 stopSelf()
                 return@launch
             }
@@ -194,11 +199,13 @@ class AlarmForegroundService : Service() {
             )
 
             if (result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
-                // 2️⃣ Start the alarm sound
+                // Start the alarm sound
                 Log.d("AlarmService", "Audio focus granted, starting alarm sound")
             } else {
                 Log.w("AlarmService", "Audio focus denied, starting alarm sound anyway")
             }
+
+            startAlarmSound(alarm)
 
             val connectResult = ble.requestAndReturnAutoConnect()
             val didSucceed: Boolean = connectResult.isSuccess
@@ -207,7 +214,7 @@ class AlarmForegroundService : Service() {
             } else {
                 connectResult.exceptionOrNull()?.message ?: "Unknown error"
             }
-            Log.e("AlarmService", "BLE connection attempt: $message")
+            Log.w("AlarmService", "BLE connection attempt: $message")
             if (didSucceed) {
                 didConnectToEsp = true
                 disconnectedEsp = false
@@ -220,15 +227,11 @@ class AlarmForegroundService : Service() {
             }
 
              */
-
-
             ble.requestStartAlarm(currentAlarmId.toInt()).onFailure {
                 Log.w(TAG, "Failed to send start alarm command to BLE device", it)
             }
 
-            startAlarmSound(alarm)
-            startAsForeground(alarm, remainingSnooze)
-            delay(3000)
+            delay(1000L)
             handleInitialServiceMessage()
         }
 
@@ -263,20 +266,20 @@ class AlarmForegroundService : Service() {
         return alarmActivityNotifyPendingIntent
     }
 
-    fun handleDisconnectedServiceMessage(message: String) {
+    fun handleDisconnectedWithServiceMessage(message: String) {
         if (!didConnectToEsp) return
         if (disconnectedEsp) return
         disconnectedEsp = true
         ble.emitServiceMessage(ServiceMessages.Disconnected(message))
     }
-    fun handleReconnectedServiceMessage(message: String) {
+    fun handleReconnectedWithServiceMessage(message: String) {
         if (!didConnectToEsp) return
         if (!disconnectedEsp) return
         disconnectedEsp = false
         ble.emitServiceMessage(ServiceMessages.Reconnected(message))
     }
 
-    fun handleInitialServiceMessage(message: String? = null) {
+    fun handleInitialServiceMessage() {
         if (didConnectToEsp) ble.emitServiceMessage(ServiceMessages.Reconnected("Connected to device, playing alarm"))
         else ble.emitServiceMessage(ServiceMessages.Disconnected("Not connected to alarm device"))
     }
@@ -339,10 +342,10 @@ class AlarmForegroundService : Service() {
         )
     }
 
-    private fun startAsForeground(alarm: AlarmEntity, remainingSnooze: Int) {
+    private fun startAsForeground(alarmId: Long, remainingSnooze: Int) {
         createAlarmChannel()
 
-        val fullScreenIntent = alarmActivityPendingIntent(alarm.id, remainingSnooze)
+        val fullScreenIntent = alarmActivityPendingIntent(alarmId, remainingSnooze)
 
         val notification = NotificationCompat.Builder(this, "alarm_channel")
             .setSmallIcon(R.drawable.ic_alarm)

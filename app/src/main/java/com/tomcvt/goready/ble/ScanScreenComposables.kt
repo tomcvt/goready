@@ -96,8 +96,21 @@ fun ScanScreen(viewModel: DeviceScanViewModel, onSelect: (BluetoothDevice) -> Un
                 }
             }
             item {
-                Button(onClick = { viewModel.startScan() }, enabled = !isScanning) {
-                    Text(if (isScanning) "Scanning…" else "Scan")
+                Button(
+                    onClick = {
+                        if (!ble.state.canScan || !ble.state.canConnect) ble.requestPermissions()
+                        else if (!ble.state.locationServicesOn) ble.openLocationSettings()
+                        else viewModel.startScan()
+                    },
+                    enabled = !isScanning
+                ) {
+                    Text(
+                        when {
+                            isScanning -> "Scanning…"
+                            !ble.state.canScan || !ble.state.canConnect -> "Grant Bluetooth permissions"
+                            else -> "Scan"
+                        }
+                    )
                 }
             }
             items(devices.size, key = { devices[it].device.address }) { d ->
