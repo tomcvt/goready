@@ -1,7 +1,7 @@
 package com.tomcvt.goready.trajectory.composables
 
-import android.hardware.Sensor
 import android.hardware.SensorManager
+import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -31,6 +31,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -40,17 +41,33 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.tomcvt.goready.trajectory.ArCoreMotionSource
 import com.tomcvt.goready.trajectory.MatchResult
+import com.tomcvt.goready.trajectory.TargetPaths
+import com.tomcvt.goready.trajectory.TiltMotionSource
 import com.tomcvt.goready.trajectory.TrajectoryTracker
 import java.util.Locale
+
+private const val TAG = "DebugTrajectoryTracker"
+
+private enum class DebugMotionSource(val label: String) {
+    ARCORE("arcore"),
+    TILT("tilt")
+}
 
 /**
  * Full-screen debug view for [TrajectoryTracker].
  *
- * Top left: target path selector. Middle: live [TrajectoryTrackerSnapshotRenderBox].
+ * Top: target path selector, motion source selector and close button.
+ * Middle: live [TrajectoryTrackerSnapshotRenderBox].
  * Bottom: start/stop toggle plus a reset button. Stopping tracking opens a dialog
  * with the [MatchResult] returned by the matcher.
+ *
+ * Runtime failures are logged under the tags "DebugTrajectoryTracker",
+ * "TrajectoryTracker", "TrajectoryFallback", "ArCoreMotionSource" and "TiltMotionSource",
+ * and the last tracker error is shown in the UI.
  */
 @Composable
 fun DebugTrajectoryTrackerView(
@@ -59,27 +76,49 @@ fun DebugTrajectoryTrackerView(
 ) {
     val context = LocalContext.current
     val sensorManager = remember { context.getSystemService(SensorManager::class.java) }
+
+    var selectedSource by remember { mutableStateOf(DebugMotionSource.ARCORE) }
+    var selectedTargetId by remember { mutableStateOf(TargetPaths.defaults.keys.first()) }
     var matchResult by remember { mutableStateOf<MatchResult?>(null) }
-    val tracker = remember(sensorManager) {
+    var targetMenuExpanded by remember { mutableStateOf(false) }
+    var sourceMenuExpanded by remember { mutableStateOf(false) }
+
+    // The tracker owns its source, so switching the source recreates both.
+    val motionSource = remember(selectedSource) {
+        when (selectedSource) {
+            DebugMotionSource.ARCORE -> ArCoreMotionSource(context.applicationContext)
+            DebugMotionSource.TILT -> TiltMotionSource(sensorManager)
+        }
+    }
+    val tracker = remember(motionSource) {
         TrajectoryTracker(
-            sensorManager = sensorManager,
-            onStop = { matchResult = it },
-            onMatched = {}
+            source = motionSource,
+            initialTargetId = selectedTargetId,
+            onTrackingStopped = { result ->
+                Log.d(
+                    TAG,
+                    "onTrackingStopped: target=${result.targetId} " +
+                            "score=${formatScore(result.score)} passed=${result.passed}"
+                )
+            },
+            onMatch = { Log.d(TAG, "onMatch: trajectory matched the target") }
         )
     }
     val targetIds = remember(tracker) { tracker.targetIds.toList() }
     val snapshot by tracker.snapshot.collectAsState()
 
-    val sensorPresent = remember {
-        sensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION) != null
+    LaunchedEffect(snapshot.error) {
+        snapshot.error?.let { Log.e(TAG, "tracker error: $it") }
     }
-    var targetMenuExpanded by remember { mutableStateOf(false) }
-    var startFailed by remember { mutableStateOf(false) }
 
-    // Never leave the sensor listener registered behind the view.
+    // Never leave the sensor / ARCore worker registered behind the view.
     DisposableEffect(tracker) {
         onDispose {
+            Log.d(TAG, "dispose: stopping tracker and source")
             if (tracker.snapshot.value.isTracking) tracker.stopTracking()
+            // Also covers asynchronous failures: the tracker already reports isTracking=false,
+            // but the source may still hold a sensor listener / ARCore worker.
+            motionSource.stop()
         }
     }
 
@@ -94,15 +133,20 @@ fun DebugTrajectoryTrackerView(
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Box {
+                Box(modifier = Modifier.weight(1f)) {
                     Button(
                         onClick = { targetMenuExpanded = true },
-                        enabled = !snapshot.isTracking
+                        enabled = !snapshot.isTracking,
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("Target: ${snapshot.targetId}")
+                        Text(
+                            text = "Target: ${snapshot.targetId}",
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
                     }
                     DropdownMenu(
                         expanded = targetMenuExpanded,
@@ -112,6 +156,8 @@ fun DebugTrajectoryTrackerView(
                             DropdownMenuItem(
                                 text = { Text(id) },
                                 onClick = {
+                                    Log.d(TAG, "target -> $id")
+                                    selectedTargetId = id
                                     tracker.selectTarget(id)
                                     targetMenuExpanded = false
                                 }
@@ -119,17 +165,42 @@ fun DebugTrajectoryTrackerView(
                         }
                     }
                 }
+
+                Box(modifier = Modifier.weight(1f)) {
+                    Button(
+                        onClick = { sourceMenuExpanded = true },
+                        enabled = !snapshot.isTracking,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "Source: ${selectedSource.label}",
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = sourceMenuExpanded,
+                        onDismissRequest = { sourceMenuExpanded = false }
+                    ) {
+                        DebugMotionSource.entries.forEach { source ->
+                            DropdownMenuItem(
+                                text = { Text(source.label) },
+                                onClick = {
+                                    if (!snapshot.isTracking && source != selectedSource) {
+                                        Log.d(TAG, "motion source -> ${source.label}")
+                                        selectedSource = source
+                                        matchResult = null
+                                    }
+                                    sourceMenuExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+
                 IconButton(onClick = onDismiss) {
                     Icon(Icons.Default.Close, contentDescription = "Close")
                 }
-            }
-
-            if (!sensorPresent || startFailed) {
-                Text(
-                    text = "Linear acceleration sensor unavailable on this device.",
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall
-                )
             }
 
             TrajectoryTrackerSnapshotRenderBox(
@@ -145,6 +216,34 @@ fun DebugTrajectoryTrackerView(
             )
 
             Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "Source: ${snapshot.sourceName}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = if (snapshot.isTracking) {
+                        "tracking · ${snapshot.trackedPoints.size} pts"
+                    } else {
+                        "idle · ${snapshot.trackedPoints.size} pts"
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            snapshot.error?.let { error ->
+                Text(
+                    text = "Error: $error",
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(64.dp),
@@ -154,9 +253,23 @@ fun DebugTrajectoryTrackerView(
                 Button(
                     onClick = {
                         if (snapshot.isTracking) {
-                            tracker.stopTracking() // onStop opens the result dialog
+                            val result = tracker.stopTracking()
+                            Log.d(
+                                TAG,
+                                "stopTracking: target=${result.targetId} " +
+                                        "score=${formatScore(result.score)} passed=${result.passed}"
+                            )
+                            matchResult = result
                         } else {
-                            startFailed = !tracker.startTracking()
+                            Log.d(TAG, "startTracking: source=${selectedSource.label}")
+                            val started = tracker.startTracking()
+                            if (!started) {
+                                Log.e(
+                                    TAG,
+                                    "startTracking returned false for '${selectedSource.label}'; " +
+                                            "see source logs for the reason"
+                                )
+                            }
                         }
                     },
                     modifier = Modifier
@@ -178,8 +291,8 @@ fun DebugTrajectoryTrackerView(
 
                 IconButton(
                     onClick = {
+                        Log.d(TAG, "reset")
                         tracker.reset()
-                        startFailed = false
                     },
                     modifier = Modifier
                         .size(56.dp)

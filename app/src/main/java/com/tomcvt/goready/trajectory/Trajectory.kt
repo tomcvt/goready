@@ -1,15 +1,14 @@
 package com.tomcvt.goready.trajectory
 
-import android.hardware.Sensor
-import android.hardware.SensorEvent
-import android.hardware.SensorEventListener
-import android.hardware.SensorManager
+import android.util.Log
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlin.math.exp
 import kotlin.math.hypot
 import kotlin.math.max
+
+private const val TAG = "TrajectoryTracker"
+private const val TAG_FALLBACK = "TrajectoryFallback"
 
 /* ───────────────────────────── Model ───────────────────────────── */
 
@@ -26,7 +25,7 @@ data class TargetPath(val id: String, val points: List<Point2>) {
     val start: Point2 get() = points.first()
     val end: Point2 get() = points.last()
 
-    /** Larger bbox side; used to normalise match scores so thresholds are size-independent. */
+    /** Larger bbox side; normalises match scores so thresholds are size-independent. */
     val extent: Float = run {
         val w = points.maxOf { it.x } - points.minOf { it.x }
         val h = points.maxOf { it.y } - points.minOf { it.y }
@@ -38,31 +37,26 @@ data class TargetPath(val id: String, val points: List<Point2>) {
 object TargetPaths {
     val square = TargetPath(
         "square",
-        listOf(
-            Point2(0f, 0f),
-            Point2(1f, 0f),
-            Point2(1f, 1f),
-            Point2(0f, 1f),
-            Point2(0f, 0f))
+        listOf(Point2(0f, 0f), Point2(1f, 0f), Point2(1f, 1f), Point2(0f, 1f), Point2(0f, 0f))
     )
     val triangle = TargetPath(
         "triangle",
-        listOf(
-            Point2(0.5f, 0f),
-            Point2(1f, 1f),
-            Point2(0f, 1f),
-            Point2(0.5f, 0f))
+        listOf(Point2(0.5f, 0f), Point2(1f, 1f), Point2(0f, 1f), Point2(0.5f, 0f))
     )
     val defaults: Map<String, TargetPath> = listOf(square, triangle).associateBy { it.id }
 }
 
-/** Everything a Compose Canvas needs. Both lists are in path units. */
+/** Everything a Compose Canvas needs. Both point lists are in path units. */
 data class TrajectorySnapshot(
     val targetId: String,
     val targetPoints: List<Point2>,
     /** Starts at target.start; last element = current position. */
     val trackedPoints: List<Point2>,
-    val isTracking: Boolean
+    val isTracking: Boolean,
+    /** Which source is feeding the path right now ("arcore" / "tilt"). */
+    val sourceName: String,
+    /** Set when tracking stopped because every source failed. */
+    val error: String? = null
 ) {
     val current: Point2 get() = trackedPoints.last()
 }
@@ -76,91 +70,119 @@ data class MatchResult(
 )
 
 data class TrajectoryConfig(
-    /** Rate at which trajectory points are emitted (sensor is still integrated at full rate). */
+    /** Rate at which trajectory points are emitted (sources may deliver faster). */
     val emitHz: Float = 5f,
-
-    /** Path units per metre of phone travel. Default: a 15 cm gesture spans the unit box. */
-    val scaleX: Float = 1f / 0.15f,
-    val scaleY: Float = 1f / 0.15f,
-
-    // ── LinearAccelMotionSource tuning (m/s², seconds) ──
-    /** |a| below this is treated as 0 while integrating (noise gate). */
-    val accelNoiseGate: Float = 0.12f,
-    /** Exponential velocity decay (1/s). Bleeds integration bias; too high shrinks real strokes. */
-    val velocityLeakPerSec: Float = 0.8f,
-    /** Zero-velocity update: |a| below this for zuptHoldMs => velocity forced to 0. */
-    val zuptAccelThreshold: Float = 0.25f,
-    val zuptHoldMs: Long = 200,
-    /** Clamp for dt so a scheduling hiccup can't inject a huge integration step. */
-    val maxDtSec: Float = 0.05f,
-
-    // ── Matching ──
     val resamplePoints: Int = 64,
     val passThreshold: Float = 0.2f
-)
+) {
+    init { require(emitHz > 0f) }
+}
 
-/* ─────────────────────── Motion source (swappable) ─────────────────────── */
+/* ─────────────────────── Motion source abstraction ─────────────────────── */
 
-/**
- * Turns raw sensor samples into a planar position relative to the tracking start,
- * in screen frame. Units are source-specific (metres for linear accel); the tracker
- * applies config.scaleX/Y to get path units. Pure Kotlin => unit-testable with recorded data.
- *
- * To try a gyro "pointer" later: implement this with Sensor.TYPE_GAME_ROTATION_VECTOR
- * and return yaw/pitch deltas as the position.
- */
+interface MotionSink {
+    /**
+     * Position relative to the source's origin, in the source's native units, screen frame
+     * (+x right, +y down). May be called from any thread.
+     */
+    fun onPosition(position: Point2, timestampNs: Long)
+
+    /** The source died after a successful start() (e.g. ARCore lost the camera or never tracked). */
+    fun onFailure(reason: String)
+
+    /** A FallbackMotionSource switched to another source; the old trajectory is meaningless. */
+    fun onSourceChanged(name: String) {}
+}
+
 interface MotionSource {
-    val sensorType: Int
-    fun reset()
-    fun onSample(values: FloatArray, timestampNs: Long): Point2
+    val name: String
+
+    /** Path units per native unit. The tracker applies these when converting positions. */
+    val scaleX: Float
+    val scaleY: Float
+
+    /** @return false if this source cannot run right now (caller may try another). */
+    fun start(sink: MotionSink): Boolean
+
+    /** Make the current position the new origin. */
+    fun resetOrigin()
+
+    fun stop()
 }
 
 /**
- * Double-integrates TYPE_LINEAR_ACCELERATION (gravity already removed by the platform fusion).
- * Frame: device x -> path x, device y -> path -y (phone held screen-facing, portrait).
- * Drift control: noise gate + velocity leak + ZUPT. ZUPT is also why polygons work well:
- * the natural pause at each corner zeroes velocity and stops drift accumulating across edges.
+ * Tries sources in order. If one refuses to start, or fails later (e.g. ARCore never reaches
+ * TRACKING), moves on to the next and notifies the sink via onSourceChanged().
  */
-class LinearAccelMotionSource(private val cfg: TrajectoryConfig) : MotionSource {
-    override val sensorType: Int = Sensor.TYPE_LINEAR_ACCELERATION
+class FallbackMotionSource(private val sources: List<MotionSource>) : MotionSource {
+    init { require(sources.isNotEmpty()) }
 
-    private var lastTsNs = 0L
-    private var vx = 0f
-    private var vy = 0f
-    private var px = 0f
-    private var py = 0f
-    private var restSec = 0f
+    private val lock = Any()
+    @Volatile private var activeIndex = -1
+    private var downstream: MotionSink? = null
 
-    override fun reset() {
-        lastTsNs = 0L
-        vx = 0f; vy = 0f; px = 0f; py = 0f; restSec = 0f
+    private val current: MotionSource get() = sources[activeIndex.coerceAtLeast(0)]
+    override val name: String get() = current.name
+    override val scaleX: Float get() = current.scaleX
+    override val scaleY: Float get() = current.scaleY
+
+    override fun start(sink: MotionSink): Boolean = synchronized(lock) {
+        downstream = sink
+        startFrom(0)
     }
 
-    override fun onSample(values: FloatArray, timestampNs: Long): Point2 {
-        if (lastTsNs == 0L) {
-            lastTsNs = timestampNs
-            return Point2(px, py)
+    override fun resetOrigin() { if (activeIndex >= 0) sources[activeIndex].resetOrigin() }
+
+    override fun stop() {
+        val toStop: MotionSource?
+        synchronized(lock) {
+            toStop = if (activeIndex >= 0) sources[activeIndex] else null
+            activeIndex = -1
+            downstream = null
         }
-        val dt = ((timestampNs - lastTsNs) / 1e9f).coerceIn(0f, cfg.maxDtSec)
-        lastTsNs = timestampNs
+        toStop?.stop() // outside the lock: a source may join its worker thread here
+    }
 
-        var ax = values[0]
-        var ay = -values[1] // device y is up, screen y is down
-        val mag = hypot(ax, ay)
+    /** Caller holds [lock]. */
+    private fun startFrom(from: Int): Boolean {
+        for (i in from until sources.size) {
+            Log.d(TAG_FALLBACK, "trying source '${sources[i].name}'")
+            activeIndex = i // set first so the relay accepts callbacks fired during start()
+            if (sources[i].start(Relay(i))) {
+                Log.d(TAG_FALLBACK, "source '${sources[i].name}' started")
+                return true
+            }
+            Log.w(TAG_FALLBACK, "source '${sources[i].name}' refused to start")
+            sources[i].stop()
+        }
+        activeIndex = -1
+        Log.e(TAG_FALLBACK, "no motion source could start")
+        return false
+    }
 
-        if (mag < cfg.zuptAccelThreshold) restSec += dt else restSec = 0f
-        if (mag < cfg.accelNoiseGate) { ax = 0f; ay = 0f }
+    private fun failOver(failedIndex: Int, reason: String) {
+        Log.e(TAG_FALLBACK, "source '${sources[failedIndex].name}' failed: $reason")
+        val (sink, started) = synchronized(lock) {
+            if (failedIndex != activeIndex) return
+            val s = downstream ?: return
+            sources[failedIndex].stop()
+            s to startFrom(failedIndex + 1)
+        }
+        if (started) {
+            Log.w(TAG_FALLBACK, "switched to source '${name}'")
+            sink.onSourceChanged(name)
+        } else {
+            Log.e(TAG_FALLBACK, "all motion sources failed")
+            sink.onFailure(reason)
+        }
+    }
 
-        vx += ax * dt
-        vy += ay * dt
-        val leak = exp(-cfg.velocityLeakPerSec * dt)
-        vx *= leak
-        vy *= leak
-        if (restSec >= cfg.zuptHoldMs / 1000f) { vx = 0f; vy = 0f }
+    private inner class Relay(private val index: Int) : MotionSink {
+        override fun onPosition(position: Point2, timestampNs: Long) {
+            if (index == activeIndex) downstream?.onPosition(position, timestampNs)
+        }
 
-        px += vx * dt
-        py += vy * dt
-        return Point2(px, py)
+        override fun onFailure(reason: String) = failOver(index, reason)
     }
 }
 
@@ -168,8 +190,8 @@ class LinearAccelMotionSource(private val cfg: TrajectoryConfig) : MotionSource 
 
 /**
  * Verify mode: arc-length resample both polylines to N points, mean ordered point distance,
- * normalised by target extent. Start is anchored (tracked starts at target.start) so there is no
- * translation normalisation; scale comes only from config.scaleX/Y. Direction/start corner strict.
+ * normalised by target extent. The tracked path starts at target.start so there is no translation
+ * normalisation; scale comes only from the sources' scaleX/Y. Start corner and direction are strict.
  */
 class PathMatcher(private val cfg: TrajectoryConfig) {
 
@@ -229,25 +251,25 @@ private fun dist(a: Point2, b: Point2) = hypot(a.x - b.x, a.y - b.y)
 /* ───────────────────────────── Tracker ───────────────────────────── */
 
 /**
- * Thin Android wrapper: owns the listener, decimates to emitHz, publishes snapshots.
- * Sensor callbacks arrive on the main thread (no Handler passed), so the StateFlow is updated there.
+ * Owns a MotionSource, decimates its positions to emitHz, publishes snapshots, verifies on stop.
  *
- * Config is read at construction; to retune, build a new tracker (or a new source/matcher).
+ * Threading: sources may call in from their own threads (ARCore worker, main-thread sensor
+ * callbacks), so all state is guarded by [lock]. Source start/stop are always called OUTSIDE the
+ * lock (a source's stop() may join a thread that is blocked waiting for this lock).
  */
 class TrajectoryTracker(
-    private val sensorManager: SensorManager,
+    private val source: MotionSource,
     private val targets: Map<String, TargetPath> = TargetPaths.defaults,
     initialTargetId: String = targets.keys.first(),
     val config: TrajectoryConfig = TrajectoryConfig(),
-    private val source: MotionSource = LinearAccelMotionSource(config),
     private val matcher: PathMatcher = PathMatcher(config),
-    private val samplingPeriodUs: Int = SensorManager.SENSOR_DELAY_GAME,
-    private val onStop: (MatchResult) -> Unit,
-    private val onMatched: () -> Unit
-) : SensorEventListener {
+    private var onTrackingStopped: (MatchResult) -> Unit,
+    private var onMatch: () -> Unit
+) : MotionSink {
 
     init { require(initialTargetId in targets) { "Unknown target '$initialTargetId'" } }
 
+    private val lock = Any()
     private val emitIntervalNs = (1_000_000_000.0 / config.emitHz).toLong()
 
     private var target: TargetPath = targets.getValue(initialTargetId)
@@ -255,80 +277,132 @@ class TrajectoryTracker(
     private var latestRel = Point2(0f, 0f)
     private var lastEmitNs = 0L
     private var tracking = false
+    private var error: String? = null
 
-    private val _snapshot = MutableStateFlow(buildSnapshot())
+    private val _snapshot = MutableStateFlow(snapshotLocked())
     val snapshot: StateFlow<TrajectorySnapshot> = _snapshot.asStateFlow()
 
     val targetIds: Set<String> get() = targets.keys
-    val currentTargetId: String get() = target.id
+    val currentTargetId: String get() = synchronized(lock) { target.id }
 
     /** Choose which path we verify against. Clears the current trajectory. */
     fun selectTarget(id: String) {
         require(id in targets) { "Unknown target '$id'" }
-        target = targets.getValue(id)
-        reset()
+        Log.d(TAG, "selectTarget: $id")
+        synchronized(lock) {
+            target = targets.getValue(id)
+            resetLocked()
+        }
+        source.resetOrigin()
     }
 
     /**
-     * Resets the trajectory and starts listening. Returns false if the sensor is missing
-     * or registration failed (caller should fall back, like SwipeGate in the shake task).
+     * Resets the trajectory and starts the source chain. Returns false if no source could start
+     * (caller should fall back, like SwipeGate in the shake task). Note that true does not mean
+     * the first source survives: the chain can still fail over asynchronously (see sourceName).
      */
     fun startTracking(): Boolean {
-        if (tracking) return true
-        val sensor = sensorManager.getDefaultSensor(source.sensorType) ?: return false
-        reset()
-        tracking = sensorManager.registerListener(this, sensor, samplingPeriodUs)
-        publish()
-        return tracking
+        synchronized(lock) {
+            if (tracking) return true
+            error = null
+            resetLocked()
+            tracking = true
+            publishLocked()
+        }
+        Log.d(TAG, "startTracking: source='${source.name}'")
+        val ok = source.start(this)
+        if (!ok) {
+            Log.e(TAG, "startTracking failed: no usable motion source")
+            synchronized(lock) {
+                tracking = false
+                error = "No usable motion source"
+                publishLocked()
+            }
+        }
+        return ok
     }
 
-    /** Stops listening, appends the final position, and verifies against the current target. */
+    /** Stops the source, appends the final position, and verifies against the current target. */
     fun stopTracking(): MatchResult {
-        if (tracking) {
-            sensorManager.unregisterListener(this)
+        val wasTracking = synchronized(lock) {
+            val w = tracking
             tracking = false
-            val last = toPathUnits(latestRel)
-            if (last != tracked.last()) tracked = tracked + last
-            publish()
+            w
         }
-        val res = matcher.verify(tracked, target)
-        onStop(res)
-        if (res.passed) onMatched()
-        return res
+        if (wasTracking) source.stop()
+        val result = synchronized(lock) {
+            if (wasTracking) {
+                val last = toPathUnits(latestRel)
+                if (last != tracked.last()) tracked = tracked + last
+            }
+            publishLocked()
+            matcher.verify(tracked, target)
+        }
+        onTrackingStopped(result)
+        if (result.passed) {
+            Log.d(TAG, "match passed; invoking onMatch()")
+            onMatch()
+        }
+        Log.d(
+            TAG,
+            "stopTracking: wasTracking=$wasTracking target=${result.targetId} " +
+                    "score=${result.score} passed=${result.passed}"
+        )
+        return result
     }
 
     /** Discards the tracked path; position restarts at target.start. Safe while tracking. */
     fun reset() {
-        source.reset()
+        Log.d(TAG, "reset")
+        synchronized(lock) { resetLocked() }
+        source.resetOrigin()
+    }
+
+    /* ── MotionSink ── */
+
+    override fun onPosition(position: Point2, timestampNs: Long) {
+        synchronized(lock) {
+            if (!tracking) return@synchronized
+            latestRel = position
+            if (lastEmitNs == 0L) { lastEmitNs = timestampNs; return@synchronized }
+            if (timestampNs - lastEmitNs < emitIntervalNs) return@synchronized
+            lastEmitNs = timestampNs
+            tracked = tracked + toPathUnits(position)
+            publishLocked()
+        }
+    }
+
+    override fun onFailure(reason: String) {
+        Log.e(TAG, "motion source failed: $reason")
+        synchronized(lock) {
+            tracking = false
+            error = reason
+            publishLocked()
+        }
+    }
+
+    override fun onSourceChanged(name: String) {
+        // Different coordinate system / origin: start the trajectory over.
+        Log.w(TAG, "motion source changed to '$name'; resetting trajectory")
+        synchronized(lock) { resetLocked() }
+    }
+
+    /* ── internals (lock held) ── */
+
+    private fun resetLocked() {
         latestRel = Point2(0f, 0f)
         lastEmitNs = 0L
         tracked = listOf(target.start)
-        publish()
-    }
-
-    override fun onSensorChanged(e: SensorEvent) {
-        if (!tracking) return
-        onSample(e.values, e.timestamp) // e.values is reused by the framework; not retained
-    }
-
-    override fun onAccuracyChanged(s: Sensor?, a: Int) {}
-
-    /** Separated from onSensorChanged so tests can feed samples without a SensorEvent. */
-    internal fun onSample(values: FloatArray, timestampNs: Long) {
-        latestRel = source.onSample(values, timestampNs)
-        if (lastEmitNs == 0L) { lastEmitNs = timestampNs; return }
-        if (timestampNs - lastEmitNs < emitIntervalNs) return
-        lastEmitNs = timestampNs
-        tracked = tracked + toPathUnits(latestRel)
-        publish()
+        publishLocked()
     }
 
     private fun toPathUnits(rel: Point2) = Point2(
-        target.start.x + rel.x * config.scaleX,
-        target.start.y + rel.y * config.scaleY
+        target.start.x + rel.x * source.scaleX,
+        target.start.y + rel.y * source.scaleY
     )
 
-    private fun buildSnapshot() = TrajectorySnapshot(target.id, target.points, tracked, tracking)
+    private fun snapshotLocked() =
+        TrajectorySnapshot(target.id, target.points, tracked, tracking, source.name, error)
 
-    private fun publish() { _snapshot.value = buildSnapshot() }
+    private fun publishLocked() { _snapshot.value = snapshotLocked() }
 }

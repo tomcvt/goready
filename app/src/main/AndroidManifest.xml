@@ -91,6 +91,7 @@
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
             android:value="ca-app-pub-2368240680208387~1582673117"/>
+        <meta-data android:name="com.google.ar.core" android:value="optional" />
     </application>
 
 
