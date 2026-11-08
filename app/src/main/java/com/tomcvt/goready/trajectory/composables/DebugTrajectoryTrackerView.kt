@@ -1,5 +1,8 @@
 package com.tomcvt.goready.trajectory.composables
 
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import android.hardware.SensorManager
 import android.util.Log
 import androidx.activity.compose.BackHandler
@@ -43,11 +46,16 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.LifecycleOwner
 import com.tomcvt.goready.trajectory.ArCoreMotionSource
+import com.tomcvt.goready.trajectory.ArCoreSupport
 import com.tomcvt.goready.trajectory.MatchResult
 import com.tomcvt.goready.trajectory.TargetPaths
 import com.tomcvt.goready.trajectory.TiltMotionSource
 import com.tomcvt.goready.trajectory.TrajectoryTracker
+import kotlinx.coroutines.delay
 import java.util.Locale
 
 private const val TAG = "DebugTrajectoryTracker"
@@ -106,6 +114,35 @@ fun DebugTrajectoryTrackerView(
     }
     val targetIds = remember(tracker) { tracker.targetIds.toList() }
     val snapshot by tracker.snapshot.collectAsState()
+
+    val activity = remember(context) { context.findActivity() }
+    var arStatus by remember { mutableStateOf(ArCoreSupport.Status.UNKNOWN) }
+
+    // The very first checkAvailability() can return UNKNOWN_CHECKING; poll briefly until resolved.
+    LaunchedEffect(selectedSource) {
+        if (selectedSource != DebugMotionSource.ARCORE) return@LaunchedEffect
+        repeat(5) {
+            arStatus = ArCoreSupport.status(context)
+            if (arStatus != ArCoreSupport.Status.UNKNOWN) return@LaunchedEffect
+            delay(250)
+        }
+    }
+
+    // Refresh after returning from the Play Store install/update flow.
+    DisposableEffect(activity) {
+        val owner = activity as? LifecycleOwner
+        if (owner == null) {
+            onDispose { }
+        } else {
+            val observer = LifecycleEventObserver { _, event ->
+                if (event == Lifecycle.Event.ON_RESUME) {
+                    arStatus = ArCoreSupport.status(context)
+                }
+            }
+            owner.lifecycle.addObserver(observer)
+            onDispose { owner.lifecycle.removeObserver(observer) }
+        }
+    }
 
     LaunchedEffect(snapshot.error) {
         snapshot.error?.let { Log.e(TAG, "tracker error: $it") }
@@ -235,6 +272,33 @@ fun DebugTrajectoryTrackerView(
                 )
             }
 
+            if (selectedSource == DebugMotionSource.ARCORE) {
+                ArCoreStatusRow(
+                    status = arStatus,
+                    tracking = snapshot.isTracking,
+                    onRequestInstall = {
+                        Log.d(TAG, "requesting ARCore install (status=$arStatus)")
+                        val target = activity
+                        if (target == null) {
+                            Log.e(TAG, "cannot request ARCore install: no Activity in context")
+                        } else {
+                            val installed = ArCoreSupport.requestInstall(target)
+                            Log.d(TAG, "requestInstall returned installed=$installed")
+                        }
+                        arStatus = ArCoreSupport.status(context)
+                    },
+                    onRecheck = {
+                        Log.d(TAG, "re-checking ARCore availability")
+                        arStatus = ArCoreSupport.status(context)
+                    },
+                    onUseTilt = {
+                        Log.d(TAG, "ARCore unsupported; switching to tilt")
+                        selectedSource = DebugMotionSource.TILT
+                        matchResult = null
+                    }
+                )
+            }
+
             snapshot.error?.let { error ->
                 Text(
                     text = "Error: $error",
@@ -333,6 +397,67 @@ fun DebugTrajectoryTrackerView(
             }
         )
     }
+}
+
+@Composable
+private fun ArCoreStatusRow(
+    status: ArCoreSupport.Status,
+    tracking: Boolean,
+    onRequestInstall: () -> Unit,
+    onRecheck: () -> Unit,
+    onUseTilt: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = when (status) {
+                ArCoreSupport.Status.READY -> "ARCore: ready"
+                ArCoreSupport.Status.NEEDS_INSTALL -> "ARCore: not installed"
+                ArCoreSupport.Status.NEEDS_UPDATE -> "ARCore: update required"
+                ArCoreSupport.Status.UNSUPPORTED -> "ARCore: unsupported on this device"
+                ArCoreSupport.Status.UNKNOWN -> "ARCore: checking…"
+            },
+            modifier = Modifier.weight(1f),
+            style = MaterialTheme.typography.bodySmall,
+            color = if (status == ArCoreSupport.Status.READY) {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            } else {
+                MaterialTheme.colorScheme.error
+            }
+        )
+
+        when {
+            status.installable -> TextButton(
+                onClick = onRequestInstall,
+                enabled = !tracking
+            ) {
+                Text(
+                    if (status == ArCoreSupport.Status.NEEDS_UPDATE) "Update ARCore"
+                    else "Install ARCore"
+                )
+            }
+
+            status == ArCoreSupport.Status.UNKNOWN -> TextButton(onClick = onRecheck) {
+                Text("Re-check")
+            }
+
+            status == ArCoreSupport.Status.UNSUPPORTED -> TextButton(
+                onClick = onUseTilt,
+                enabled = !tracking
+            ) {
+                Text("Use tilt")
+            }
+        }
+    }
+}
+
+private tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
 }
 
 private fun formatScore(score: Float): String =

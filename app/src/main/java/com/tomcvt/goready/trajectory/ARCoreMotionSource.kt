@@ -1,6 +1,7 @@
 package com.tomcvt.goready.trajectory
 
 import android.Manifest
+import android.app.Activity
 import android.content.Context
 import android.content.pm.PackageManager
 import android.hardware.SensorManager
@@ -45,6 +46,20 @@ object ArCoreSupport {
     private const val TAG = "ArCoreSupport"
 
     /**
+     * What the device can do right now. ARCore itself (Google Play Services for AR) is a separate
+     * APK, so "not installed" is a recoverable state that needs a Play Store install flow.
+     */
+    enum class Status(val installable: Boolean) {
+        READY(false),
+        NEEDS_INSTALL(true),
+        NEEDS_UPDATE(true),
+        /** Hardware cannot run ARCore; installing anything will not help. */
+        UNSUPPORTED(false),
+        /** Transient UNKNOWN_CHECKING / UNKNOWN_ERROR / UNKNOWN_TIMED_OUT; check again shortly. */
+        UNKNOWN(false)
+    }
+
+    /**
      * Call once early (e.g. Application.onCreate). The first checkAvailability() can return a
      * transient UNKNOWN_CHECKING while it queries; later calls hit the cached answer.
      */
@@ -53,12 +68,52 @@ object ArCoreSupport {
     }
 
     /** Supported device AND Google Play Services for AR installed and up to date. */
-    fun isReady(context: Context): Boolean {
+    fun status(context: Context): Status {
         val availability = ArCoreApk.getInstance().checkAvailability(context.applicationContext)
-        if (availability != ArCoreApk.Availability.SUPPORTED_INSTALLED) {
-            Log.w(TAG, "ARCore not ready: availability=$availability")
+        val status = when (availability) {
+            ArCoreApk.Availability.SUPPORTED_INSTALLED -> Status.READY
+            ArCoreApk.Availability.SUPPORTED_NOT_INSTALLED -> Status.NEEDS_INSTALL
+            ArCoreApk.Availability.SUPPORTED_APK_TOO_OLD -> Status.NEEDS_UPDATE
+            ArCoreApk.Availability.UNSUPPORTED_DEVICE_NOT_CAPABLE -> Status.UNSUPPORTED
+            else -> Status.UNKNOWN
         }
-        return availability == ArCoreApk.Availability.SUPPORTED_INSTALLED
+        if (status != Status.READY) {
+            Log.w(TAG, "ARCore not ready: availability=$availability -> $status")
+        }
+        return status
+    }
+
+    fun isReady(context: Context): Boolean = status(context) == Status.READY
+
+    /**
+     * Starts the Play Store install/update flow for Google Play Services for AR.
+     *
+     * Must be called from a resumed [Activity], in response to a user action. The flow is
+     * asynchronous: INSTALL_REQUESTED means the Play Store UI was opened and the caller should
+     * re-check [status] when the activity resumes.
+     *
+     * @return true if ARCore was already installed, false if the flow was started or failed.
+     */
+    fun requestInstall(activity: Activity): Boolean {
+        return try {
+            when (val result = ArCoreApk.getInstance().requestInstall(activity, true)) {
+                ArCoreApk.InstallStatus.INSTALLED -> {
+                    Log.d(TAG, "requestInstall: ARCore already installed")
+                    true
+                }
+                ArCoreApk.InstallStatus.INSTALL_REQUESTED -> {
+                    Log.d(TAG, "requestInstall: Play Store install flow started")
+                    false
+                }
+                else -> {
+                    Log.w(TAG, "requestInstall: unexpected result $result")
+                    false
+                }
+            }
+        } catch (t: Throwable) {
+            Log.e(TAG, "requestInstall failed", t)
+            false
+        }
     }
 }
 
@@ -98,8 +153,9 @@ class ArCoreMotionSource(
             Log.e(TAG, "start failed: CAMERA permission not granted")
             return false
         }
-        if (!ArCoreSupport.isReady(appContext)) {
-            Log.e(TAG, "start failed: ARCore is not supported/installed")
+        val arStatus = ArCoreSupport.status(appContext)
+        if (arStatus != ArCoreSupport.Status.READY) {
+            Log.e(TAG, "start failed: ARCore status=$arStatus")
             return false
         }
 
