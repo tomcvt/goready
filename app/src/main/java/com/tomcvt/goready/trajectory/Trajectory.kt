@@ -241,7 +241,9 @@ class TrajectoryTracker(
     val config: TrajectoryConfig = TrajectoryConfig(),
     private val source: MotionSource = LinearAccelMotionSource(config),
     private val matcher: PathMatcher = PathMatcher(config),
-    private val samplingPeriodUs: Int = SensorManager.SENSOR_DELAY_GAME
+    private val samplingPeriodUs: Int = SensorManager.SENSOR_DELAY_GAME,
+    private val onStop: (MatchResult) -> Unit,
+    private val onMatched: () -> Unit
 ) : SensorEventListener {
 
     init { require(initialTargetId in targets) { "Unknown target '$initialTargetId'" } }
@@ -289,7 +291,10 @@ class TrajectoryTracker(
             if (last != tracked.last()) tracked = tracked + last
             publish()
         }
-        return matcher.verify(tracked, target)
+        val res = matcher.verify(tracked, target)
+        onStop(res)
+        if (res.passed) onMatched()
+        return res
     }
 
     /** Discards the tracked path; position restarts at target.start. Safe while tracking. */

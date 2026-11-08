@@ -64,6 +64,7 @@ import com.tomcvt.goready.domain.PermissionSpec
 import com.tomcvt.goready.registries.getPermissionRegistryForSdk
 import com.tomcvt.goready.scanner.DebugScanView
 import com.tomcvt.goready.scanner.SaveBarcodeScreen
+import com.tomcvt.goready.trajectory.composables.DebugTrajectoryTrackerView
 import com.tomcvt.goready.viewmodel.AlarmViewModel
 import com.tomcvt.goready.viewmodel.SettingsViewModel
 
@@ -265,6 +266,7 @@ fun SettingsDebugMenu(
     var showBleScenarios by remember { mutableStateOf(false) }
     var showBarcodeScanner by remember { mutableStateOf(false) }
     var showSaveBarcode by remember { mutableStateOf(false) }
+    var showTrajectoryTracker by remember { mutableStateOf(false) }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -305,6 +307,12 @@ fun SettingsDebugMenu(
                             description = "Test the single barcode capture screen"
                         ) { showSaveBarcode = true }
                     }
+                    item {
+                        DebugMenuRow(
+                            title = "Trajectory Tracker",
+                            description = "Track a gesture and verify it against a target path"
+                        ) { showTrajectoryTracker = true }
+                    }
                 }
             }
         }
@@ -339,6 +347,18 @@ fun SettingsDebugMenu(
             SaveBarcodeScreen(
                 onSaved = { showSaveBarcode = false },
                 onDismissed = { showSaveBarcode = false }
+            )
+        }
+    }
+
+    if (showTrajectoryTracker) {
+        Dialog(
+            onDismissRequest = { showTrajectoryTracker = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            BackHandler { showTrajectoryTracker = false }
+            DebugTrajectoryTrackerView(
+                onDismiss = { showTrajectoryTracker = false }
             )
         }
     }
