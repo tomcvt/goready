@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -70,7 +71,8 @@ private enum class DebugMotionSource(val label: String) {
  *
  * Top: target path selector, motion source selector and close button.
  * Middle: live [TrajectoryTrackerSnapshotRenderBox].
- * Bottom: start/stop toggle plus a reset button. Stopping tracking opens a dialog
+ * Bottom: start/stop toggle, reset button and an options menu ("Logs" opens the recorded
+ * position samples of the current or most recent session). Stopping tracking opens a dialog
  * with the [MatchResult] returned by the matcher.
  *
  * Runtime failures are logged under the tags "DebugTrajectoryTracker",
@@ -90,6 +92,8 @@ fun DebugTrajectoryTrackerView(
     var matchResult by remember { mutableStateOf<MatchResult?>(null) }
     var targetMenuExpanded by remember { mutableStateOf(false) }
     var sourceMenuExpanded by remember { mutableStateOf(false) }
+    var optionsMenuExpanded by remember { mutableStateOf(false) }
+    var showLogs by remember { mutableStateOf(false) }
 
     // The tracker owns its source, so switching the source recreates both.
     val motionSource = remember(selectedSource) {
@@ -114,6 +118,7 @@ fun DebugTrajectoryTrackerView(
     }
     val targetIds = remember(tracker) { tracker.targetIds.toList() }
     val snapshot by tracker.snapshot.collectAsState()
+    val sessionLog by tracker.sessionLog.collectAsState()
 
     val activity = remember(context) { context.findActivity() }
     var arStatus by remember { mutableStateOf(ArCoreSupport.Status.UNKNOWN) }
@@ -157,6 +162,15 @@ fun DebugTrajectoryTrackerView(
             // but the source may still hold a sensor listener / ARCore worker.
             motionSource.stop()
         }
+    }
+
+    if (showLogs) {
+        TrajectorySessionLogsView(
+            log = sessionLog,
+            onDismiss = { showLogs = false },
+            modifier = modifier
+        )
+        return
     }
 
     BackHandler(onBack = onDismiss)
@@ -370,6 +384,37 @@ fun DebugTrajectoryTrackerView(
                         contentDescription = "Reset trajectory",
                         tint = MaterialTheme.colorScheme.onSecondaryContainer
                     )
+                }
+
+                Box {
+                    IconButton(
+                        onClick = { optionsMenuExpanded = true },
+                        modifier = Modifier
+                            .size(56.dp)
+                            .background(
+                                color = MaterialTheme.colorScheme.secondaryContainer,
+                                shape = RoundedCornerShape(8.dp)
+                            )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.MoreVert,
+                            contentDescription = "Options",
+                            tint = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = optionsMenuExpanded,
+                        onDismissRequest = { optionsMenuExpanded = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Logs") },
+                            onClick = {
+                                Log.d(TAG, "options -> logs")
+                                optionsMenuExpanded = false
+                                showLogs = true
+                            }
+                        )
+                    }
                 }
             }
         }

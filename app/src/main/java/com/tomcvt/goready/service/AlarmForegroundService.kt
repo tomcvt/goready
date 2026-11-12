@@ -297,7 +297,11 @@ class AlarmForegroundService : Service() {
     override fun onDestroy() {
         mediaPlayer?.stop()
         mediaPlayer?.release()
-        serviceScope.cancel()
+        try {
+            serviceScope.cancel()
+        } catch (e: Exception) {
+            Log.d(TAG, "onDestroy: nothing to cancel: $e")
+        }
         isActive = false
         ble.closeNotifications()
         super.onDestroy()

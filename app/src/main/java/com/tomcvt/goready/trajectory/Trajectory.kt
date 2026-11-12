@@ -61,6 +61,27 @@ data class TrajectorySnapshot(
     val current: Point2 get() = trackedPoints.last()
 }
 
+/** One recorded position sample from a tracking session. */
+data class PositionRecord(
+    /** Source timestamp in nanoseconds, or 0 for the synthetic session-start sample. */
+    val timestampNs: Long,
+    /** Position relative to the source origin, in source-native units. */
+    val rel: Point2,
+    /** The same position converted into target path units. */
+    val path: Point2
+)
+
+/**
+ * Position samples of the current or most recently finished tracking session.
+ * While [isTracking] is true the list grows live; after stopping it is kept as the last session.
+ */
+data class TrajectorySessionLog(
+    val targetId: String,
+    val sourceName: String,
+    val isTracking: Boolean,
+    val records: List<PositionRecord>
+)
+
 /** score = mean ordered point distance / target extent. Lower is better. */
 data class MatchResult(
     val targetId: String,
@@ -275,12 +296,20 @@ class TrajectoryTracker(
     private var target: TargetPath = targets.getValue(initialTargetId)
     private var tracked: List<Point2> = listOf(target.start)
     private var latestRel = Point2(0f, 0f)
+    private var latestNs = 0L
     private var lastEmitNs = 0L
     private var tracking = false
     private var error: String? = null
 
+    private var sessionRecords: List<PositionRecord> = emptyList()
+
     private val _snapshot = MutableStateFlow(snapshotLocked())
     val snapshot: StateFlow<TrajectorySnapshot> = _snapshot.asStateFlow()
+
+    private val _sessionLog = MutableStateFlow(
+        TrajectorySessionLog(target.id, source.name, false, emptyList())
+    )
+    val sessionLog: StateFlow<TrajectorySessionLog> = _sessionLog.asStateFlow()
 
     val targetIds: Set<String> get() = targets.keys
     val currentTargetId: String get() = synchronized(lock) { target.id }
@@ -302,12 +331,15 @@ class TrajectoryTracker(
      * the first source survives: the chain can still fail over asynchronously (see sourceName).
      */
     fun startTracking(): Boolean {
-        synchronized(lock) {
+        val previousLog = synchronized(lock) {
             if (tracking) return true
+            val previous = _sessionLog.value
             error = null
             resetLocked()
             tracking = true
+            startSessionLogLocked()
             publishLocked()
+            previous
         }
         Log.d(TAG, "startTracking: source='${source.name}'")
         val ok = source.start(this)
@@ -316,6 +348,12 @@ class TrajectoryTracker(
             synchronized(lock) {
                 tracking = false
                 error = "No usable motion source"
+                // Keep the previous session visible when this one never really started.
+                if (previousLog.records.isNotEmpty()) {
+                    _sessionLog.value = previousLog.copy(isTracking = false)
+                } else {
+                    publishSessionLogLocked()
+                }
                 publishLocked()
             }
         }
@@ -334,7 +372,9 @@ class TrajectoryTracker(
             if (wasTracking) {
                 val last = toPathUnits(latestRel)
                 if (last != tracked.last()) tracked = tracked + last
+                appendRecordLocked(latestNs, latestRel)
             }
+            publishSessionLogLocked()
             publishLocked()
             matcher.verify(tracked, target)
         }
@@ -364,10 +404,24 @@ class TrajectoryTracker(
         synchronized(lock) {
             if (!tracking) return@synchronized
             latestRel = position
-            if (lastEmitNs == 0L) { lastEmitNs = timestampNs; return@synchronized }
+            latestNs = timestampNs
+            if (lastEmitNs == 0L) {
+                lastEmitNs = timestampNs
+                // Give the synthetic start sample the source clock so the log's relative
+                // timestamps do not start at an arbitrary epoch offset.
+                if (sessionRecords.size == 1 && sessionRecords.first().timestampNs == 0L) {
+                    sessionRecords = listOf(
+                        sessionRecords.first().copy(timestampNs = timestampNs)
+                    )
+                    publishSessionLogLocked()
+                }
+                appendRecordLocked(timestampNs, position)
+                return@synchronized
+            }
             if (timestampNs - lastEmitNs < emitIntervalNs) return@synchronized
             lastEmitNs = timestampNs
             tracked = tracked + toPathUnits(position)
+            appendRecordLocked(timestampNs, position)
             publishLocked()
         }
     }
@@ -377,6 +431,7 @@ class TrajectoryTracker(
         synchronized(lock) {
             tracking = false
             error = reason
+            publishSessionLogLocked()
             publishLocked()
         }
     }
@@ -391,9 +446,34 @@ class TrajectoryTracker(
 
     private fun resetLocked() {
         latestRel = Point2(0f, 0f)
+        latestNs = 0L
         lastEmitNs = 0L
         tracked = listOf(target.start)
+        if (tracking) startSessionLogLocked()
         publishLocked()
+    }
+
+    /** Starts a fresh recording; [PositionRecord.timestampNs] 0 marks the synthetic start. */
+    private fun startSessionLogLocked() {
+        sessionRecords = listOf(PositionRecord(0L, Point2(0f, 0f), target.start))
+        publishSessionLogLocked()
+    }
+
+    /** Appends a sample, skipping consecutive duplicates (e.g. the stop position). */
+    private fun appendRecordLocked(timestampNs: Long, rel: Point2) {
+        val pathPoint = toPathUnits(rel)
+        if (sessionRecords.lastOrNull()?.path == pathPoint) return
+        sessionRecords = sessionRecords + PositionRecord(timestampNs, rel, pathPoint)
+        publishSessionLogLocked()
+    }
+
+    private fun publishSessionLogLocked() {
+        _sessionLog.value = TrajectorySessionLog(
+            targetId = target.id,
+            sourceName = source.name,
+            isTracking = tracking,
+            records = sessionRecords
+        )
     }
 
     private fun toPathUnits(rel: Point2) = Point2(

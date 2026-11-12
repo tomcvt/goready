@@ -21,8 +21,10 @@ import kotlin.math.max
  *  - the tracked trajectory in green,
  *  - a dot at the target start and at the current tracked position.
  *
- * Path units are mapped to pixels so that the union of both trajectories fits the canvas,
- * preserving aspect ratio and leaving [padding] free space around it.
+ * The target trajectory is the source of truth: the camera/bounds are derived from the target
+ * points only, so the target never moves or rescales while the tracked path grows. Tracked points
+ * are mapped with the same transform, which keeps the follow start anchored at the target start.
+ * Path units are mapped to pixels preserving aspect ratio, leaving [padding] free space around it.
  */
 @Composable
 fun TrajectoryTrackerSnapshotRenderBox(
@@ -39,7 +41,9 @@ fun TrajectoryTrackerSnapshotRenderBox(
         val tracked = snapshot.trackedPoints.filterFinite()
         if (target.isEmpty() && tracked.isEmpty()) return@Canvas
 
-        val bounds = pathBounds(target + tracked) ?: return@Canvas
+        // The target defines the viewport. Only fall back to the tracked points when a snapshot
+        // has no usable target at all, otherwise the view would drift as the tracked path grows.
+        val bounds = pathBounds(target.ifEmpty { tracked }) ?: return@Canvas
         val extent = max(bounds.width, bounds.height).coerceAtLeast(1e-6f)
 
         val paddingPx = padding.toPx()
@@ -55,7 +59,7 @@ fun TrajectoryTrackerSnapshotRenderBox(
         )
 
         // Target path, always underneath the tracked one.
-        target.toPath()?.let { path ->
+        target.map { it.toCanvas() }.toPath()?.let { path ->
             drawPath(
                 path = path,
                 color = targetColor,
@@ -67,8 +71,8 @@ fun TrajectoryTrackerSnapshotRenderBox(
             )
         }
 
-        // Tracked path.
-        tracked.toPath()?.let { path ->
+        // Tracked path, in the same target-anchored coordinate frame.
+        tracked.map { it.toCanvas() }.toPath()?.let { path ->
             drawPath(
                 path = path,
                 color = trackedColor,
@@ -120,7 +124,7 @@ private fun pathBounds(points: List<Point2>): Bounds? {
 private fun List<Point2>.filterFinite(): List<Point2> =
     filter { it.x.isFinite() && it.y.isFinite() }
 
-private fun List<Point2>.toPath(): Path? {
+private fun List<Offset>.toPath(): Path? {
     if (isEmpty()) return null
     val path = Path()
     val first = first()
